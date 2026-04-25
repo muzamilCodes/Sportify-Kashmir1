@@ -1,0 +1,6 @@
+- [x] Modify signup page to redirect to home page after account creation
+- [x] Update success toast message
+- [x] Integrate frontend with backend for real products (no demo data)
+- [x] Update API calls to fetch products from backend
+- [x] Ensure only admin-added products are displayed
+- [x] Test the integration
