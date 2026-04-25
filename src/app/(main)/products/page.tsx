@@ -1,5 +1,5 @@
 "use client";
-
+import { useRouter } from "next/navigation";
 import { Suspense } from "react";
 import { Filter, Grid, List, Search, ChevronDown, Heart, ShoppingCart, Eye, Star, X, SlidersHorizontal } from "lucide-react";
 import Link from "next/link";
@@ -30,6 +30,7 @@ interface Category {
 // Inner component that uses useSearchParams
 function ProductsContent() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const categoryParam = searchParams.get("category");
 
   const [products, setProducts] = useState<Product[]>([]);
