@@ -35,39 +35,22 @@ exports.register = async (req, res) => {
       });
     }
 
-    // OTP generate
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-
     const hashedPassword = await bcrypt.hash(password, 12);
 
+    // ✅ OTP ke bina register (simple)
     const newUser = await User.create({
       username: username.trim(),
       email: email.trim().toLowerCase(),
       mobile: cleanMobile,
       password: hashedPassword,
-      otp,
-      otpExpiry: new Date(Date.now() + 10 * 60 * 1000),
-      isVerified: false,
+      otp: null,
+      otpExpiry: null,
+      isVerified: true,
     });
-
-    // 🔥 EMAIL SEND (SAFE - NO CRASH)
-    try {
-      await sendEmail(
-        email,
-        "Your OTP Verification Code",
-        `<h2>Your OTP is ${otp}</h2>
-   <p>Valid for 10 minutes.</p>
-   <p><strong>⚠️ If you don't see the email in your inbox, please check your Spam/Junk folder in your email client.</strong></p>`
-      );
-      console.log("OTP sent:", otp);
-    } catch (emailError) {
-      console.log("EMAIL ERROR (ignored):", emailError.message);
-      // ❗ IMPORTANT: user create still success
-    }
 
     return res.status(200).json({
       success: true,
-      message: "OTP sent successfully",
+      message: "Registered successfully",
       email: newUser.email,
     });
 
@@ -94,13 +77,7 @@ exports.login = async (req, res) => {
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(401).json({ success: false, message: "Invalid credentials" });
 
-    // 🔥 FIX: OTP verification check
-    if (!user.isVerified) {
-      return res.status(401).json({
-        success: false,
-        message: "Please verify OTP first"
-      });
-    }
+
 
     const token = jwt.sign(
       { userId: user._id, email: user.email },
