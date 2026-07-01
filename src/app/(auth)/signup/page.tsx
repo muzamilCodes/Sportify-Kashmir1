@@ -6,7 +6,7 @@ import Link from "next/link";
 import { Eye, EyeOff, User, Mail, Phone, Lock, Sparkles, ArrowRight } from "lucide-react";
 import toast from "react-hot-toast";
 
-export default function RegisterPage() {
+export default function SignUpPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
