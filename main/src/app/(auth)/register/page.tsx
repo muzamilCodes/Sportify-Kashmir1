@@ -52,14 +52,13 @@ export default function RegisterPage() {
       const result = await response.json();
 
       if (result.success) {
-        localStorage.setItem("verifyEmail", formData.email.trim().toLowerCase());
-        toast.success("OTP sent successfully! Please verify your email.");
-        setTimeout(() => {
-          router.push("/otp");
-        }, 500);
+        toast.success("Registered successfully!");
+        // OTP flow disable (backend now returns verified user)
+        router.push("/login");
       } else {
         toast.error(result.message || "Registration failed");
       }
+
     } catch (error) {
       console.error(error);
       toast.error("Network error. Please try again.");
