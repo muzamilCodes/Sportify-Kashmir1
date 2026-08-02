@@ -23,11 +23,11 @@ connectDb()
 // body parser
 // app.use(bodyParser.urlencoded({extended :true}))
 
-app.use(bodyParser.json())  // post configure 
+app.use(bodyParser.json())
 app.use(cors({
-    credentials :true,
-    origin :true
-}))     // cors policy unblocked
+    credentials: true,
+    origin: process.env.CLIENT_URL || "http://localhost:3000"
+}));     // cors policy unblocked
 app.use(cookieParser())
 
 
