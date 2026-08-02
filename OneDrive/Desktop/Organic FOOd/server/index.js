@@ -11,7 +11,7 @@ const productRoutes = require ("./routes/productRoutes")
 const orderRoutes = require ("./routes/orderRoutes")
 const addressRoutes = require ("./routes/addressRoutes")
 const cartRoutes = require ("./routes/cartRoutes")
-const contactRoutes = require("./controllers/Contact");
+const contactRoutes = require("./controllers/contact");
 
 const app = express()   // creating an express app
 const port = process.env.PORT
