@@ -13,7 +13,8 @@ import {
   TrendingUp,
   ChevronRight,
   ChevronLeft,
-  ArrowRight
+  ArrowRight,
+  Loader2
 } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -123,6 +124,9 @@ export default function HomePage() {
       if (result.success) {
         if (!token && result.data?._id) localStorage.setItem("cartId", result.data._id);
         toast.success("Added to cart!");
+        
+        // Dispatch event to update cart counter in header
+        window.dispatchEvent(new Event("cartUpdated"));
       } else {
         toast.error(result.message || "Failed to add to cart");
       }
@@ -168,25 +172,32 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
-      <section className="relative bg-gradient-to-r from-orange-600 to-red-600 text-white py-20 overflow-hidden">
-        <div className="absolute inset-0 bg-black/20"></div>
-        <div className="container mx-auto px-4 relative">
-          <div className="text-center max-w-3xl mx-auto">
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4 animate-fade-in">
-              Sportify Kashmir
+      <section className="relative min-h-[80vh] flex items-center justify-center overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-orange-50 via-white to-red-50"></div>
+        <div className="absolute top-20 left-10 w-72 h-72 bg-orange-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-pulse"></div>
+        <div className="absolute bottom-20 right-10 w-96 h-96 bg-red-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-pulse delay-1000"></div>
+        
+        <div className="absolute top-1/4 left-[10%] w-4 h-4 bg-orange-500 rounded-full animate-float"></div>
+        <div className="absolute top-2/3 right-[15%] w-6 h-6 bg-red-500 rounded-full animate-float" style={{ animationDelay: '1s' }}></div>
+        <div className="absolute bottom-1/4 left-[20%] w-3 h-3 bg-yellow-500 rounded-full animate-float" style={{ animationDelay: '2s' }}></div>
+
+        <div className="container mx-auto px-4 relative z-10 py-20">
+          <div className="text-center max-w-4xl mx-auto">
+            <h1 className="text-5xl md:text-7xl font-extrabold mb-6 animate-fade-in-up">
+              <span className="text-gray-900">Elevate Your</span>
+              <br />
+              <span className="bg-gradient-to-r from-orange-500 via-red-500 to-pink-500 bg-clip-text text-transparent">Game in Kashmir</span>
             </h1>
-            <p className="text-xl md:text-2xl mb-6 text-orange-100">
-              Premium Sports Equipment & Gear
+            <p className="text-xl md:text-2xl mb-8 text-gray-600 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
+              Premium Sports Equipment & Gear with Kashmir's fastest delivery. 
+              100% authentic products guaranteed.
             </p>
-            <p className="text-lg mb-8 text-white/80">
-              Kashmir's fastest sports delivery | 100% authentic products | Free shipping above ₹999
-            </p>
-            <div className="flex flex-wrap justify-center gap-4">
-              <Link href="/products" className="bg-white text-orange-600 px-8 py-3 rounded-full font-semibold hover:bg-gray-100 transition shadow-lg">
-                Shop Now
+            <div className="flex flex-wrap justify-center gap-4 animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
+              <Link href="/products" className="bg-gradient-to-r from-orange-500 to-red-500 text-white px-8 py-4 rounded-full font-bold shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+                Shop Collection
               </Link>
-              <Link href="/sale" className="border-2 border-white text-white px-8 py-3 rounded-full font-semibold hover:bg-white/10 transition">
-                View Sale
+              <Link href="/sale" className="bg-white border-2 border-orange-100 text-orange-600 px-8 py-4 rounded-full font-bold hover:border-orange-500 transition-all duration-300">
+                View Sale Deals
               </Link>
             </div>
           </div>
@@ -201,13 +212,15 @@ export default function HomePage() {
         {/* Featured Products Section */}
         {featuredProducts.length > 0 && (
           <section className="mb-16">
-            <div className="flex justify-between items-center mb-8">
+            <div className="flex justify-between items-end mb-10">
               <div>
-                <h2 className="text-2xl md:text-3xl font-bold text-gray-900">Featured Products</h2>
-                <p className="text-gray-600 mt-1">New arrivals & popular picks</p>
+                <h2 className="text-3xl md:text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-gray-900 to-gray-600">
+                  Featured Products
+                </h2>
+                <p className="text-gray-500 mt-2 font-medium">New arrivals & popular picks</p>
               </div>
-              <Link href="/products" className="text-orange-600 hover:text-orange-700 flex items-center gap-1 font-medium">
-                View All <ChevronRight size={18} />
+              <Link href="/products" className="group text-orange-600 hover:text-orange-700 flex items-center gap-1 font-bold transition-all">
+                View All <ChevronRight size={20} className="group-hover:translate-x-1 transition-transform" />
               </Link>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
@@ -235,14 +248,17 @@ export default function HomePage() {
         {/* Sale Section */}
         {saleProducts.length > 0 && (
           <section className="mb-16">
-            <div className="bg-gradient-to-r from-red-50 to-orange-50 rounded-2xl p-6 mb-6">
-              <div className="flex justify-between items-center">
+            <div className="bg-gradient-to-r from-orange-500 via-red-500 to-pink-500 rounded-3xl p-8 mb-10 shadow-xl relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-10 rounded-full blur-3xl -mr-20 -mt-20 group-hover:opacity-20 transition-opacity"></div>
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center relative z-10 gap-4">
                 <div>
-                  <h2 className="text-2xl md:text-3xl font-bold text-gray-900">🔥 Flash Sale</h2>
-                  <p className="text-gray-600 mt-1">Limited time offers up to 50% off</p>
+                  <h2 className="text-3xl md:text-4xl font-extrabold text-white flex items-center gap-2">
+                    <span className="animate-bounce">🔥</span> Flash Sale
+                  </h2>
+                  <p className="text-white/90 mt-2 font-medium text-lg">Limited time offers up to 50% off</p>
                 </div>
-                <Link href="/sale" className="bg-red-600 text-white px-6 py-2 rounded-full font-medium hover:bg-red-700 transition flex items-center gap-1">
-                  View All <ChevronRight size={16} />
+                <Link href="/sale" className="bg-white text-red-600 px-8 py-3 rounded-full font-bold hover:bg-gray-50 hover:shadow-lg transition flex items-center gap-1 hover-lift">
+                  View All Deals <ChevronRight size={18} />
                 </Link>
               </div>
             </div>
@@ -270,12 +286,16 @@ export default function HomePage() {
 
         {/* All Products Section */}
         <section>
-          <div className="flex justify-between items-center mb-8">
+          <div className="flex justify-between items-end mb-10">
             <div>
-              <h2 className="text-2xl md:text-3xl font-bold text-gray-900">All Products</h2>
-              <p className="text-gray-600 mt-1">Browse our complete collection</p>
+              <h2 className="text-3xl md:text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-gray-900 to-gray-600">
+                All Products
+              </h2>
+              <p className="text-gray-500 mt-2 font-medium">Browse our complete collection</p>
             </div>
-            <p className="text-sm text-gray-500">{products.length} products available</p>
+            <div className="bg-orange-100 text-orange-700 px-4 py-1.5 rounded-full font-bold text-sm shadow-sm">
+              {products.length} Items
+            </div>
           </div>
 
           {products.length === 0 ? (
@@ -394,19 +414,28 @@ function ProductCard({
   hasDiscount: boolean; 
   wishlist: string[]; 
   getImageUrl: (url: string) => string; 
-  handleAddToCart: (id: string, e: React.MouseEvent) => void; 
+  handleAddToCart: (id: string, e: React.MouseEvent) => Promise<void> | void; 
   toggleWishlist: (id: string, e: React.MouseEvent) => void;
 }) {
+  const [isAdding, setIsAdding] = useState(false);
+
+  const onAddToCartClick = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsAdding(true);
+    await handleAddToCart(product._id, e);
+    setIsAdding(false);
+  };
+
   return (
-    <Link href={`/product/${product._id}`} className="group">
-      <div className="bg-white rounded-xl shadow-sm border hover:shadow-xl transition-all duration-300 overflow-hidden group-hover:-translate-y-1 h-full flex flex-col">
+    <Link href={`/product/${product._id}`} className="group h-full">
+      <div className="glass rounded-2xl hover:border-orange-200 transition-all duration-300 overflow-hidden group-hover:-translate-y-2 h-full flex flex-col hover:shadow-2xl">
         {/* Product Image */}
-        <div className="relative aspect-square bg-gray-100 overflow-hidden">
+        <div className="relative aspect-square bg-gray-50 overflow-hidden">
           {product.productImgUrls?.[0] ? (
             <img
               src={getImageUrl(product.productImgUrls[0])}
               alt={product.name}
-              className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out"
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-gray-400 text-sm">No image</div>
@@ -433,8 +462,8 @@ function ProductCard({
         </div>
 
         {/* Product Info */}
-        <div className="p-3 flex-1 flex flex-col">
-          <h3 className="font-semibold text-gray-900 text-sm mb-1 line-clamp-2 min-h-[40px] group-hover:text-orange-600 transition">
+        <div className="p-4 flex-1 flex flex-col">
+          <h3 className="font-bold text-gray-900 text-base mb-1.5 line-clamp-2 min-h-[44px] group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-brand transition-all">
             {product.name}
           </h3>
           
@@ -447,20 +476,22 @@ function ProductCard({
             <span className="text-xs text-gray-500 ml-1">(128)</span>
           </div>
 
-          <div className="flex items-center gap-1.5 mb-3 flex-wrap">
-            <span className="text-base font-bold text-orange-600">₹{discountedPrice.toFixed(2)}</span>
+          <div className="flex items-center gap-2 mb-4 flex-wrap">
+            <span className="text-xl font-black bg-gradient-brand bg-clip-text text-transparent">
+              ₹{discountedPrice.toFixed(2)}
+            </span>
             {hasDiscount && (
-              <span className="text-xs text-gray-400 line-through">₹{product.price.toFixed(2)}</span>
+              <span className="text-sm font-medium text-gray-400 line-through">₹{product.price.toFixed(2)}</span>
             )}
           </div>
 
           <button
-            onClick={(e) => handleAddToCart(product._id, e)}
-            disabled={!product.isAvailable || product.stock === 0}
-            className="w-full bg-gray-900 text-white py-1.5 text-sm rounded-lg font-medium hover:bg-orange-600 transition disabled:opacity-50 flex items-center justify-center gap-1 mt-auto"
+            onClick={onAddToCartClick}
+            disabled={!product.isAvailable || product.stock === 0 || isAdding}
+            className="w-full bg-gray-900 text-white py-1.5 text-sm rounded-lg font-medium hover:bg-orange-500 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1 mt-auto hover-lift"
           >
-            <ShoppingCart size={14} />
-            Add to Cart
+            {isAdding ? <Loader2 size={14} className="animate-spin" /> : <ShoppingCart size={14} />}
+            {isAdding ? "Adding..." : "Add to Cart"}
           </button>
         </div>
       </div>

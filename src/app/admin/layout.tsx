@@ -124,9 +124,9 @@ export default function AdminLayout({
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50">
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-orange-50 to-red-50">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 sm:h-16 sm:w-16 border-4 border-blue-200 border-t-blue-600 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 sm:h-16 sm:w-16 border-4 border-orange-200 border-t-orange-500 mx-auto mb-4"></div>
           <p className="text-base sm:text-lg text-gray-700 font-medium">Loading...</p>
         </div>
       </div>
@@ -141,7 +141,7 @@ export default function AdminLayout({
           <button
             type="button"
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="p-2 rounded-lg hover:bg-gray-100 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="p-2 rounded-lg hover:bg-orange-50 transition-colors focus:outline-none focus:ring-2 focus:ring-orange-500 text-orange-600"
             aria-label="Toggle menu"
           >
             {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
@@ -161,8 +161,8 @@ export default function AdminLayout({
                 href={item.href}
                 className={`flex flex-col items-center px-3 py-2 rounded-lg transition-colors ${
                   pathname === item.href
-                    ? "text-blue-600"
-                    : "text-gray-600 hover:text-blue-600"
+                    ? "text-orange-600"
+                    : "text-gray-600 hover:text-orange-500"
                 }`}
               >
                 {item.icon}
@@ -204,8 +204,8 @@ export default function AdminLayout({
           <div className="sticky top-0 bg-gray-900/95 backdrop-blur-sm z-10">
             <div className="flex items-center justify-between p-5 border-b border-gray-700">
               <div className="flex items-center gap-2">
-                <LayoutDashboard size={24} className="text-blue-400" />
-                <h1 className="text-xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
+                <LayoutDashboard size={24} className="text-orange-500" />
+                <h1 className="text-xl font-bold bg-gradient-to-r from-orange-400 to-red-400 bg-clip-text text-transparent">
                   Admin Panel
                 </h1>
               </div>
@@ -230,7 +230,7 @@ export default function AdminLayout({
                   transition-all duration-200 group
                   ${
                     pathname === item.href
-                      ? "bg-blue-600 text-white shadow-md"
+                      ? "bg-gradient-brand text-white shadow-md shadow-orange-500/20"
                       : "text-gray-300 hover:bg-gray-800 hover:text-white"
                   }
                 `}

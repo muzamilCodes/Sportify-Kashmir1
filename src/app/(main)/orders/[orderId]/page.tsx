@@ -66,6 +66,7 @@ export default function OrderDetailPage() {
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [cancelling, setCancelling] = useState(false);
+  const [recommendedProducts, setRecommendedProducts] = useState<any[]>([]);
 
   const fetchOrder = async () => {
     try {
@@ -108,6 +109,18 @@ export default function OrderDetailPage() {
     fetchOrder();
     // Auto-refresh every 15 seconds to reflect status changes from admin
     const interval = setInterval(fetchOrder, 15000);
+
+    // Fetch recommended products
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/products/all`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.data) {
+          const shuffled = [...data.data].sort(() => 0.5 - Math.random());
+          setRecommendedProducts(shuffled.slice(0, 4));
+        }
+      })
+      .catch(console.error);
+
     return () => clearInterval(interval);
   }, [orderId]);
 
@@ -460,30 +473,63 @@ Thank you for shopping with Sportify Kashmir!
           </div>
         </div>
 
-        {/* Recommended Products Section (Optional) */}
-        <div className="mt-12">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold text-gray-800">You May Also Like</h2>
-            <Link href="/products" className="text-orange-500 hover:underline flex items-center gap-1">
-              View All <ChevronRight className="w-4 h-4" />
-            </Link>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {[1, 2, 3, 4].map((i) => (
-              <Link key={i} href="/products" className="group">
-                <div className="bg-white rounded-xl shadow-sm border p-3 hover:shadow-md transition">
-                  <div className="bg-gray-100 rounded-lg h-32 flex items-center justify-center">
-                    <ShoppingBag className="w-12 h-12 text-gray-400" />
-                  </div>
-                  <div className="mt-3">
-                    <p className="font-medium text-gray-900 text-sm">Premium Item</p>
-                    <p className="text-orange-600 font-bold mt-1">₹999</p>
-                  </div>
-                </div>
+        {/* Recommended Products Section */}
+        {recommendedProducts.length > 0 && (
+          <div className="mt-12">
+            <div className="flex justify-between items-end mb-8">
+              <div>
+                <h2 className="text-2xl md:text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-gray-900 to-gray-600">
+                  You May Also Like
+                </h2>
+              </div>
+              <Link href="/products" className="group text-orange-600 hover:text-orange-700 flex items-center gap-1 font-bold transition-all">
+                View All <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" />
               </Link>
-            ))}
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {recommendedProducts.map((product) => {
+                const imgUrl = product.productImgUrls?.[0] 
+                  ? `${process.env.NEXT_PUBLIC_API_URL}${product.productImgUrls[0]}`
+                  : "https://placehold.co/400x400/EEE/999?text=No+Image";
+                const discountedPrice = product.discount 
+                  ? product.price - (product.price * product.discount) / 100 
+                  : product.price;
+
+                return (
+                  <Link key={product._id} href={`/product/${product._id}`} className="group h-full">
+                    <div className="glass rounded-2xl hover:border-orange-200 transition-all duration-300 overflow-hidden group-hover:-translate-y-2 h-full flex flex-col hover:shadow-2xl border-white/60">
+                      <div className="relative aspect-square bg-gray-50 overflow-hidden">
+                        <img
+                          src={imgUrl}
+                          alt={product.name}
+                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out"
+                        />
+                        {product.discount > 0 && (
+                          <div className="absolute top-2 left-2 bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full">
+                            {product.discount}% OFF
+                          </div>
+                        )}
+                      </div>
+                      <div className="p-4 flex-1 flex flex-col">
+                        <h3 className="font-bold text-gray-900 text-sm mb-1.5 line-clamp-2 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-brand transition-all">
+                          {product.name}
+                        </h3>
+                        <div className="mt-auto flex items-center gap-2 flex-wrap">
+                          <span className="text-lg font-black bg-gradient-brand bg-clip-text text-transparent">
+                            ₹{discountedPrice.toFixed(2)}
+                          </span>
+                          {product.discount > 0 && (
+                            <span className="text-xs font-medium text-gray-400 line-through">₹{product.price.toFixed(2)}</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
