@@ -1,6 +1,6 @@
 "use client";
 
-import { Camera, Heart, LogOut, Mail, MapPin, Phone, Settings, ShoppingBag, User, ChevronRight, Check, X, Loader2 } from "lucide-react";
+import { Camera, Heart, LogOut, Mail, MapPin, Phone, Settings, ShoppingBag, User, ChevronRight, Check, X, Loader2, AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
@@ -57,7 +57,6 @@ export default function ProfilePage() {
       });
 
       const result = await response.json();
-      console.log("Profile response:", result);
       
       if (result.payload) {
         setUser(result.payload);
@@ -187,14 +186,41 @@ export default function ProfilePage() {
     }
   };
 
+  const handleDeleteAccount = async () => {
+    if (!confirm("Are you absolutely sure you want to delete your account? This action cannot be undone and you will lose all your data.")) return;
+    
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+      
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/user/account/me`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      const result = await response.json();
+      if (result.success) {
+        toast.success("Your account has been deleted");
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        window.location.href = "/";
+      } else {
+        toast.error(result.message || "Failed to delete account");
+      }
+    } catch(err) {
+      toast.error("Network error");
+    }
+  };
+
   const profileImageUrl = getImageUrl(user?.profilePic);
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <Loader2 className="w-16 h-16 animate-spin text-blue-400 mx-auto mb-4" />
-          <p className="text-gray-300 text-lg">Loading profile...</p>
+          <Loader2 className="w-16 h-16 animate-spin text-orange-500 mx-auto mb-4" />
+          <p className="text-gray-500 text-lg">Loading profile...</p>
         </div>
       </div>
     );
@@ -202,10 +228,10 @@ export default function ProfilePage() {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-gray-300 text-lg mb-4">Please login to view your profile</p>
-          <Link href="/login" className="text-blue-400 hover:text-blue-300 font-semibold">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center bg-white p-8 rounded-2xl shadow-sm border">
+          <p className="text-gray-600 text-lg mb-4">Please login to view your profile</p>
+          <Link href="/login" className="inline-block bg-orange-500 text-white px-6 py-2 rounded-lg font-semibold hover:bg-orange-600 transition">
             Login here
           </Link>
         </div>
@@ -214,16 +240,18 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 py-8 px-4">
+    <div className="min-h-screen bg-gray-50 py-8 px-4">
       <div className="max-w-5xl mx-auto">
         {/* Hero Profile Card */}
-        <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-3xl shadow-2xl p-8 mb-8 relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-96 h-96 bg-white/5 rounded-full -mr-48 -mt-48"></div>
+        <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-8 mb-8 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-orange-50 rounded-full blur-3xl opacity-50 -mr-20 -mt-20"></div>
+          <div className="absolute bottom-0 left-0 w-64 h-64 bg-pink-50 rounded-full blur-3xl opacity-50 -ml-20 -mb-20"></div>
+          
           <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="flex flex-col md:flex-row items-center gap-8">
               {/* Profile Image */}
               <div className="relative">
-                <div className="w-28 h-28 bg-gradient-to-br from-orange-400 to-red-500 rounded-2xl flex items-center justify-center overflow-hidden shadow-xl border-4 border-white/30">
+                <div className="w-32 h-32 bg-gray-100 rounded-full flex items-center justify-center overflow-hidden shadow-md border-4 border-white">
                   {profileImageUrl && !imageError ? (
                     <img
                       src={profileImageUrl}
@@ -232,30 +260,30 @@ export default function ProfilePage() {
                       onError={() => setImageError(true)}
                     />
                   ) : (
-                    <User className="w-14 h-14 text-white" />
+                    <User className="w-16 h-16 text-gray-400" />
                   )}
                 </div>
                 {isEditing && (
-                  <label className="absolute -bottom-2 -right-2 bg-orange-500 rounded-full p-2 cursor-pointer hover:bg-orange-600 transition shadow-lg">
-                    <Camera size={16} className="text-white" />
+                  <label className="absolute bottom-0 right-0 bg-orange-500 rounded-full p-2.5 cursor-pointer hover:bg-orange-600 transition shadow-lg border-2 border-white">
+                    <Camera size={18} className="text-white" />
                     <input type="file" accept="image/*" onChange={handleProfilePicChange} className="hidden" />
                   </label>
                 )}
               </div>
               <div className="text-center md:text-left">
-                <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">{user.username}</h1>
-                <div className="space-y-1">
-                  <p className="text-blue-100 flex items-center justify-center md:justify-start gap-2">
-                    <Mail size={16} /> {user.email}
+                <h1 className="text-3xl font-extrabold text-gray-900 mb-2">{user.username}</h1>
+                <div className="space-y-2">
+                  <p className="text-gray-600 flex items-center justify-center md:justify-start gap-2 font-medium">
+                    <Mail size={16} className="text-orange-500" /> {user.email}
                   </p>
                   {user.mobile && (
-                    <p className="text-blue-100 flex items-center justify-center md:justify-start gap-2">
-                      <Phone size={16} /> {user.mobile}
+                    <p className="text-gray-600 flex items-center justify-center md:justify-start gap-2 font-medium">
+                      <Phone size={16} className="text-orange-500" /> {user.mobile}
                     </p>
                   )}
                 </div>
                 {user.isAdmin && (
-                  <div className="mt-3 inline-block bg-yellow-400/20 text-yellow-200 text-xs px-3 py-1 rounded-full font-semibold">
+                  <div className="mt-4 inline-flex items-center gap-1.5 bg-orange-100 text-orange-700 text-xs px-3 py-1.5 rounded-full font-bold uppercase tracking-wide">
                     ⭐ Admin
                   </div>
                 )}
@@ -263,7 +291,7 @@ export default function ProfilePage() {
             </div>
             <button
               onClick={handleLogout}
-              className="flex items-center gap-2 px-6 py-3 bg-red-500 hover:bg-red-600 text-white rounded-xl font-semibold transition-all"
+              className="flex items-center gap-2 px-6 py-3 bg-white border border-gray-200 hover:border-red-200 hover:bg-red-50 text-gray-700 hover:text-red-600 rounded-xl font-bold transition-all shadow-sm"
             >
               <LogOut size={20} />
               Logout
@@ -272,8 +300,8 @@ export default function ProfilePage() {
         </div>
 
         {/* Navigation Tabs */}
-        <div className="bg-white/10 backdrop-blur rounded-2xl shadow-lg mb-8 border border-white/10">
-          <div className="flex overflow-x-auto">
+        <div className="bg-white rounded-2xl shadow-sm mb-8 border border-gray-100 p-2">
+          <div className="flex overflow-x-auto gap-2">
             {[
               { id: "overview", label: "Overview", icon: User },
               { id: "settings", label: "Settings", icon: Settings },
@@ -283,10 +311,10 @@ export default function ProfilePage() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2 px-6 py-4 font-semibold text-sm whitespace-nowrap transition-all ${
+                className={`flex items-center gap-2 px-6 py-3.5 rounded-xl font-bold text-sm whitespace-nowrap transition-all ${
                   activeTab === tab.id
-                    ? "text-white bg-gradient-to-r from-blue-500 to-purple-500 border-b-2 border-white"
-                    : "text-gray-300 hover:text-white"
+                    ? "bg-orange-50 text-orange-600"
+                    : "text-gray-500 hover:bg-gray-50 hover:text-gray-700"
                 }`}
               >
                 <tab.icon size={18} />
@@ -297,61 +325,63 @@ export default function ProfilePage() {
         </div>
 
         {/* Tab Content */}
-        <div className="bg-white/10 backdrop-blur rounded-2xl shadow-lg border border-white/10 p-8">
+        <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-8">
           {activeTab === "overview" && (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-2xl p-6 border border-white/10">
-                <h3 className="text-white font-bold text-lg mb-4">Account Info</h3>
+              <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100 hover:border-orange-200 transition-colors">
+                <h3 className="text-gray-900 font-bold text-lg mb-4">Account Info</h3>
                 <div className="space-y-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-blue-500/30 rounded-lg flex items-center justify-center">
-                      <User size={20} className="text-blue-300" />
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-white rounded-xl shadow-sm flex items-center justify-center border border-gray-100">
+                      <User size={24} className="text-orange-500" />
                     </div>
                     <div>
-                      <p className="text-gray-400 text-sm">Member Since</p>
-                      <p className="text-white font-semibold">{new Date(user.createdAt).toLocaleDateString()}</p>
+                      <p className="text-gray-500 text-sm font-medium">Member Since</p>
+                      <p className="text-gray-900 font-bold">{new Date(user.createdAt).toLocaleDateString()}</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-purple-500/30 rounded-lg flex items-center justify-center">
-                      <ShoppingBag size={20} className="text-purple-300" />
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-white rounded-xl shadow-sm flex items-center justify-center border border-gray-100">
+                      <ShoppingBag size={24} className="text-orange-500" />
                     </div>
                     <div>
-                      <p className="text-gray-400 text-sm">Account Type</p>
-                      <p className="text-white font-semibold">{user.isAdmin ? "Admin" : "Customer"}</p>
+                      <p className="text-gray-500 text-sm font-medium">Account Type</p>
+                      <p className="text-gray-900 font-bold">{user.isAdmin ? "Admin" : "Customer"}</p>
                     </div>
                   </div>
                 </div>
               </div>
 
-              <div className="bg-gradient-to-br from-green-500/20 to-emerald-500/20 rounded-2xl p-6 border border-white/10">
-                <h3 className="text-white font-bold text-lg mb-4">Quick Links</h3>
+              <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100 hover:border-orange-200 transition-colors">
+                <h3 className="text-gray-900 font-bold text-lg mb-4">Quick Links</h3>
                 <div className="space-y-3">
-                  <Link href="/orders" className="flex items-center justify-between p-3 bg-white/5 hover:bg-white/10 rounded-xl transition-all group">
-                    <span className="text-gray-300 group-hover:text-white">View Orders</span>
-                    <ChevronRight size={18} className="text-gray-400 group-hover:text-white" />
+                  <Link href="/orders" className="flex items-center justify-between p-3.5 bg-white border border-gray-100 hover:border-orange-200 hover:shadow-sm rounded-xl transition-all group">
+                    <span className="text-gray-700 font-semibold group-hover:text-orange-600">View Orders</span>
+                    <ChevronRight size={18} className="text-gray-400 group-hover:text-orange-500" />
                   </Link>
-                  <Link href="/cart" className="flex items-center justify-between p-3 bg-white/5 hover:bg-white/10 rounded-xl transition-all group">
-                    <span className="text-gray-300 group-hover:text-white">My Cart</span>
-                    <ChevronRight size={18} className="text-gray-400 group-hover:text-white" />
+                  <Link href="/cart" className="flex items-center justify-between p-3.5 bg-white border border-gray-100 hover:border-orange-200 hover:shadow-sm rounded-xl transition-all group">
+                    <span className="text-gray-700 font-semibold group-hover:text-orange-600">My Cart</span>
+                    <ChevronRight size={18} className="text-gray-400 group-hover:text-orange-500" />
                   </Link>
-                  <Link href="/address" className="flex items-center justify-between p-3 bg-white/5 hover:bg-white/10 rounded-xl transition-all group">
-                    <span className="text-gray-300 group-hover:text-white">Addresses</span>
-                    <ChevronRight size={18} className="text-gray-400 group-hover:text-white" />
+                  <Link href="/address" className="flex items-center justify-between p-3.5 bg-white border border-gray-100 hover:border-orange-200 hover:shadow-sm rounded-xl transition-all group">
+                    <span className="text-gray-700 font-semibold group-hover:text-orange-600">Addresses</span>
+                    <ChevronRight size={18} className="text-gray-400 group-hover:text-orange-500" />
                   </Link>
                 </div>
               </div>
 
-              <div className="bg-gradient-to-br from-orange-500/20 to-red-500/20 rounded-2xl p-6 border border-white/10">
-                <h3 className="text-white font-bold text-lg mb-4">Profile Stats</h3>
+              <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100 hover:border-orange-200 transition-colors">
+                <h3 className="text-gray-900 font-bold text-lg mb-4">Profile Status</h3>
                 <div className="space-y-4">
-                  <div>
-                    <p className="text-gray-400 text-sm">User ID</p>
-                    <p className="text-white font-mono text-xs mt-1">{user._id.substring(0, 8)}...</p>
+                  <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+                    <p className="text-gray-500 text-sm font-medium">User ID</p>
+                    <p className="text-gray-900 font-mono text-sm mt-1 font-bold">{user._id}</p>
                   </div>
-                  <div>
-                    <p className="text-gray-400 text-sm">Status</p>
-                    <p className="text-green-400 font-semibold mt-1">✓ Active</p>
+                  <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex items-center justify-between">
+                    <p className="text-gray-500 text-sm font-medium">Status</p>
+                    <span className="bg-green-100 text-green-700 px-2.5 py-1 rounded-md text-xs font-bold uppercase">
+                      Active
+                    </span>
                   </div>
                 </div>
               </div>
@@ -360,89 +390,102 @@ export default function ProfilePage() {
 
           {activeTab === "settings" && (
             <div className="max-w-3xl mx-auto">
-              <h2 className="text-2xl font-bold text-white mb-6">Account Settings</h2>
+              <h2 className="text-2xl font-extrabold text-gray-900 mb-8">Account Settings</h2>
               
               {!isEditing ? (
-                <div className="space-y-6">
-                  <div className="bg-white/5 rounded-2xl p-6 border border-white/10">
-                    <h3 className="text-lg font-semibold text-white mb-4">Profile Information</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="p-4 bg-white/10 rounded-xl">
-                        <p className="text-gray-400 text-sm mb-2">Username</p>
-                        <p className="text-white text-lg font-semibold">{user.username}</p>
-                      </div>
-                      <div className="p-4 bg-white/10 rounded-xl">
-                        <p className="text-gray-400 text-sm mb-2">Email</p>
-                        <p className="text-white text-lg font-semibold">{user.email}</p>
-                      </div>
-                      <div className="p-4 bg-white/10 rounded-xl">
-                        <p className="text-gray-400 text-sm mb-2">Mobile</p>
-                        <p className="text-white text-lg font-semibold">{user.mobile || "Not provided"}</p>
-                      </div>
-                      <div className="p-4 bg-white/10 rounded-xl">
-                        <p className="text-gray-400 text-sm mb-2">Account Type</p>
-                        <p className="text-white text-lg font-semibold">{user.isAdmin ? "Admin" : "Customer"}</p>
-                      </div>
-                    </div>
-                    <div className="mt-6 flex justify-end">
-                      <button onClick={handleEditClick} className="px-6 py-2 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white rounded-lg font-semibold transition-all">
+                <div className="space-y-8">
+                  <div className="bg-white rounded-2xl p-8 border border-gray-200 shadow-sm">
+                    <div className="flex justify-between items-center mb-6">
+                      <h3 className="text-xl font-bold text-gray-900">Personal Information</h3>
+                      <button onClick={handleEditClick} className="px-5 py-2 bg-orange-50 hover:bg-orange-100 text-orange-600 border border-orange-200 rounded-lg font-bold transition-all">
                         Edit Profile
                       </button>
                     </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                      <div>
+                        <p className="text-gray-500 text-sm font-medium mb-1">Username</p>
+                        <p className="text-gray-900 text-lg font-bold">{user.username}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-500 text-sm font-medium mb-1">Email</p>
+                        <p className="text-gray-900 text-lg font-bold">{user.email}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-500 text-sm font-medium mb-1">Mobile</p>
+                        <p className="text-gray-900 text-lg font-bold">{user.mobile || "Not provided"}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-red-50 rounded-2xl p-8 border border-red-100">
+                    <h3 className="text-xl font-bold text-red-700 mb-2">Danger Zone</h3>
+                    <p className="text-red-600/80 mb-6 text-sm">Once you delete your account, there is no going back. Please be certain.</p>
+                    <button 
+                      onClick={handleDeleteAccount}
+                      className="px-6 py-3 bg-white border-2 border-red-200 hover:border-red-500 text-red-600 hover:bg-red-500 hover:text-white rounded-xl font-bold transition-all flex items-center gap-2"
+                    >
+                      <AlertTriangle size={18} />
+                      Delete Account
+                    </button>
                   </div>
                 </div>
               ) : (
-                <div className="bg-white/5 rounded-2xl p-8 border border-white/10">
-                  <h3 className="text-xl font-semibold text-white mb-6">Edit Profile</h3>
+                <div className="bg-white rounded-2xl p-8 border border-gray-200 shadow-sm">
+                  <h3 className="text-xl font-bold text-gray-900 mb-8">Edit Personal Information</h3>
                   
-                  <div className="space-y-5">
+                  <div className="space-y-6">
                     <div>
-                      <label className="block text-sm font-semibold text-gray-300 mb-2">Username</label>
+                      <label className="block text-sm font-bold text-gray-700 mb-2">Username</label>
                       <input
                         type="text"
                         value={editForm.username}
                         onChange={(e) => setEditForm({ ...editForm, username: e.target.value })}
-                        className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-500 focus:border-blue-500 focus:outline-none transition-all"
+                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:bg-white focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 outline-none transition-all font-medium"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-semibold text-gray-300 mb-2">Email</label>
+                      <label className="block text-sm font-bold text-gray-700 mb-2">Email Address</label>
                       <input
                         type="email"
                         value={editForm.email}
                         onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
-                        className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-500 focus:border-blue-500 focus:outline-none transition-all"
+                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:bg-white focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 outline-none transition-all font-medium"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-semibold text-gray-300 mb-2">Mobile Number</label>
+                      <label className="block text-sm font-bold text-gray-700 mb-2">Mobile Number</label>
                       <input
                         type="tel"
                         value={editForm.mobile}
                         onChange={(e) => setEditForm({ ...editForm, mobile: e.target.value })}
-                        className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-500 focus:border-blue-500 focus:outline-none transition-all"
+                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:bg-white focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 outline-none transition-all font-medium"
                       />
                     </div>
 
                     {previewUrl && (
-                      <div className="mt-4">
-                        <label className="block text-sm font-semibold text-gray-300 mb-2">New Profile Picture Preview</label>
-                        <img src={previewUrl} alt="Preview" className="w-24 h-24 rounded-full object-cover border-2 border-orange-500" />
+                      <div className="mt-6 p-4 bg-gray-50 rounded-xl border border-gray-200">
+                        <label className="block text-sm font-bold text-gray-700 mb-3">New Profile Picture Preview</label>
+                        <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-white shadow-md">
+                          <img src={previewUrl} alt="Preview" className="w-full h-full object-cover" />
+                        </div>
                       </div>
                     )}
 
-                    <div className="flex gap-3 pt-4">
+                    <div className="flex gap-4 pt-6 border-t border-gray-100">
                       <button
                         onClick={handleSaveChanges}
                         disabled={updatingProfile}
-                        className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                        className="flex-1 flex items-center justify-center gap-2 px-6 py-3.5 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md hover:shadow-lg"
                       >
                         {updatingProfile ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check size={20} />}
                         {updatingProfile ? "Saving..." : "Save Changes"}
                       </button>
-                      <button onClick={handleCancel} className="flex items-center justify-center gap-2 px-6 py-3 bg-red-500/20 border border-red-500/50 hover:bg-red-500/30 text-red-300 rounded-lg font-bold transition-all">
+                      <button 
+                        onClick={handleCancel} 
+                        className="flex items-center justify-center gap-2 px-8 py-3.5 bg-white border-2 border-gray-200 hover:border-gray-300 hover:bg-gray-50 text-gray-700 rounded-xl font-bold transition-all"
+                      >
                         <X size={20} />
                         Cancel
                       </button>
@@ -454,27 +497,29 @@ export default function ProfilePage() {
           )}
 
           {activeTab === "orders" && (
-            <div className="text-center py-12">
-              <div className="w-20 h-20 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                <ShoppingBag className="w-10 h-10 text-blue-300" />
+            <div className="text-center py-16 bg-gray-50 rounded-3xl border border-gray-100">
+              <div className="w-24 h-24 bg-white shadow-sm rounded-full flex items-center justify-center mx-auto mb-6 border border-gray-100">
+                <ShoppingBag className="w-12 h-12 text-orange-500" />
               </div>
-              <h3 className="text-2xl font-bold text-white mb-2">Order History</h3>
-              <p className="text-gray-400 mb-6">Check all your orders in the full order page</p>
-              <Link href="/orders" className="inline-block bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white px-8 py-3 rounded-lg font-bold transition-all">
+              <h3 className="text-2xl font-extrabold text-gray-900 mb-3">Order History</h3>
+              <p className="text-gray-500 mb-8 max-w-sm mx-auto">Track your packages, write reviews, or view invoice details in the orders page.</p>
+              <Link href="/orders" className="inline-flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white px-8 py-3.5 rounded-xl font-bold transition-all shadow-md hover:shadow-lg">
                 View All Orders
+                <ChevronRight size={18} />
               </Link>
             </div>
           )}
 
           {activeTab === "addresses" && (
-            <div className="text-center py-12">
-              <div className="w-20 h-20 bg-purple-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                <MapPin className="w-10 h-10 text-purple-300" />
+            <div className="text-center py-16 bg-gray-50 rounded-3xl border border-gray-100">
+              <div className="w-24 h-24 bg-white shadow-sm rounded-full flex items-center justify-center mx-auto mb-6 border border-gray-100">
+                <MapPin className="w-12 h-12 text-orange-500" />
               </div>
-              <h3 className="text-2xl font-bold text-white mb-2">Address Book</h3>
-              <p className="text-gray-400 mb-6">Manage your delivery addresses</p>
-              <Link href="/address" className="inline-block bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white px-8 py-3 rounded-lg font-bold transition-all">
+              <h3 className="text-2xl font-extrabold text-gray-900 mb-3">Address Book</h3>
+              <p className="text-gray-500 mb-8 max-w-sm mx-auto">Manage your delivery addresses for faster and smoother checkout experiences.</p>
+              <Link href="/address" className="inline-flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white px-8 py-3.5 rounded-xl font-bold transition-all shadow-md hover:shadow-lg">
                 Manage Addresses
+                <ChevronRight size={18} />
               </Link>
             </div>
           )}

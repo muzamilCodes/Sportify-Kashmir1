@@ -525,3 +525,18 @@ exports.initializeFirstAdmin = async (req, res) => {
     return res.status(500).json({ success: false, message: "Server error" });
   }
 };
+
+// ===================== DELETE MY ACCOUNT =====================
+exports.deleteMyAccount = async (req, res) => {
+  try {
+    const userId = req.userId;
+    if (!userId) return res.status(401).json({ success: false, message: "User ID missing" });
+    const user = await User.findByIdAndDelete(userId);
+    if (!user) return res.status(404).json({ success: false, message: "User not found" });
+    // Note: We might want to cascade delete orders, cart, etc. based on business logic.
+    return res.status(200).json({ success: true, message: "Account deleted successfully" });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ success: false, message: "Server error" });
+  }
+};

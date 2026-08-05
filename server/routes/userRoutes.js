@@ -38,5 +38,6 @@ router.get("/getAll", authorize, admin, controller.getAllUsers);
 router.put("/:userId", authorize, admin, controller.updateUserStatus);
 router.delete("/:userId", authorize, admin, controller.deleteUser);
 router.put("/make-admin/:userId", authorize, admin, controller.makeAdmin);
+router.delete("/account/me", authorize, controller.deleteMyAccount);
 
 module.exports = router
