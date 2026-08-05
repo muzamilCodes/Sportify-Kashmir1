@@ -37,20 +37,31 @@ exports.register = async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 12);
 
-    // ✅ OTP ke bina register (simple)
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
     const newUser = await User.create({
       username: username.trim(),
       email: email.trim().toLowerCase(),
       mobile: cleanMobile,
       password: hashedPassword,
-      otp: null,
-      otpExpiry: null,
-      isVerified: true,
+      otp: otp,
+      otpExpiry: new Date(Date.now() + 10 * 60 * 1000), // 10 mins
+      isVerified: false,
     });
+
+    try {
+      await sendEmail(
+        newUser.email,
+        "Your OTP for Registration",
+        `<h2>Welcome to Sportify Kashmir!</h2><p>Your OTP is: <strong>${otp}</strong></p><p>Valid for 10 minutes.</p>`
+      );
+    } catch (err) {
+      console.error("Failed to send email:", err);
+    }
 
     return res.status(200).json({
       success: true,
-      message: "Registered successfully",
+      message: "OTP sent successfully! Please verify your email.",
       email: newUser.email,
     });
 
