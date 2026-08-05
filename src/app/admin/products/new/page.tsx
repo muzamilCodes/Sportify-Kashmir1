@@ -5,22 +5,12 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 
-// Subcategories mapping
-const subcategoriesMap: { [key: string]: string[] } = {
-  cricket: ["Bats", "Balls", "Pads", "Gloves", "Helmets", "Shoes", "Clothing"],
-  football: ["Boots", "Balls", "Jerseys", "Shin Guards", "Goal Gloves", "Socks"],
-  basketball: ["Shoes", "Balls", "Jerseys", "Hoops", "Accessories"],
-  tennis: ["Rackets", "Balls", "Strings", "Grips", "Shoes", "Bags"],
-  fitness: ["Dumbbells", "Yoga Mats", "Gym Wear", "Supplements", "Bench", "Accessories"],
-  apparel: ["Jerseys", "Shorts", "Tracksuits", "Compression Wear", "Socks", "Caps"],
-};
-
 export default function AddProductPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [images, setImages] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
-  const [categories, setCategories] = useState<{ _id: string; name: string }[]>([]);
+  const [categories, setCategories] = useState<{ _id: string; name: string; subcategories?: string[] }[]>([]);
   const [brands, setBrands] = useState<{ _id: string; name: string }[]>([]);
   const [availableSubcategories, setAvailableSubcategories] = useState<string[]>([]);
 
@@ -74,8 +64,7 @@ export default function AddProductPage() {
   useEffect(() => {
     if (formData.category) {
       const selectedCategory = categories.find(c => c._id === formData.category);
-      const categoryName = selectedCategory?.name.toLowerCase() || "";
-      const subs = subcategoriesMap[categoryName] || [];
+      const subs = selectedCategory?.subcategories || [];
       setAvailableSubcategories(subs);
       setFormData(prev => ({ ...prev, subcategory: "" }));
     } else {

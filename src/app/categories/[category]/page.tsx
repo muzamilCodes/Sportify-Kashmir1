@@ -23,15 +23,7 @@ interface Product {
   subcategory?: string; // Add subcategory field
 }
 
-// Subcategories for each main category
-const subcategoriesMap: { [key: string]: string[] } = {
-  cricket: ["Bats", "Balls", "Pads", "Gloves", "Helmets", "Shoes", "Clothing"],
-  football: ["Boots", "Balls", "Jerseys", "Shin Guards", "Goal Gloves", "Socks"],
-  basketball: ["Shoes", "Balls", "Jerseys", "Hoops", "Accessories"],
-  tennis: ["Rackets", "Balls", "Strings", "Grips", "Shoes", "Bags"],
-  fitness: ["Dumbbells", "Yoga Mats", "Gym Wear", "Supplements", "Bench", "Accessories"],
-  apparel: ["Jerseys", "Shorts", "Tracksuits", "Compression Wear", "Socks", "Caps"],
-};
+
 
 export default function CategoryPage() {
   const params = useParams();
@@ -50,6 +42,7 @@ export default function CategoryPage() {
   const [sortBy, setSortBy] = useState("newest");
   const [wishlist, setWishlist] = useState<string[]>([]);
   const [selectedSubcategory, setSelectedSubcategory] = useState<string | null>(subcategoryParam);
+  const [subcategories, setSubcategories] = useState<string[]>([]);
 
   const getImageUrl = (url: string) => {
     if (!url) return "/placeholder.jpg";
@@ -74,10 +67,10 @@ export default function CategoryPage() {
   };
 
   const categoryTitle = categorySlug.charAt(0).toUpperCase() + categorySlug.slice(1);
-  const subcategories = subcategoriesMap[categorySlug.toLowerCase()] || [];
 
   useEffect(() => {
     fetchProductsByCategory();
+    fetchCategoryData();
     const savedWishlist = localStorage.getItem("wishlist");
     if (savedWishlist) {
       setWishlist(JSON.parse(savedWishlist));
@@ -87,6 +80,22 @@ export default function CategoryPage() {
   useEffect(() => {
     setSelectedSubcategory(subcategoryParam);
   }, [subcategoryParam]);
+
+  const fetchCategoryData = async () => {
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/category/all`);
+      const result = await response.json();
+      if (result.success && result.data) {
+        // match category by name roughly matching the slug
+        const category = result.data.find((c: any) => c.name.toLowerCase() === categorySlug.toLowerCase());
+        if (category && category.subcategories) {
+          setSubcategories(category.subcategories);
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching category data:", error);
+    }
+  };
 
   const fetchProductsByCategory = async () => {
     try {

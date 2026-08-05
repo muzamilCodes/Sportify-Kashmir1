@@ -18,8 +18,8 @@ import {
 
 interface Category {
   _id: string;
-  name: string;
   description: string;
+  subcategories?: string[];
   createdAt: string;
   updatedAt: string;
 }
@@ -37,6 +37,7 @@ export default function AdminCategoriesPage() {
   const [formData, setFormData] = useState({
     name: "",
     description: "",
+    subcategories: "",
   });
 
   useEffect(() => {
@@ -71,7 +72,7 @@ export default function AdminCategoriesPage() {
 
   const handleAddNew = () => {
     setEditingCategory(null);
-    setFormData({ name: "", description: "" });
+    setFormData({ name: "", description: "", subcategories: "" });
     setShowModal(true);
   };
 
@@ -80,6 +81,7 @@ export default function AdminCategoriesPage() {
     setFormData({
       name: category.name,
       description: category.description || "",
+      subcategories: category.subcategories ? category.subcategories.join(", ") : "",
     });
     setShowModal(true);
   };
@@ -98,14 +100,16 @@ export default function AdminCategoriesPage() {
       // POST /category/add
       // PUT /category/edit/:categoryId
       
-      let url, method;
-      if (editingCategory) {
-        url = `${process.env.NEXT_PUBLIC_API_URL}/category/edit/${editingCategory._id}`;
-        method = "PUT";
-      } else {
-        url = `${process.env.NEXT_PUBLIC_API_URL}/category/add`;
-        method = "POST";
-      }
+      const subcategoriesArray = formData.subcategories
+        .split(",")
+        .map(s => s.trim())
+        .filter(s => s !== "");
+
+      const url = editingCategory
+        ? `${process.env.NEXT_PUBLIC_API_URL}/category/edit/${editingCategory._id}`
+        : `${process.env.NEXT_PUBLIC_API_URL}/category/add`;
+
+      const method = editingCategory ? "PUT" : "POST";
 
       const response = await fetch(url, {
         method,
@@ -114,8 +118,9 @@ export default function AdminCategoriesPage() {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          name: formData.name.trim(),
-          description: formData.description.trim(),
+          name: formData.name,
+          description: formData.description,
+          subcategories: subcategoriesArray,
         }),
       });
 
@@ -253,10 +258,15 @@ export default function AdminCategoriesPage() {
 
                   {/* Description */}
                   {category.description && (
-                    <p className="text-gray-600 text-sm mb-3 line-clamp-2">
+                    <p className="text-gray-600 text-sm mb-2 line-clamp-2">
                       {category.description}
                     </p>
                   )}
+
+                  {/* Subcategories Count */}
+                  <div className="mb-3 text-sm font-medium text-orange-600 bg-orange-50 inline-block px-2 py-1 rounded">
+                    {category.subcategories?.length || 0} Subcategories
+                  </div>
 
                   {/* Created Date */}
                   <div className="flex items-center gap-1 text-xs text-gray-400 mb-4">
@@ -335,6 +345,20 @@ export default function AdminCategoriesPage() {
                     placeholder="Describe this category..."
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    rows={2}
+                    className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                  />
+                </div>
+
+                {/* Subcategories */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Subcategories (Comma separated)
+                  </label>
+                  <textarea
+                    placeholder="e.g., Bats, Balls, Gloves, Shoes"
+                    value={formData.subcategories}
+                    onChange={(e) => setFormData({ ...formData, subcategories: e.target.value })}
                     rows={3}
                     className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
                   />

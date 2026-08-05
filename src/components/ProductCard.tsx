@@ -15,26 +15,43 @@ interface ProductCardProps {
     discount?: number;
     productImgUrls?: string[];
     images?: string[];
-    category?: string;
+    category?: { _id: string; name: string } | string;
     isAvailable: boolean;
     stock: number;
   };
   showCategory?: boolean;
+  discountedPrice?: number;
+  hasDiscount?: boolean;
+  wishlist?: string[];
+  getImageUrl?: (url: string) => string;
+  handleAddToCart?: (id: string, e: React.MouseEvent) => void;
+  toggleWishlist?: (id: string, e: React.MouseEvent) => void;
 }
 
 export default function ProductCard({
   product,
   showCategory = true,
+  discountedPrice,
+  hasDiscount,
+  wishlist,
+  getImageUrl: customGetImageUrl,
+  handleAddToCart,
+  toggleWishlist,
 }: ProductCardProps) {
   const [imageError, setImageError] = useState(false);
-  const discountPrice = product.discount
+  const resolvedDiscountPrice = discountedPrice ?? (product.discount
     ? product.price - (product.price * product.discount) / 100
-    : product.price;
+    : product.price);
+  
+  const isWishlisted = wishlist?.includes(product._id) || false;
 
-  // Support both productImgUrls and images
   const imageUrls = product.productImgUrls || product.images || [];
   const imageUrl = imageUrls.length > 0 ? imageUrls[0] : null;
-  const finalImageUrl = getImageUrl(imageUrl);
+  const finalImageUrl = customGetImageUrl ? customGetImageUrl(imageUrl || '') : getImageUrl(imageUrl);
+
+  const categoryName = typeof product.category === 'object' && product.category !== null 
+    ? product.category.name 
+    : product.category;
 
   return (
     <div className="bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden group">
@@ -56,10 +73,18 @@ export default function ProductCard({
           )}
 
           {/* Discount Badge */}
-          {product.discount && (
-            <div className="absolute top-2 right-2 bg-red-500 text-white px-2 py-1 rounded text-sm font-bold">
-              -{product.discount}%
-            </div>
+          {hasDiscount !== undefined ? (
+            hasDiscount && (
+              <div className="absolute top-2 right-2 bg-red-500 text-white px-2 py-1 rounded text-sm font-bold">
+                -{product.discount}%
+              </div>
+            )
+          ) : (
+            product.discount && (
+              <div className="absolute top-2 right-2 bg-red-500 text-white px-2 py-1 rounded text-sm font-bold">
+                -{product.discount}%
+              </div>
+            )
           )}
 
           {/* Availability Overlay */}
@@ -104,18 +129,18 @@ export default function ProductCard({
           <div className="flex justify-between items-center">
             <div>
               <span className="text-lg font-bold text-gray-900">
-                ₹{discountPrice.toFixed(2)}
+                ₹{resolvedDiscountPrice.toFixed(2)}
               </span>
-              {product.discount && (
+              {(hasDiscount ?? product.discount) ? (
                 <span className="ml-2 text-sm text-gray-500 line-through">
                   ₹{product.price.toFixed(2)}
                 </span>
-              )}
+              ) : null}
             </div>
 
-            {showCategory && (
+            {showCategory && categoryName && (
               <span className="text-xs px-2 py-1 bg-gray-100 text-gray-800 rounded">
-                {product.category || 'N/A'}
+                {categoryName}
               </span>
             )}
           </div>

@@ -181,24 +181,40 @@ export default function HomePage() {
         <div className="absolute top-2/3 right-[15%] w-6 h-6 bg-red-500 rounded-full animate-float" style={{ animationDelay: '1s' }}></div>
         <div className="absolute bottom-1/4 left-[20%] w-3 h-3 bg-yellow-500 rounded-full animate-float" style={{ animationDelay: '2s' }}></div>
 
-        <div className="container mx-auto px-4 relative z-10 py-20">
-          <div className="text-center max-w-4xl mx-auto">
-            <h1 className="text-5xl md:text-7xl font-extrabold mb-6 animate-fade-in-up">
-              <span className="text-gray-900">Elevate Your</span>
-              <br />
-              <span className="bg-gradient-to-r from-orange-500 via-red-500 to-pink-500 bg-clip-text text-transparent">Game in Kashmir</span>
-            </h1>
-            <p className="text-xl md:text-2xl mb-8 text-gray-600 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
-              Premium Sports Equipment & Gear with Kashmir's fastest delivery. 
-              100% authentic products guaranteed.
-            </p>
-            <div className="flex flex-wrap justify-center gap-4 animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
-              <Link href="/products" className="bg-gradient-to-r from-orange-500 to-red-500 text-white px-8 py-4 rounded-full font-bold shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-                Shop Collection
-              </Link>
-              <Link href="/sale" className="bg-white border-2 border-orange-100 text-orange-600 px-8 py-4 rounded-full font-bold hover:border-orange-500 transition-all duration-300">
-                View Sale Deals
-              </Link>
+        <div className="container mx-auto px-4 relative z-10 py-16 md:py-24">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            {/* Left: Text Content */}
+            <div className="text-center lg:text-left max-w-2xl mx-auto lg:mx-0">
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold mb-6 animate-fade-in-up leading-tight">
+                <span className="text-gray-900">Elevate Your</span>
+                <br />
+                <span className="bg-gradient-to-r from-orange-500 via-red-500 to-pink-500 bg-clip-text text-transparent">Game in Kashmir</span>
+              </h1>
+              <p className="text-lg md:text-xl mb-8 text-gray-600 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
+                Premium Sports Equipment & Gear with Kashmir's fastest delivery. 
+                100% authentic products guaranteed.
+              </p>
+              <div className="flex flex-wrap justify-center lg:justify-start gap-4 animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
+                <Link href="/products" className="bg-gradient-to-r from-orange-500 to-red-500 text-white px-8 py-4 rounded-full font-bold shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+                  Shop Collection
+                </Link>
+                <Link href="/sale" className="bg-white border-2 border-orange-100 text-orange-600 px-8 py-4 rounded-full font-bold hover:border-orange-500 transition-all duration-300">
+                  View Sale Deals
+                </Link>
+              </div>
+            </div>
+
+            {/* Right: Image Content */}
+            <div className="relative animate-fade-in-up flex justify-center" style={{ animationDelay: '0.3s' }}>
+              <div className="relative w-full max-w-lg aspect-square">
+                {/* Decorative blob behind image */}
+                <div className="absolute inset-0 bg-gradient-to-tr from-orange-200 to-pink-200 rounded-[60%_40%_30%_70%/60%_30%_70%_40%] animate-spin-slow opacity-60"></div>
+                <img 
+                  src="/hero-sports.png" 
+                  alt="Premium Sports Equipment" 
+                  className="absolute inset-0 w-full h-full object-contain drop-shadow-2xl hover:scale-105 transition-transform duration-700"
+                />
+              </div>
             </div>
           </div>
         </div>

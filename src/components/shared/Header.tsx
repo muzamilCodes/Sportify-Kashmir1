@@ -23,6 +23,12 @@ import {
   Shirt,
   ClipboardList,
   Search,
+  Activity,
+  Bike,
+  Waves,
+  Pocket,
+  Gamepad2,
+  Tent
 } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -207,20 +213,33 @@ const fetchCartCount = async () => {
   }, []);
 
   const sportsCategories = [
-    { name: "Cricket", href: "/categories/cricket", icon: <Cricket size={18} />, subcategories: ["Bats", "Balls", "Pads", "Gloves", "Helmets", "Shoes"], color: "from-green-500 to-emerald-600" },
-    { name: "Football", href: "/categories/football", icon: <Goal size={18} />, subcategories: ["Boots", "Balls", "Jerseys", "Shin Guards", "Goal Gloves", "Socks"], color: "from-blue-500 to-indigo-600" },
-    { name: "Fitness", href: "/categories/fitness", icon: <Dumbbell size={18} />, subcategories: ["Dumbbells", "Yoga Mats", "Gym Wear", "Supplements", "Bench", "Accessories"], color: "from-red-500 to-orange-600" },
-    { name: "Apparel", href: "/categories/apparel", icon: <Shirt size={18} />, subcategories: ["Jerseys", "Shorts", "Tracksuits", "Compression Wear", "Socks", "Caps"], color: "from-pink-500 to-rose-600" },
+    { name: "Football", href: "/categories/football", icon: <Goal size={18} />, color: "from-blue-500 to-indigo-600" },
+    { name: "Cricket", href: "/categories/cricket", icon: <Cricket size={18} />, color: "from-green-500 to-emerald-600" },
+    { name: "Badminton", href: "/categories/badminton", icon: <Activity size={18} />, color: "from-red-400 to-orange-500" },
+    { name: "Basketball", href: "/categories/basketball", icon: <Activity size={18} />, color: "from-orange-500 to-red-600" },
+    { name: "Volleyball", href: "/categories/volleyball", icon: <Activity size={18} />, color: "from-yellow-400 to-orange-500" },
+    { name: "Tennis", href: "/categories/tennis", icon: <Activity size={18} />, color: "from-green-400 to-lime-500" },
+    { name: "Gym & Fitness", href: "/categories/gym-fitness", icon: <Dumbbell size={18} />, color: "from-slate-600 to-gray-800" },
+    { name: "Running", href: "/categories/running", icon: <Activity size={18} />, color: "from-cyan-400 to-blue-500" },
+    { name: "Cycling", href: "/categories/cycling", icon: <Bike size={18} />, color: "from-emerald-400 to-teal-600" },
+    { name: "Swimming", href: "/categories/swimming", icon: <Waves size={18} />, color: "from-blue-400 to-cyan-500" },
+    { name: "Indoor Games", href: "/categories/indoor-games", icon: <Gamepad2 size={18} />, color: "from-purple-500 to-pink-600" },
+    { name: "Sports Wear", href: "/categories/sports-wear", icon: <Shirt size={18} />, color: "from-pink-500 to-rose-600" },
+    { name: "Sports Shoes", href: "/categories/sports-shoes", icon: <Tent size={18} />, color: "from-orange-400 to-red-500" },
+    { name: "Accessories", href: "/categories/accessories", icon: <Pocket size={18} />, color: "from-gray-500 to-slate-700" },
+    { name: "Cups & Trophies", href: "/categories/cups-trophies", icon: <Trophy size={18} />, color: "from-yellow-500 to-amber-600" },
   ];
 
   const mainNav = [
     { href: "/", label: "Home", icon: <Home size={18} /> },
     { href: "/products", label: "Shop All", icon: <ShoppingBag size={18} /> },
+    { href: "/sports", label: "Sports", icon: <Activity size={18} /> },
+    { href: "/new-arrivals", label: "New Arrivals", icon: <Badge size={18} /> },
     { href: "/categories", label: "Categories", icon: <Trophy size={18} /> },
     { href: "/brands", label: "Brands", icon: <Award size={18} /> },
-    { href: "/sale", label: "Sale", icon: <Badge size={18} /> },
-    { href: "/blog", label: "Blog", icon: <Info size={18} /> },
+    { href: "/sale", label: "Deals", icon: <Badge size={18} /> },
     { href: "/about", label: "About", icon: <Info size={18} /> },
+    { href: "/faq", label: "FAQ", icon: <Info size={18} /> },
     { href: "/contact", label: "Contact", icon: <Mail size={20} /> },
   ];
 

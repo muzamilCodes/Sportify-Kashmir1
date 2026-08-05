@@ -15,6 +15,9 @@ import {
   Users,
   X,
   Mail,
+  Box,
+  Ticket,
+  BarChart,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -105,11 +108,13 @@ export default function AdminLayout({
   const navItems = [
     { href: "/admin", label: "Dashboard", icon: <LayoutDashboard size={20} /> },
     { href: "/admin/products", label: "Products", icon: <Package size={20} /> },
-    { href: "/admin/sale", label: "Sale", icon: <Tag size={20} /> },
+    { href: "/admin/inventory", label: "Inventory", icon: <Box size={20} /> },
     { href: "/admin/categories", label: "Categories", icon: <Folder size={20} /> },
     { href: "/admin/brands", label: "Brands", icon: <Award size={20} /> },
     { href: "/admin/orders", label: "Orders", icon: <ShoppingBag size={20} /> },
     { href: "/admin/users", label: "Users", icon: <Users size={20} /> },
+    { href: "/admin/coupons", label: "Coupons", icon: <Ticket size={20} /> },
+    { href: "/admin/reports", label: "Reports", icon: <BarChart size={20} /> },
     { href: "/admin/refunds", label: "Refunds", icon: <RefreshCw size={20} /> },
     { href: "/admin/posts", label: "Blog Posts", icon: <FileText size={20} /> },
     { href: "/admin/contacts", label: "Contact Messages", icon: <Mail size={20} />, badge: unreadCount },
@@ -244,10 +249,10 @@ export default function AdminLayout({
                   <span className={pathname === item.href ? "text-white" : "text-gray-400 group-hover:text-white"}>
                     {item.icon}
                   </span>
-                  <span className="text-sm font-medium">{item.label}</span>
+                  <span className={`text-sm font-medium ${sidebarOpen ? '' : 'hidden lg:block'}`}>{item.label}</span>
                 </div>
                 {item.badge !== undefined && item.badge > 0 && (
-                  <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full animate-pulse">
+                  <span className={`bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full animate-pulse ${sidebarOpen ? '' : 'hidden lg:block'}`}>
                     {item.badge > 99 ? "99+" : item.badge}
                   </span>
                 )}
@@ -268,11 +273,7 @@ export default function AdminLayout({
         </aside>
 
         {/* Main Content - Responsive padding */}
-        <main className={`
-          flex-1 min-h-screen w-full
-          transition-all duration-300
-          ${sidebarOpen && window.innerWidth >= 1024 ? 'lg:ml-72' : 'lg:ml-0'}
-        `}>
+        <main className="flex-1 min-h-screen w-full transition-all duration-300 lg:ml-64">
           {/* Spacer for mobile header */}
           <div className="lg:hidden h-14"></div>
           
