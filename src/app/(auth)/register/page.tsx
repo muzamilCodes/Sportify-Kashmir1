@@ -52,9 +52,9 @@ export default function RegisterPage() {
       const result = await response.json();
 
       if (result.success) {
-        toast.success("Registered successfully!");
-        // OTP flow disable (backend now returns verified user)
-        router.push("/login");
+        localStorage.setItem("verifyEmail", formData.email.trim().toLowerCase());
+        toast.success(result.message || "OTP sent successfully! Please verify your email.");
+        router.push("/otp");
       } else {
         toast.error(result.message || "Registration failed");
       }
