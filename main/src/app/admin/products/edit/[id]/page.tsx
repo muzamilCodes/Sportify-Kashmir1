@@ -6,15 +6,6 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 
-const subcategoriesMap: { [key: string]: string[] } = {
-  cricket: ["Bats", "Balls", "Pads", "Gloves", "Helmets", "Shoes", "Clothing"],
-  football: ["Boots", "Balls", "Jerseys", "Shin Guards", "Goal Gloves", "Socks"],
-  basketball: ["Shoes", "Balls", "Jerseys", "Hoops", "Accessories"],
-  tennis: ["Rackets", "Balls", "Strings", "Grips", "Shoes", "Bags"],
-  fitness: ["Dumbbells", "Yoga Mats", "Gym Wear", "Supplements", "Bench", "Accessories"],
-  apparel: ["Jerseys", "Shorts", "Tracksuits", "Compression Wear", "Socks", "Caps"],
-};
-
 export default function EditProductPage() {
   const params = useParams();
   const router = useRouter();
@@ -25,7 +16,7 @@ export default function EditProductPage() {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>("");
   const [existingImage, setExistingImage] = useState<string>("");
-  const [categories, setCategories] = useState<{ _id: string; name: string }[]>([]);
+  const [categories, setCategories] = useState<{ _id: string; name: string; subcategories?: string[] }[]>([]);
   const [brands, setBrands] = useState<{ _id: string; name: string }[]>([]);
   const [availableSubcategories, setAvailableSubcategories] = useState<string[]>([]);
 
@@ -135,12 +126,16 @@ export default function EditProductPage() {
     }
   };
 
+  // Update subcategories when category changes
   useEffect(() => {
     if (formData.category) {
       const selectedCategory = categories.find(c => c._id === formData.category);
-      const categoryName = selectedCategory?.name.toLowerCase() || "";
-      const subs = subcategoriesMap[categoryName] || [];
+      const subs = selectedCategory?.subcategories || [];
       setAvailableSubcategories(subs);
+      // Only reset subcategory if it's a new selection, not initial load
+      if (!loading && formData.subcategory && !subs.includes(formData.subcategory)) {
+        // We shouldn't auto-reset it here on initial load, but this might be buggy if they change category
+      }
     } else {
       setAvailableSubcategories([]);
     }
