@@ -60,29 +60,29 @@ export default function Footer() {
   ];
 
   return (
-    <footer className="bg-gray-900 text-white mt-20">
+    <footer className="bg-gray-900 dark:bg-gray-950 text-white mt-20 pb-20 md:pb-0">
       {/* Trust Badges */}
-      <div className="bg-gray-800 py-6">
+      <div className="bg-gray-800 dark:bg-gray-900 py-6">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             <div className="text-center">
               <Truck className="w-10 h-10 text-green-500 mx-auto mb-2" />
-              <div className="font-bold">Free Shipping</div>
+              <div className="font-bold text-sm">Free Shipping</div>
               <div className="text-sm text-gray-400">Across Kashmir</div>
             </div>
             <div className="text-center">
               <Shield className="w-10 h-10 text-blue-500 mx-auto mb-2" />
-              <div className="font-bold">Authentic Products</div>
+              <div className="font-bold text-sm">Authentic Products</div>
               <div className="text-sm text-gray-400">100% Guaranteed</div>
             </div>
             <div className="text-center">
               <RefreshCw className="w-10 h-10 text-orange-500 mx-auto mb-2" />
-              <div className="font-bold">7-Day Return</div>
+              <div className="font-bold text-sm">7-Day Return</div>
               <div className="text-sm text-gray-400">Easy Returns</div>
             </div>
             <div className="text-center">
               <Headphones className="w-10 h-10 text-purple-500 mx-auto mb-2" />
-              <div className="font-bold">24/7 Support</div>
+              <div className="font-bold text-sm">24/7 Support</div>
               <div className="text-sm text-gray-400">Expert Help</div>
             </div>
           </div>
@@ -98,25 +98,25 @@ export default function Footer() {
               <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-red-500 rounded-lg flex items-center justify-center">
                 <div className="text-white font-bold text-lg">SK</div>
               </div>
-              <h3 className="text-2xl font-bold">
+              <h3 className="text-xl font-bold">
                 Sportify <span className="text-orange-500">Kashmir</span>
               </h3>
             </div>
-            <p className="text-gray-400 mb-6">
-              Kashmir's premier destination for premium sports equipment,
+            <p className="text-gray-400 mb-6 text-sm">
+              Kashmir&apos;s premier destination for premium sports equipment,
               athletic apparel, and expert advice. Serving athletes since 2024.
             </p>
             <div className="flex gap-4">
-              <a href="#" className="text-gray-400 hover:text-orange-500 transition">
+              <a href="#" className="text-gray-400 hover:text-orange-500 transition" aria-label="Instagram">
                 <Instagram size={20} />
               </a>
-              <a href="#" className="text-gray-400 hover:text-orange-500 transition">
+              <a href="#" className="text-gray-400 hover:text-orange-500 transition" aria-label="Facebook">
                 <Facebook size={20} />
               </a>
-              <a href="#" className="text-gray-400 hover:text-orange-500 transition">
+              <a href="#" className="text-gray-400 hover:text-orange-500 transition" aria-label="Twitter">
                 <Twitter size={20} />
               </a>
-              <a href="#" className="text-gray-400 hover:text-orange-500 transition">
+              <a href="#" className="text-gray-400 hover:text-orange-500 transition" aria-label="YouTube">
                 <Youtube size={20} />
               </a>
             </div>
@@ -258,7 +258,7 @@ export default function Footer() {
                   <Link
                     key={brand.name}
                     href={brand.link}
-                    className="px-3 py-1.5 bg-gray-800 text-gray-300 rounded-lg hover:bg-orange-500 hover:text-white transition text-sm"
+                    className="px-3 py-1.5 bg-gray-800 dark:bg-gray-800 text-gray-300 rounded-lg hover:bg-orange-500 hover:text-white transition text-sm"
                   >
                     {brand.name}
                   </Link>
@@ -281,7 +281,7 @@ export default function Footer() {
               <input
                 type="email"
                 placeholder="Enter your email"
-                className="flex-1 px-4 py-3 bg-gray-800 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                className="flex-1 px-4 py-3 bg-gray-800 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 border border-gray-700"
               />
               <button className="bg-orange-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-orange-600 transition">
                 Subscribe
@@ -294,7 +294,7 @@ export default function Footer() {
         <div className="mt-8 pt-8 border-t border-gray-800 text-center text-gray-400">
           <p>© {currentYear} Sportify Kashmir. All rights reserved.</p>
           <p className="text-sm mt-2">
-            Proudly serving Kashmir's sports community from Handwara, Qalamabad
+            Proudly serving Kashmir&apos;s sports community from Handwara, Qalamabad
           </p>
           <div className="flex justify-center gap-6 mt-4 text-xs">
             <Link href="/privacy-policy" className="hover:text-orange-500 transition">

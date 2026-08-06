@@ -34,14 +34,31 @@ export default function AdminLayout({
   const [loading, setLoading] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isMobile, setIsMobile] = useState(false);
+  const [userName, setUserName] = useState("");
+  const [userProfilePic, setUserProfilePic] = useState<string | null>(null);
 
   // ✅ Proper admin verification
   useEffect(() => {
     // Check if user is logged in
     const token = localStorage.getItem("token");
+    const userStr = localStorage.getItem("user");
     if (!token) {
       router.push("/login");
       return;
+    }
+    
+    if (userStr) {
+      try {
+        const userObj = JSON.parse(userStr);
+        setUserName(userObj.username || "");
+        if (userObj.profilePic) {
+          if (userObj.profilePic.startsWith('http')) {
+            setUserProfilePic(userObj.profilePic);
+          } else {
+            setUserProfilePic(`${process.env.NEXT_PUBLIC_API_URL}/uploads/${userObj.profilePic}`);
+          }
+        }
+      } catch(e) {}
     }
 
     // Verify admin status
@@ -106,19 +123,19 @@ export default function AdminLayout({
   }, [router]);
 
   const navItems = [
-    { href: "/admin", label: "Dashboard", icon: <LayoutDashboard size={20} /> },
-    { href: "/admin/products", label: "Products", icon: <Package size={20} /> },
-    { href: "/admin/inventory", label: "Inventory", icon: <Box size={20} /> },
-    { href: "/admin/categories", label: "Categories", icon: <Folder size={20} /> },
-    { href: "/admin/brands", label: "Brands", icon: <Award size={20} /> },
-    { href: "/admin/orders", label: "Orders", icon: <ShoppingBag size={20} /> },
-    { href: "/admin/users", label: "Users", icon: <Users size={20} /> },
-    { href: "/admin/coupons", label: "Coupons", icon: <Ticket size={20} /> },
-    { href: "/admin/reports", label: "Reports", icon: <BarChart size={20} /> },
-    { href: "/admin/refunds", label: "Refunds", icon: <RefreshCw size={20} /> },
-    { href: "/admin/posts", label: "Blog Posts", icon: <FileText size={20} /> },
-    { href: "/admin/contacts", label: "Contact Messages", icon: <Mail size={20} />, badge: unreadCount },
-    { href: "/admin/settings", label: "Settings", icon: <Settings size={20} /> },
+    { href: "/admin", label: "Dashboard", icon: <LayoutDashboard size={18} /> },
+    { href: "/admin/products", label: "Products", icon: <Package size={18} /> },
+    { href: "/admin/inventory", label: "Inventory", icon: <Box size={18} /> },
+    { href: "/admin/categories", label: "Categories", icon: <Folder size={18} /> },
+    { href: "/admin/brands", label: "Brands", icon: <Award size={18} /> },
+    { href: "/admin/orders", label: "Orders", icon: <ShoppingBag size={18} /> },
+    { href: "/admin/users", label: "Users", icon: <Users size={18} /> },
+    { href: "/admin/coupons", label: "Coupons", icon: <Ticket size={18} /> },
+    { href: "/admin/reports", label: "Reports", icon: <BarChart size={18} /> },
+    { href: "/admin/refunds", label: "Refunds", icon: <RefreshCw size={18} /> },
+    { href: "/admin/posts", label: "Blog Posts", icon: <FileText size={18} /> },
+    { href: "/admin/contacts", label: "Contact Messages", icon: <Mail size={18} />, badge: unreadCount },
+    { href: "/admin/settings", label: "Settings", icon: <Settings size={18} /> },
   ];
 
   const handleLogout = () => {
@@ -129,36 +146,36 @@ export default function AdminLayout({
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-orange-50 to-red-50">
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-orange-50 to-red-50 dark:from-gray-900 dark:to-gray-800">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 sm:h-16 sm:w-16 border-4 border-orange-200 border-t-orange-500 mx-auto mb-4"></div>
-          <p className="text-base sm:text-lg text-gray-700 font-medium">Loading...</p>
+          <div className="animate-spin rounded-full h-10 w-10 sm:h-12 sm:w-12 border-4 border-orange-200 dark:border-orange-800 border-t-orange-500 mx-auto mb-4"></div>
+          <p className="text-sm sm:text-base text-gray-700 dark:text-gray-300 font-medium">Loading...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
       {/* Mobile Header - Fixed at top */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-white border-b shadow-sm">
+      <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm">
         <div className="flex items-center justify-between px-4 py-3">
           <button
             type="button"
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="p-2 rounded-lg hover:bg-orange-50 transition-colors focus:outline-none focus:ring-2 focus:ring-orange-500 text-orange-600"
+            className="p-2 rounded-lg hover:bg-orange-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-orange-500 text-orange-600 dark:text-orange-400"
             aria-label="Toggle menu"
           >
-            {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
+            {sidebarOpen ? <X size={22} /> : <Menu size={22} />}
           </button>
-          <h1 className="text-lg font-bold text-gray-800">Admin Panel</h1>
+          <h1 className="text-base font-bold text-gray-800 dark:text-white">Admin Panel</h1>
           <div className="w-10"></div>
         </div>
       </div>
 
       {/* Mobile Bottom Navigation - Only for mobile */}
       {isMobile && !sidebarOpen && (
-        <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t shadow-lg">
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 shadow-lg">
           <div className="flex justify-around items-center py-2">
             {navItems.slice(0, 5).map((item) => (
               <Link
@@ -166,14 +183,14 @@ export default function AdminLayout({
                 href={item.href}
                 className={`flex flex-col items-center px-3 py-2 rounded-lg transition-colors ${
                   pathname === item.href
-                    ? "text-orange-600"
-                    : "text-gray-600 hover:text-orange-500"
+                    ? "text-orange-600 dark:text-orange-400"
+                    : "text-gray-600 dark:text-gray-400 hover:text-orange-500"
                 }`}
               >
                 {item.icon}
-                <span className="text-xs mt-1">{item.label}</span>
+                <span className="text-[10px] mt-1">{item.label}</span>
                 {item.badge !== undefined && item.badge > 0 && (
-                  <span className="absolute top-0 right-0 bg-red-500 text-white text-xs rounded-full px-1 min-w-[18px] text-center">
+                  <span className="absolute top-0 right-0 bg-red-500 text-white text-[10px] rounded-full px-1 min-w-[16px] text-center">
                     {item.badge > 99 ? "99+" : item.badge}
                   </span>
                 )}
@@ -197,7 +214,7 @@ export default function AdminLayout({
         <aside
           className={`
             fixed top-0 bottom-0 left-0 z-50
-            w-72 sm:w-80 lg:w-64
+            w-72 sm:w-80 lg:w-60
             bg-gradient-to-b from-gray-900 to-gray-800
             text-white transition-transform duration-300 ease-in-out
             overflow-y-auto shadow-2xl
@@ -207,10 +224,10 @@ export default function AdminLayout({
         >
           {/* Sidebar Header */}
           <div className="sticky top-0 bg-gray-900/95 backdrop-blur-sm z-10">
-            <div className="flex items-center justify-between p-5 border-b border-gray-700">
+            <div className="flex items-center justify-between p-4 border-b border-gray-700">
               <div className="flex items-center gap-2">
-                <LayoutDashboard size={24} className="text-orange-500" />
-                <h1 className="text-xl font-bold bg-gradient-to-r from-orange-400 to-red-400 bg-clip-text text-transparent">
+                <LayoutDashboard size={20} className="text-orange-500" />
+                <h1 className="text-base font-bold bg-gradient-to-r from-orange-400 to-red-400 bg-clip-text text-transparent">
                   Admin Panel
                 </h1>
               </div>
@@ -219,20 +236,20 @@ export default function AdminLayout({
                 className="lg:hidden p-1 rounded-lg hover:bg-gray-800 transition-colors"
                 aria-label="Close menu"
               >
-                <X size={20} />
+                <X size={18} />
               </button>
             </div>
           </div>
 
           {/* Navigation */}
-          <nav className="p-4 space-y-1.5 pb-24">
+          <nav className="p-3 space-y-1 pb-24">
             {navItems.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
                 className={`
-                  flex items-center justify-between px-4 py-3 rounded-lg
-                  transition-all duration-200 group
+                  flex items-center justify-between px-3 py-2.5 rounded-lg
+                  transition-all duration-200 group text-sm
                   ${
                     pathname === item.href
                       ? "bg-gradient-brand text-white shadow-md shadow-orange-500/20"
@@ -245,14 +262,14 @@ export default function AdminLayout({
                   }
                 }}
               >
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2.5">
                   <span className={pathname === item.href ? "text-white" : "text-gray-400 group-hover:text-white"}>
                     {item.icon}
                   </span>
                   <span className={`text-sm font-medium ${sidebarOpen ? '' : 'hidden lg:block'}`}>{item.label}</span>
                 </div>
                 {item.badge !== undefined && item.badge > 0 && (
-                  <span className={`bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full animate-pulse ${sidebarOpen ? '' : 'hidden lg:block'}`}>
+                  <span className={`bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full animate-pulse ${sidebarOpen ? '' : 'hidden lg:block'}`}>
                     {item.badge > 99 ? "99+" : item.badge}
                   </span>
                 )}
@@ -260,25 +277,36 @@ export default function AdminLayout({
             ))}
           </nav>
 
-          {/* Logout Button - Fixed at bottom on desktop, scrollable on mobile */}
-          <div className="sticky bottom-0 bg-gray-900/95 backdrop-blur-sm border-t border-gray-700 p-4 mt-auto">
+          {/* User Profile & Logout - Fixed at bottom on desktop, scrollable on mobile */}
+          <div className="sticky bottom-0 bg-gray-900/95 backdrop-blur-sm border-t border-gray-700 p-3 mt-auto">
+            <div className="flex items-center gap-3 px-3 py-3 mb-2 bg-gray-800 rounded-lg">
+              {userProfilePic ? (
+                <img src={userProfilePic} alt="Admin" className="w-8 h-8 rounded-full object-cover border border-orange-500" />
+              ) : (
+                <div className="w-8 h-8 rounded-full bg-orange-500 flex items-center justify-center text-white text-xs font-bold">A</div>
+              )}
+              <div className="flex flex-col">
+                <span className="text-sm font-medium text-white line-clamp-1">{userName || "Admin"}</span>
+                <span className="text-[10px] text-gray-400">Administrator</span>
+              </div>
+            </div>
             <button
               onClick={handleLogout}
-              className="flex items-center gap-3 px-4 py-3 text-red-400 hover:text-red-300 hover:bg-gray-800 rounded-lg w-full transition-all duration-200 group"
+              className="flex items-center justify-center gap-2.5 px-3 py-2 text-red-400 hover:text-red-300 hover:bg-gray-800 rounded-lg w-full transition-all duration-200 group text-sm border border-transparent hover:border-red-900/30"
             >
-              <LogOut size={20} className="group-hover:scale-110 transition-transform" />
-              <span className="text-sm font-medium">Logout</span>
+              <LogOut size={16} className="group-hover:scale-110 transition-transform" />
+              <span className="font-medium">Logout</span>
             </button>
           </div>
         </aside>
 
         {/* Main Content - Responsive padding */}
-        <main className="flex-1 min-h-screen w-full transition-all duration-300 lg:ml-64">
+        <main className="flex-1 min-h-screen w-full transition-all duration-300 lg:ml-60">
           {/* Spacer for mobile header */}
           <div className="lg:hidden h-14"></div>
           
           {/* Content */}
-          <div className="p-3 sm:p-4 md:p-6 lg:p-8">
+          <div className="p-3 sm:p-4 md:p-5 lg:p-6">
             {children}
           </div>
           

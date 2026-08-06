@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, AlertCircle } from "lucide-react";
+import { Mail, AlertCircle, RefreshCw, CheckCircle } from "lucide-react";
 import toast from "react-hot-toast";
 
 export default function OTPPage() {
@@ -10,7 +10,6 @@ export default function OTPPage() {
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
-  const [resendLoading, setResendLoading] = useState(false);
 
   useEffect(() => {
     const stored = localStorage.getItem("verifyEmail");
@@ -19,32 +18,33 @@ export default function OTPPage() {
       router.push("/register");
     } else {
       setEmail(stored);
+      console.log("Verifying OTP for email:", stored);
     }
-  }, [router]);
+  }, []);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!otp || otp.length !== 6) {
+  const handleVerify = async () => {
+    const cleanOtp = otp.trim();
+    if (cleanOtp.length !== 6) {
       toast.error("Enter 6-digit OTP");
       return;
     }
-    
     setLoading(true);
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
-      const verifyRes = await fetch(`${apiUrl}/user/verify-otp`, {
+      const res = await fetch(`${apiUrl}/user/verify-otp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, otp }),
+        body: JSON.stringify({ email: email.trim(), otp: cleanOtp }),
       });
-      const verifyData = await verifyRes.json();
-      
-      if (verifyData.success) {
+      const data = await res.json();
+      if (data.success) {
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("user", JSON.stringify(data.user));
         localStorage.removeItem("verifyEmail");
-        toast.success("Account verified successfully! Please login.");
-        router.push("/login");
+        toast.success("Verified successfully!");
+        router.push("/");
       } else {
-        toast.error(verifyData.message || "Invalid OTP");
+        toast.error(data.message || "Invalid OTP");
       }
     } catch (error) {
       toast.error("Network error");
@@ -54,86 +54,106 @@ export default function OTPPage() {
   };
 
   const handleResend = async () => {
-    setResendLoading(true);
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
-      const resendRes = await fetch(`${apiUrl}/user/resend-otp`, {
+      const res = await fetch(`${apiUrl}/user/resend-otp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
       });
-      const resendData = await resendRes.json();
-      
-      if (resendData.success) {
-        toast.success("OTP resent successfully!");
-      } else {
-        toast.error(resendData.message || "Failed to resend OTP");
-      }
+      const data = await res.json();
+      if (data.success) toast.success("OTP resent!");
+      else toast.error(data.message);
     } catch (error) {
-      toast.error("Network error");
-    } finally {
-      setResendLoading(false);
+      toast.error("Failed to resend");
     }
   };
 
-  if (!email) return null;
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-red-50 to-pink-50 flex items-center justify-center p-6">
-      <div className="w-full max-w-md">
-        <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-white/20">
-          <div className="bg-gradient-to-r from-orange-500 to-red-500 px-6 py-4">
-            <h1 className="text-2xl font-bold text-white text-center">Verify Your Email</h1>
-          </div>
-          <div className="p-6">
-            <p className="text-gray-600 text-center mb-4">
-              We've sent a 6-digit OTP to <strong>{email}</strong>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-6">
+      <div className="w-full max-w-lg">
+        {/* Card */}
+        <div className="bg-white rounded-3xl shadow-2xl overflow-hidden">
+          {/* Header */}
+          <div className="bg-gradient-to-r from-orange-500 to-red-500 px-8 py-6 text-white">
+            <div className="flex items-center justify-center gap-3">
+              <Mail className="w-8 h-8" />
+              <h1 className="text-3xl font-bold">Verify OTP</h1>
+            </div>
+            <p className="text-center text-orange-100 mt-2">
+              Enter the 6-digit code sent to your email
             </p>
+          </div>
 
-            <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg flex items-start gap-2">
+          {/* Body */}
+          <div className="p-8">
+            {/* Email display */}
+            <div className="text-center mb-6">
+              <p className="text-gray-600">We've sent a code to</p>
+              <p className="font-semibold text-gray-800 text-lg mt-1">{email}</p>
+            </div>
+
+            {/* Spam Warning */}
+            <div className="mb-6 p-4 bg-yellow-50 border-l-4 border-yellow-500 rounded-lg flex items-start gap-3">
               <AlertCircle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
               <div className="text-sm text-yellow-800">
                 <p className="font-semibold">Email not received?</p>
-                <p>Please check your <strong>Spam / Junk folder</strong>. Sometimes emails land there.</p>
+                <p className="mt-1">
+                  Check your <strong> Email Spam / Junk folder</strong>. Sometimes emails land there.
+                </p>
               </div>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">OTP Code</label>
-                <input
-                  type="text"
-                  value={otp}
-                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                  placeholder="6-digit OTP"
-                  className="w-full text-center text-2xl tracking-widest p-3 border rounded-lg focus:ring-2 focus:ring-orange-500"
-                  required
-                />
-              </div>
-              
+            {/* OTP Input */}
+            <div className="mb-8">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Enter OTP
+              </label>
+              <input
+                type="text"
+                value={otp}
+                onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                placeholder="• • • • • •"
+                className="w-full text-center text-3xl tracking-[0.5em] p-4 border-2 border-gray-200 rounded-xl focus:border-orange-500 focus:ring-2 focus:ring-orange-200 outline-none transition"
+                autoFocus
+              />
+            </div>
+
+            {/* Verify Button */}
+            <button
+              onClick={handleVerify}
+              disabled={loading}
+              className="w-full bg-gradient-to-r from-orange-500 to-red-500 text-white py-3 rounded-xl font-semibold text-lg hover:shadow-lg transition-all duration-300 disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {loading ? (
+                <>
+                  <RefreshCw className="w-5 h-5 animate-spin" />
+                  Verifying...
+                </>
+              ) : (
+                <>
+                  <CheckCircle className="w-5 h-5" />
+                  Verify OTP
+                </>
+              )}
+            </button>
+
+            {/* Resend */}
+            <div className="text-center mt-6">
               <button
-                type="submit"
-                disabled={loading}
-                className="w-full bg-gradient-to-r from-orange-500 to-red-500 text-white py-3 rounded-xl font-semibold hover:shadow-lg hover:scale-105 transition-all duration-300 disabled:opacity-50 disabled:scale-100 flex items-center justify-center gap-2"
+                onClick={handleResend}
+                className="text-blue-600 hover:text-blue-800 text-sm font-medium transition"
               >
-                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Verify Account"}
+                Didn't receive OTP? Click here to resend
               </button>
-            </form>
-            
-            <div className="mt-6 text-center">
-              <p className="text-sm text-gray-600">
-                Didn't receive the code?{" "}
-                <button
-                  onClick={handleResend}
-                  disabled={resendLoading}
-                  className="text-orange-500 font-semibold hover:underline disabled:opacity-50"
-                >
-                  {resendLoading ? "Sending..." : "Resend OTP"}
-                </button>
-              </p>
             </div>
           </div>
         </div>
+
+        {/* Footer note */}
+        <p className="text-center text-gray-500 text-xs mt-6">
+          The OTP is valid for 10 minutes. For security, never share it with anyone.
+        </p>
       </div>
     </div>
   );

@@ -54,10 +54,10 @@ export default function ProductCard({
     : product.category;
 
   return (
-    <div className="bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden group">
+    <div className="surface-card rounded-lg hover:shadow-xl dark:hover:shadow-orange-500/5 transition-all duration-300 overflow-hidden group">
       <Link href={`/product/${product._id}`}>
         {/* Product Image */}
-        <div className="aspect-square bg-gray-100 relative overflow-hidden">
+        <div className="aspect-square bg-gray-100 dark:bg-gray-800 relative overflow-hidden">
           {imageUrl && !imageError ? (
             <img
               src={finalImageUrl}
@@ -68,7 +68,7 @@ export default function ProductCard({
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
-              <ShoppingBag className="w-12 h-12 text-gray-400" />
+              <ShoppingBag className="w-12 h-12 text-gray-400 dark:text-gray-600" />
             </div>
           )}
 
@@ -100,12 +100,12 @@ export default function ProductCard({
         {/* Product Info */}
         <div className="p-4">
           {/* Product Name */}
-          <h3 className="font-semibold text-gray-900 mb-2 line-clamp-1 group-hover:text-blue-600 transition-colors">
+          <h3 className="font-semibold text-[var(--color-text-primary)] mb-2 line-clamp-1 group-hover:text-orange-500 transition-colors">
             {product.name}
           </h3>
 
           {/* Description */}
-          <p className="text-gray-600 text-sm mb-3 line-clamp-2">
+          <p className="text-[var(--color-text-secondary)] text-sm mb-3 line-clamp-2">
             {product.description}
           </p>
 
@@ -117,40 +117,40 @@ export default function ProductCard({
                   key={i}
                   size={14}
                   className={
-                    i < 4 ? "text-yellow-400 fill-yellow-400" : "text-gray-300"
+                    i < 4 ? "text-yellow-400 fill-yellow-400" : "text-gray-300 dark:text-gray-600"
                   }
                 />
               ))}
             </div>
-            <span className="text-xs text-gray-500">(4.5)</span>
+            <span className="text-xs text-[var(--color-text-tertiary)]">(4.5)</span>
           </div>
 
           {/* Price and Category */}
           <div className="flex justify-between items-center">
             <div>
-              <span className="text-lg font-bold text-gray-900">
+              <span className="text-lg font-bold text-gradient">
                 ₹{resolvedDiscountPrice.toFixed(2)}
               </span>
               {(hasDiscount ?? product.discount) ? (
-                <span className="ml-2 text-sm text-gray-500 line-through">
+                <span className="ml-2 text-sm text-[var(--color-text-tertiary)] line-through">
                   ₹{product.price.toFixed(2)}
                 </span>
               ) : null}
             </div>
 
             {showCategory && categoryName && (
-              <span className="text-xs px-2 py-1 bg-gray-100 text-gray-800 rounded">
+              <span className="text-xs px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300 rounded">
                 {categoryName}
               </span>
             )}
           </div>
 
           {/* Stock Info */}
-          <div className="mt-2 text-xs text-gray-500">
+          <div className="mt-2 text-xs">
             {product.stock > 0 ? (
-              <span className="text-green-600">{product.stock} in stock</span>
+              <span className="text-green-600 dark:text-green-400">{product.stock} in stock</span>
             ) : (
-              <span className="text-red-600">Out of stock</span>
+              <span className="text-red-600 dark:text-red-400">Out of stock</span>
             )}
           </div>
         </div>

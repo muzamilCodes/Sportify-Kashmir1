@@ -31,6 +31,7 @@ import {
   Tent
 } from "lucide-react";
 import toast from "react-hot-toast";
+import ThemeToggle from "@/components/shared/ThemeToggle";
 
 const Cricket = ({ size = 24 }: { size?: number }) => (
   <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -83,15 +84,11 @@ export default function Header() {
       const token = localStorage.getItem("token");
       const userData = localStorage.getItem("user");
       
-      console.log("Checking auth - Token exists:", !!token);
-      console.log("Checking auth - UserData exists:", !!userData);
-      
       if (token && userData) {
         try {
           const parsedUser = JSON.parse(userData);
           setUser(parsedUser);
           setIsLoggedIn(true);
-          console.log("User set from localStorage:", parsedUser.username);
         } catch (e) {
           console.error("Error parsing user data:", e);
           setIsLoggedIn(false);
@@ -134,7 +131,6 @@ export default function Header() {
           setUser(result.payload);
           setIsLoggedIn(true);
           localStorage.setItem("user", JSON.stringify(result.payload));
-          console.log("User verified from backend:", result.payload.username);
         } else {
           localStorage.removeItem("token");
           localStorage.removeItem("user");
@@ -152,49 +148,31 @@ export default function Header() {
   }, []);
 
   // ✅ FIXED: Update cart count with event listener
-  // const fetchCartCount = async () => {
-  //   const token = localStorage.getItem("token");
-  //   if (!token) return;
-  //   try {
-  //     const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/cart/getCart`, {
-  //       headers: { Authorization: `Bearer ${token}` },
-  //     });
-  //     const result = await response.json();
-  //     if (result.success && result.data) {
-  //       const products = result.data.products || [];
-  //       const totalItems = products.reduce((sum: number, item: any) => sum + (item.quantity || 1), 0);
-  //       setCartCount(totalItems);
-  //     } else {
-  //       setCartCount(0);
-  //     }
-  //   } catch (error) {
-  //     console.error("Error fetching cart:", error);
-  //   }
-  // };
-const fetchCartCount = async () => {
-  const token = localStorage.getItem("token");
-  if (!token) {
-    setCartCount(0);
-    return;
-  }
-  try {
-    // ✅ Add cache: 'no-store' to force fresh data
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/cart/getCart`, {
-      headers: { Authorization: `Bearer ${token}` },
-      cache: 'no-store',
-    });
-    const result = await response.json();
-    if (result.success && result.data) {
-      const products = result.data.products || [];
-      const totalItems = products.reduce((sum: number, item: any) => sum + (item.quantity || 1), 0);
-      setCartCount(totalItems);
-    } else {
+  const fetchCartCount = async () => {
+    const token = localStorage.getItem("token");
+    if (!token) {
       setCartCount(0);
+      return;
     }
-  } catch (error) {
-    console.error("Error fetching cart:", error);
-  }
-};
+    try {
+      // ✅ Add cache: 'no-store' to force fresh data
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/cart/getCart`, {
+        headers: { Authorization: `Bearer ${token}` },
+        cache: 'no-store',
+      });
+      const result = await response.json();
+      if (result.success && result.data) {
+        const products = result.data.products || [];
+        const totalItems = products.reduce((sum: number, item: any) => sum + (item.quantity || 1), 0);
+        setCartCount(totalItems);
+      } else {
+        setCartCount(0);
+      }
+    } catch (error) {
+      console.error("Error fetching cart:", error);
+    }
+  };
+
   useEffect(() => {
     fetchCartCount();
     
@@ -265,57 +243,69 @@ const fetchCartCount = async () => {
   const profileImageUrl = getProfileImageUrl(user?.profilePic);
 
   return (
-    <header className={`sticky top-0 z-50 transition-all duration-300 ${scrolled ? "shadow-xl bg-white/95 backdrop-blur-md" : "shadow-lg bg-white"}`}>
+    <header className={`sticky top-0 z-50 transition-all duration-300 ${
+      scrolled
+        ? "shadow-xl bg-white/95 dark:bg-gray-900/95 backdrop-blur-md"
+        : "shadow-lg bg-white dark:bg-gray-900"
+    }`}>
       {/* Top Banner */}
-      <div className="bg-gradient-to-r from-orange-600 to-red-600 text-white text-center py-2.5 px-4 text-sm font-medium">
+      <div className="bg-gradient-to-r from-orange-600 to-red-600 text-white text-center py-2 px-4 text-xs font-medium">
         <div className="flex items-center justify-center gap-4 flex-wrap">
           <span>🚚 Free Shipping on orders above ₹999</span>
           <span className="hidden sm:inline">|</span>
-          <span>⚡ Kashmir's Fastest Sports Delivery</span>
+          <span>⚡ Kashmir&apos;s Fastest Sports Delivery</span>
           <span className="hidden sm:inline">|</span>
           <span>🏆 100% Authentic Products</span>
         </div>
       </div>
 
       <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between h-20">
+        <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-3 group">
-            <div className="w-12 h-12 bg-gradient-to-br from-orange-500 via-red-500 to-pink-500 rounded-xl flex items-center justify-center shadow-lg">
-              <Trophy className="w-7 h-7 text-white" />
+          <Link href="/" className="flex items-center gap-2.5 group">
+            <div className="w-10 h-10 bg-gradient-to-br from-orange-500 via-red-500 to-pink-500 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow">
+              <Trophy className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">
-                Sportify <span className="text-gray-900">Kashmir</span>
+              <h1 className="text-xl font-bold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">
+                Sportify <span className="text-gray-900 dark:text-white">Kashmir</span>
               </h1>
-              <p className="text-xs text-gray-500 -mt-1">Sports Excellence Delivered</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 -mt-1">Sports Excellence Delivered</p>
             </div>
           </Link>
 
           {/* Desktop Search */}
-          <div className="hidden lg:block flex-1 max-w-2xl mx-8">
+          <div className="hidden lg:block flex-1 max-w-2xl mx-6">
             <form onSubmit={handleSearch} className="relative">
-              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+              <Search className="absolute left-3.5 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
               <input
                 type="text"
                 placeholder="Search products..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-12 pr-32 py-3 border-2 border-gray-200 rounded-full focus:outline-none focus:border-orange-500"
+                className="w-full pl-10 pr-28 py-2.5 text-sm border-2 border-gray-200 dark:border-gray-700 rounded-full focus:outline-none focus:border-orange-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 transition-colors"
               />
-              <button type="submit" className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-gradient-to-r from-orange-500 to-red-500 text-white px-5 py-1.5 rounded-full text-sm">
+              <button type="submit" className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-gradient-to-r from-orange-500 to-red-500 text-white px-4 py-1 rounded-full text-xs font-medium hover:shadow-md transition-shadow">
                 Search
               </button>
             </form>
           </div>
 
           {/* User Actions */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            {/* Theme Toggle */}
+            <ThemeToggle />
+
+            {/* Wishlist - Desktop */}
+            <Link href="/wishlist" className="hidden md:flex relative p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition group">
+              <Heart className="text-gray-700 dark:text-gray-300 group-hover:text-orange-500 transition" size={22} />
+            </Link>
+
             {/* Cart */}
-            <Link href="/cart" className="relative p-2 rounded-xl hover:bg-gray-100 transition group">
-              <ShoppingCart className="text-gray-700 group-hover:text-orange-500 transition" size={24} />
+            <Link href="/cart" className="relative p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition group">
+              <ShoppingCart className="text-gray-700 dark:text-gray-300 group-hover:text-orange-500 transition" size={24} />
               {cartCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center animate-pulse">
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center animate-scale-in">
                   {cartCount}
                 </span>
               )}
@@ -325,7 +315,7 @@ const fetchCartCount = async () => {
             <div className="relative" ref={userMenuRef}>
               <button
                 onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                className="flex items-center gap-2 p-2 rounded-xl hover:bg-gray-100 transition"
+                className="flex items-center gap-2 p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition"
               >
                 {isLoggedIn && profileImageUrl && !imageError ? (
                   <img
@@ -335,12 +325,12 @@ const fetchCartCount = async () => {
                     onError={() => setImageError(true)}
                   />
                 ) : (
-                  <div className="w-9 h-9 bg-gray-100 rounded-full flex items-center justify-center">
-                    <User className="text-gray-600" size={20} />
+                  <div className="w-9 h-9 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center">
+                    <User className="text-gray-600 dark:text-gray-300" size={20} />
                   </div>
                 )}
                 {isLoggedIn && user && (
-                  <span className="hidden md:block text-sm font-medium text-gray-700">
+                  <span className="hidden md:block text-sm font-medium text-gray-700 dark:text-gray-200">
                     {user.username || user.email?.split("@")[0]}
                   </span>
                 )}
@@ -348,12 +338,12 @@ const fetchCartCount = async () => {
               </button>
 
               {/* Dropdown Menu */}
-              <div className={`absolute right-0 top-full mt-2 w-64 bg-white rounded-2xl shadow-2xl border transition-all duration-200 z-50 ${
-                isUserMenuOpen ? "opacity-100 visible" : "opacity-0 invisible"
+              <div className={`absolute right-0 top-full mt-2 w-64 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 transition-all duration-200 z-50 ${
+                isUserMenuOpen ? "opacity-100 visible translate-y-0" : "opacity-0 invisible -translate-y-2"
               }`}>
                 {isLoggedIn && user ? (
                   <>
-                    <div className="px-4 py-3 border-b bg-gradient-to-r from-orange-50 to-red-50 rounded-t-2xl">
+                    <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700 bg-gradient-to-r from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20 rounded-t-2xl">
                       <div className="flex items-center gap-3">
                         {profileImageUrl && !imageError ? (
                           <img src={profileImageUrl} alt="Profile" className="w-12 h-12 rounded-full object-cover border-2 border-orange-500" />
@@ -363,37 +353,43 @@ const fetchCartCount = async () => {
                           </div>
                         )}
                         <div>
-                          <div className="font-semibold text-gray-900">{user?.username || "User"}</div>
-                          <div className="text-sm text-gray-500">{user?.email}</div>
+                          <div className="font-semibold text-gray-900 dark:text-white">{user?.username || "User"}</div>
+                          <div className="text-sm text-gray-500 dark:text-gray-400">{user?.email}</div>
                         </div>
                       </div>
                     </div>
-                    <Link href="/profile" className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition" onClick={() => setIsUserMenuOpen(false)}>
-                      <User size={18} className="text-gray-500" />
-                      <div><div className="font-medium text-gray-900">My Account</div><div className="text-xs text-gray-500">View profile & orders</div></div>
+                    {user?.isAdmin && (
+                      <Link href="/admin" className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition" onClick={() => setIsUserMenuOpen(false)}>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-500 dark:text-gray-400"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                        <div><div className="font-medium text-gray-900 dark:text-white">Admin Dashboard</div><div className="text-xs text-gray-500 dark:text-gray-400">Manage store & products</div></div>
+                      </Link>
+                    )}
+                    <Link href="/profile" className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition border-t border-gray-100 dark:border-gray-700" onClick={() => setIsUserMenuOpen(false)}>
+                      <User size={18} className="text-gray-500 dark:text-gray-400" />
+                      <div><div className="font-medium text-gray-900 dark:text-white">My Account</div><div className="text-xs text-gray-500 dark:text-gray-400">View profile & orders</div></div>
                     </Link>
-                    <Link href="/orders" className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition border-t" onClick={() => setIsUserMenuOpen(false)}>
-                      <ClipboardList size={18} className="text-gray-500" />
-                      <div><div className="font-medium text-gray-900">My Orders</div><div className="text-xs text-gray-500">Track your orders</div></div>
+                    <Link href="/orders" className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition border-t border-gray-100 dark:border-gray-700" onClick={() => setIsUserMenuOpen(false)}>
+                      <ClipboardList size={18} className="text-gray-500 dark:text-gray-400" />
+                      <div><div className="font-medium text-gray-900 dark:text-white">My Orders</div><div className="text-xs text-gray-500 dark:text-gray-400">Track your orders</div></div>
                     </Link>
-                    <Link href="/wishlist" className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition border-t" onClick={() => setIsUserMenuOpen(false)}>
-                      <Heart size={18} className="text-gray-500" />
-                      <div><div className="font-medium text-gray-900">Wishlist</div><div className="text-xs text-gray-500">Saved items</div></div>
+                    <Link href="/wishlist" className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition border-t border-gray-100 dark:border-gray-700" onClick={() => setIsUserMenuOpen(false)}>
+                      <Heart size={18} className="text-gray-500 dark:text-gray-400" />
+                      <div><div className="font-medium text-gray-900 dark:text-white">Wishlist</div><div className="text-xs text-gray-500 dark:text-gray-400">Saved items</div></div>
                     </Link>
-                    <button onClick={handleLogout} className="flex items-center gap-3 w-full text-left px-4 py-3 text-red-600 hover:bg-red-50 transition rounded-b-2xl border-t">
+                    <button onClick={handleLogout} className="flex items-center gap-3 w-full text-left px-4 py-3 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition rounded-b-2xl border-t border-gray-100 dark:border-gray-700">
                       <LogOut size={18} />
                       <div><div className="font-medium">Logout</div><div className="text-xs text-red-500">Sign out</div></div>
                     </button>
                   </>
                 ) : (
                   <>
-                    <Link href="/login" className="block px-4 py-3 hover:bg-gray-50 border-b rounded-t-2xl" onClick={() => setIsUserMenuOpen(false)}>
-                      <div className="font-medium">Login</div>
-                      <div className="text-xs text-gray-500">Sign in to your account</div>
+                    <Link href="/login" className="block px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-100 dark:border-gray-700 rounded-t-2xl" onClick={() => setIsUserMenuOpen(false)}>
+                      <div className="font-medium text-gray-900 dark:text-white">Login</div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400">Sign in to your account</div>
                     </Link>
-                    <Link href="/signup" className="block px-4 py-3 hover:bg-gray-50 rounded-b-2xl" onClick={() => setIsUserMenuOpen(false)}>
-                      <div className="font-medium">Create Account</div>
-                      <div className="text-xs text-gray-500">Register now</div>
+                    <Link href="/signup" className="block px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-b-2xl" onClick={() => setIsUserMenuOpen(false)}>
+                      <div className="font-medium text-gray-900 dark:text-white">Create Account</div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400">Register now</div>
                     </Link>
                   </>
                 )}
@@ -401,23 +397,23 @@ const fetchCartCount = async () => {
             </div>
 
             {/* Mobile Menu Button */}
-            <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="p-2 lg:hidden rounded-xl hover:bg-gray-100 transition">
-              {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
+            <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="p-2 lg:hidden rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition">
+              {isMenuOpen ? <X size={24} className="text-gray-700 dark:text-gray-300" /> : <Menu size={24} className="text-gray-700 dark:text-gray-300" />}
             </button>
           </div>
         </div>
 
         {/* Desktop Navigation */}
-        <nav className="hidden lg:flex items-center justify-between py-3 border-t">
-          <div className="flex items-center gap-2">
+        <nav className="hidden lg:flex items-center justify-between py-2 border-t border-gray-200 dark:border-gray-700">
+          <div className="flex items-center gap-1">
             {mainNav.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-all ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
                   pathname === item.href
                     ? "bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-md"
-                    : "text-gray-700 hover:text-orange-500 hover:bg-orange-50"
+                    : "text-gray-700 dark:text-gray-300 hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-500/10"
                 }`}
               >
                 {item.icon}
@@ -428,8 +424,10 @@ const fetchCartCount = async () => {
         </nav>
 
         {/* Mobile Menu */}
-        {isMenuOpen && (
-          <div className="lg:hidden py-4 border-t max-h-[80vh] overflow-y-auto">
+        <div className={`lg:hidden overflow-hidden transition-all duration-300 ${
+          isMenuOpen ? "max-h-[80vh] opacity-100" : "max-h-0 opacity-0"
+        }`}>
+          <div className="py-4 border-t border-gray-200 dark:border-gray-700 overflow-y-auto max-h-[70vh]">
             <form onSubmit={handleSearch} className="mb-4">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
@@ -438,23 +436,23 @@ const fetchCartCount = async () => {
                   placeholder="Search products..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 border rounded-xl"
+                  className="w-full pl-10 pr-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400"
                 />
               </div>
             </form>
             <div className="space-y-1">
               {mainNav.map((item) => (
-                <Link key={item.href} href={item.href} className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-gray-50 transition" onClick={() => setIsMenuOpen(false)}>
+                <Link key={item.href} href={item.href} className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition text-gray-700 dark:text-gray-300" onClick={() => setIsMenuOpen(false)}>
                   {item.icon}
                   <span>{item.label}</span>
                 </Link>
               ))}
             </div>
-            <div className="mt-4 pt-4 border-t">
-              <h3 className="font-semibold text-gray-900 mb-3 px-3">Sports Categories</h3>
+            <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+              <h3 className="font-semibold text-gray-900 dark:text-white mb-3 px-3">Sports Categories</h3>
               <div className="grid grid-cols-2 gap-2">
                 {sportsCategories.map((category) => (
-                  <Link key={category.name} href={category.href} className="flex items-center gap-2 px-3 py-2.5 bg-gray-50 rounded-xl hover:bg-orange-50 transition" onClick={() => setIsMenuOpen(false)}>
+                  <Link key={category.name} href={category.href} className="flex items-center gap-2 px-3 py-2.5 bg-gray-50 dark:bg-gray-800 rounded-xl hover:bg-orange-50 dark:hover:bg-orange-500/10 transition text-gray-700 dark:text-gray-300" onClick={() => setIsMenuOpen(false)}>
                     {category.icon}
                     <span className="text-sm font-medium">{category.name}</span>
                   </Link>
@@ -462,13 +460,13 @@ const fetchCartCount = async () => {
               </div>
             </div>
             {!isLoggedIn && (
-              <div className="mt-4 pt-4 border-t space-y-2">
+              <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 space-y-2">
                 <Link href="/login" className="block w-full text-center bg-orange-500 text-white py-2.5 rounded-xl font-medium" onClick={() => setIsMenuOpen(false)}>Login</Link>
                 <Link href="/signup" className="block w-full text-center border border-orange-500 text-orange-500 py-2.5 rounded-xl font-medium" onClick={() => setIsMenuOpen(false)}>Create Account</Link>
               </div>
             )}
           </div>
-        )}
+        </div>
       </div>
     </header>
   );

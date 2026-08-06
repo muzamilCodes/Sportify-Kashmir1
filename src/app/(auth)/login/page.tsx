@@ -61,25 +61,25 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-orange-50 via-red-50 to-pink-50 relative overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-orange-50 via-red-50 to-pink-50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800 relative overflow-hidden">
       {/* Background Orbs */}
-      <div className="absolute top-[-10%] left-[-10%] w-96 h-96 bg-orange-300 rounded-full mix-blend-multiply filter blur-[100px] opacity-40 animate-blob"></div>
-      <div className="absolute top-[20%] right-[-10%] w-96 h-96 bg-pink-300 rounded-full mix-blend-multiply filter blur-[100px] opacity-40 animate-blob animation-delay-2000"></div>
-      <div className="absolute bottom-[-20%] left-[20%] w-96 h-96 bg-red-300 rounded-full mix-blend-multiply filter blur-[100px] opacity-40 animate-blob animation-delay-4000"></div>
+      <div className="absolute top-[-10%] left-[-10%] w-96 h-96 bg-orange-300 dark:bg-orange-500/20 rounded-full mix-blend-multiply dark:mix-blend-normal filter blur-[100px] opacity-40 animate-blob"></div>
+      <div className="absolute top-[20%] right-[-10%] w-96 h-96 bg-pink-300 dark:bg-pink-500/20 rounded-full mix-blend-multiply dark:mix-blend-normal filter blur-[100px] opacity-40 animate-blob animation-delay-2000"></div>
+      <div className="absolute bottom-[-20%] left-[20%] w-96 h-96 bg-red-300 dark:bg-red-500/20 rounded-full mix-blend-multiply dark:mix-blend-normal filter blur-[100px] opacity-40 animate-blob animation-delay-4000"></div>
 
       <div className="w-full max-w-md relative z-10">
         <div className="text-center mb-10">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-tr from-orange-500 to-red-500 rounded-2xl shadow-xl shadow-orange-500/20 mb-6 transform -rotate-6 hover:rotate-0 transition-transform duration-300">
             <Sparkles className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-4xl font-extrabold text-gray-900 tracking-tight mb-2">Welcome Back</h1>
-          <p className="text-gray-500">Login to your Sportify Kashmir account</p>
+          <h1 className="text-4xl font-extrabold text-[var(--color-text-primary)] tracking-tight mb-2">Welcome Back</h1>
+          <p className="text-[var(--color-text-secondary)]">Login to your Sportify Kashmir account</p>
         </div>
 
-        <div className="bg-white/70 backdrop-blur-xl rounded-3xl shadow-2xl shadow-black/5 p-8 border border-white/50">
+        <div className="bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl rounded-3xl shadow-2xl shadow-black/5 dark:shadow-black/30 p-8 border border-white/50 dark:border-gray-700/50">
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-1">
-              <label className="text-sm font-semibold text-gray-700 ml-1">Email Address</label>
+              <label className="text-sm font-semibold text-[var(--color-text-primary)] ml-1">Email Address</label>
               <div className="relative group">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                   <Mail className="h-5 w-5 text-gray-400 group-focus-within:text-orange-500 transition-colors" />
@@ -89,7 +89,7 @@ export default function LoginPage() {
                   name="email"
                   value={formData.email}
                   onChange={handleChange}
-                  className="block w-full pl-11 pr-4 py-3.5 border border-gray-200 rounded-2xl bg-white/50 focus:bg-white focus:ring-4 focus:ring-orange-500/10 focus:border-orange-500 transition-all duration-300 outline-none placeholder-gray-400 font-medium"
+                  className="block w-full pl-11 pr-4 py-3.5 border border-gray-200 dark:border-gray-600 rounded-2xl bg-white/50 dark:bg-gray-700/50 focus:bg-white dark:focus:bg-gray-700 focus:ring-4 focus:ring-orange-500/10 focus:border-orange-500 transition-all duration-300 outline-none placeholder-gray-400 dark:placeholder-gray-500 font-medium text-[var(--color-text-primary)]"
                   placeholder="Enter your email"
                   required
                 />
@@ -98,8 +98,8 @@ export default function LoginPage() {
 
             <div className="space-y-1">
               <div className="flex items-center justify-between ml-1">
-                <label className="text-sm font-semibold text-gray-700">Password</label>
-                <Link href="/forgot-password" className="text-sm font-medium text-orange-600 hover:text-orange-500 transition-colors">
+                <label className="text-sm font-semibold text-[var(--color-text-primary)]">Password</label>
+                <Link href="/forgot-password" className="text-sm font-medium text-orange-600 dark:text-orange-400 hover:text-orange-500 transition-colors">
                   Forgot Password?
                 </Link>
               </div>
@@ -112,14 +112,14 @@ export default function LoginPage() {
                   name="password"
                   value={formData.password}
                   onChange={handleChange}
-                  className="block w-full pl-11 pr-12 py-3.5 border border-gray-200 rounded-2xl bg-white/50 focus:bg-white focus:ring-4 focus:ring-orange-500/10 focus:border-orange-500 transition-all duration-300 outline-none placeholder-gray-400 font-medium"
+                  className="block w-full pl-11 pr-12 py-3.5 border border-gray-200 dark:border-gray-600 rounded-2xl bg-white/50 dark:bg-gray-700/50 focus:bg-white dark:focus:bg-gray-700 focus:ring-4 focus:ring-orange-500/10 focus:border-orange-500 transition-all duration-300 outline-none placeholder-gray-400 dark:placeholder-gray-500 font-medium text-[var(--color-text-primary)]"
                   placeholder="Enter your password"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600 transition-colors focus:outline-none"
+                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors focus:outline-none"
                 >
                   {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
@@ -146,10 +146,10 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <div className="mt-8 pt-6 border-t border-gray-100 text-center">
-            <p className="text-gray-600 font-medium">
-              Don't have an account?{" "}
-              <Link href="/register" className="text-orange-600 hover:text-orange-700 font-bold hover:underline transition-all">
+          <div className="mt-8 pt-6 border-t border-gray-100 dark:border-gray-700 text-center">
+            <p className="text-[var(--color-text-secondary)] font-medium">
+              Don&apos;t have an account?{" "}
+              <Link href="/register" className="text-orange-600 dark:text-orange-400 hover:text-orange-700 font-bold hover:underline transition-all">
                 Create one now
               </Link>
             </p>
