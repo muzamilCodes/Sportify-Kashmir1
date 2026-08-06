@@ -175,7 +175,7 @@ const handleAddToCart = async (productId: string, e: React.MouseEvent) => {
     const token = localStorage.getItem("token");
     if (!token) {
       toast.error("Please login first");
-      router.push("/login");
+      window.location.href = "/login";
       return;
     }
 
