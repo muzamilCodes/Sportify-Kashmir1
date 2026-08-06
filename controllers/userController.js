@@ -25,8 +25,14 @@ exports.register = async (req, res) => {
       });
     }
 
-    // 🔥 CLEAN MOBILE
     const cleanMobile = mobile.replace(/\D/g, "").slice(-10);
+    const existingMobileUser = await User.findOne({ mobile: cleanMobile });
+    if (existingMobileUser) {
+      return res.status(400).json({
+        success: false,
+        message: "Mobile number is already registered",
+      });
+    }
 
     if (cleanMobile.length !== 10) {
       return res.status(400).json({
