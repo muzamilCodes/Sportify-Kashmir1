@@ -58,6 +58,8 @@ export default function RegisterPage() {
 
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+      const cleanApiUrl = apiUrl.replace(/\/$/, "");
+
       const formDataToSend = new FormData();
       formDataToSend.append("username", formData.username);
       formDataToSend.append("email", formData.email);
@@ -67,7 +69,7 @@ export default function RegisterPage() {
         formDataToSend.append("profilePicture", profilePicture);
       }
 
-      const response = await fetch(`${apiUrl}/user/register`, {
+      const response = await fetch(`${cleanApiUrl}/user/register`, {
         method: "POST",
         body: formDataToSend,
       });
@@ -76,15 +78,13 @@ export default function RegisterPage() {
 
       if (result.success) {
         localStorage.setItem("verifyEmail", formData.email.trim().toLowerCase());
-        toast.success("OTP sent successfully! Please verify your email.");
-        setTimeout(() => {
-          router.push("/otp");
-        }, 500);
+        toast.success(result.message || "Please verify your OTP to complete registration.");
+        router.push("/otp");
       } else {
         toast.error(result.message || "Registration failed");
       }
     } catch (error) {
-      console.error(error);
+      console.error("Registration submit error:", error);
       toast.error("Network error. Please try again.");
     } finally {
       setIsLoading(false);

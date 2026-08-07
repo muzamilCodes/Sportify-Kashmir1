@@ -31,7 +31,8 @@ export default function OTPPage() {
     setLoading(true);
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
-      const res = await fetch(`${apiUrl}/user/verify-otp`, {
+      const cleanApiUrl = apiUrl.replace(/\/$/, "");
+      const res = await fetch(`${cleanApiUrl}/user/verify-otp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: email.trim(), otp: cleanOtp }),
@@ -41,7 +42,7 @@ export default function OTPPage() {
         localStorage.setItem("token", data.token);
         localStorage.setItem("user", JSON.stringify(data.user));
         localStorage.removeItem("verifyEmail");
-        toast.success("Account verified successfully! You are now logged in.");
+        toast.success(data.message || "Account verified successfully!");
         window.dispatchEvent(new Event("authUpdated"));
         if (data.user?.isAdmin) {
           router.push("/admin");
@@ -61,14 +62,15 @@ export default function OTPPage() {
   const handleResend = async () => {
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
-      const res = await fetch(`${apiUrl}/user/resend-otp`, {
+      const cleanApiUrl = apiUrl.replace(/\/$/, "");
+      const res = await fetch(`${cleanApiUrl}/user/resend-otp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
       });
       const data = await res.json();
-      if (data.success) toast.success("OTP resent!");
-      else toast.error(data.message);
+      if (data.success) toast.success(data.message || "OTP resent!");
+      else toast.error(data.message || "Failed to resend OTP");
     } catch (error) {
       toast.error("Failed to resend");
     }
