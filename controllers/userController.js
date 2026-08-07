@@ -78,6 +78,8 @@ exports.register = async (req, res) => {
       });
     }
 
+    console.log(`🔑 [REGISTRATION OTP GENERATED] Email: ${targetUser.email} | OTP: ${otp}`);
+
     // Try sending email (with error catching so request never freezes)
     let emailSent = false;
     try {
@@ -469,9 +471,6 @@ exports.changeUsername = async (req, res) => {
 
     const existingEmail = await User.findOne({ email: cleanEmail, _id: { $ne: userId } });
     if (existingEmail) return res.status(400).json({ success: false, message: "Email already in use" });
-
-    const existingUsername = await User.findOne({ username: cleanUsername, _id: { $ne: userId } });
-    if (existingUsername) return res.status(400).json({ success: false, message: "Username taken" });
 
     const updateData = { 
       username: cleanUsername, 
