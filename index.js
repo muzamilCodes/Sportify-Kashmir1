@@ -20,8 +20,9 @@ app.use(cookieParser());
 // ✅ CORS with FRONTEND_URL from env
 const allowedOrigins = [
   'http://localhost:3000',
+  'http://localhost:3001',
   'http://localhost:4000',
-  process.env.FRONTEND_URL  // ✅ Yahan use ho raha hai
+  process.env.FRONTEND_URL
 ].filter(Boolean);
 
 console.log("Allowed origins:", allowedOrigins);
@@ -31,7 +32,12 @@ app.use(cors({
     // Allow requests with no origin (like mobile apps or curl)
     if (!origin) return callback(null, true);
     
-    if (allowedOrigins.indexOf(origin) !== -1 || origin.endsWith('.vercel.app')) {
+    if (
+      allowedOrigins.indexOf(origin) !== -1 || 
+      origin.startsWith('http://localhost:') || 
+      origin.startsWith('http://127.0.0.1:') ||
+      origin.endsWith('.vercel.app')
+    ) {
       callback(null, true);
     } else {
       console.log('🚫 Blocked origin:', origin);
@@ -39,12 +45,12 @@ app.use(cors({
     }
   },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept']
 }));
 
 // Static uploads
-app.use("/uploads", express.static("uploads"));
+app.use("/uploads", express.static(require("path").join(__dirname, "uploads")));
 
 // Routes
 app.use("/user", require("./routes/userRoutes"));
