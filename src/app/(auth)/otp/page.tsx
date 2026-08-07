@@ -41,8 +41,13 @@ export default function OTPPage() {
         localStorage.setItem("token", data.token);
         localStorage.setItem("user", JSON.stringify(data.user));
         localStorage.removeItem("verifyEmail");
-        toast.success("Verified successfully!");
-        router.push("/");
+        toast.success("Account verified successfully! You are now logged in.");
+        window.dispatchEvent(new Event("authUpdated"));
+        if (data.user?.isAdmin) {
+          router.push("/admin");
+        } else {
+          router.push("/");
+        }
       } else {
         toast.error(data.message || "Invalid OTP");
       }

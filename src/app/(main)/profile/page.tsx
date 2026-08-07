@@ -169,6 +169,7 @@ export default function ProfilePage() {
         };
         setUser(updatedUser);
         localStorage.setItem("user", JSON.stringify(updatedUser));
+        window.dispatchEvent(new Event("authUpdated"));
         toast.success("Profile updated successfully!");
         setIsEditing(false);
         setSelectedProfilePic(null);

@@ -82,10 +82,12 @@ export default function ProductDetailPage() {
     }
   }, [productId]);
 
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+
   const getImageUrl = (url: string) => {
     if (!url) return "/placeholder.jpg";
     if (url.startsWith("http")) return url;
-    return `${process.env.NEXT_PUBLIC_API_URL}/uploads/${url}`;
+    return `${API_URL}/uploads/${url}`;
   };
 
   const getCategoryName = (category: Product['category']): string => {
@@ -100,7 +102,10 @@ export default function ProductDetailPage() {
   const fetchProduct = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/product/get/${productId}`);
+      const response = await fetch(`${API_URL}/product/get/${productId}`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
       const result = await response.json();
 
       if (result.success && result.data) {
@@ -125,7 +130,10 @@ export default function ProductDetailPage() {
 
   const fetchRelatedProducts = async () => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/product/getAll`);
+      const response = await fetch(`${API_URL}/product/getAll`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
       const result = await response.json();
       if (result.success && result.data) {
         // Get products from same category, excluding current product

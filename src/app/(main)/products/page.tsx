@@ -44,10 +44,12 @@ function ProductsContent() {
   const [sortBy, setSortBy] = useState("newest");
   const [wishlist, setWishlist] = useState<string[]>([]);
 
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+
   const getImageUrl = (url: string) => {
     if (!url) return "/placeholder.jpg";
     if (url.startsWith("http")) return url;
-    return `${process.env.NEXT_PUBLIC_API_URL}/uploads/${url}`;
+    return `${API_URL}/uploads/${url}`;
   };
 
   const calculateDiscountedPrice = (price: number, discount?: number) => {
@@ -69,7 +71,10 @@ function ProductsContent() {
   const fetchProducts = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/product/getAll`);
+      const response = await fetch(`${API_URL}/product/getAll`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
       const result = await response.json();
 
       if (result.success && result.data) {
@@ -88,7 +93,10 @@ function ProductsContent() {
 
   const fetchCategories = async () => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/category/all`);
+      const response = await fetch(`${API_URL}/category/all`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
       const result = await response.json();
       if (result.success && result.data) {
         setCategories(result.data);

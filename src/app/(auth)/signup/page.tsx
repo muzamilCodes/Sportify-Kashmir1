@@ -79,8 +79,9 @@ export default function RegisterPage() {
       const result = await response.json();
 
       if (result.success) {
-        toast.success("Account created successfully! Please login.");
-        router.push("/login");
+        localStorage.setItem("verifyEmail", formData.email.trim().toLowerCase());
+        toast.success("OTP sent to your email! Please verify to complete registration.");
+        router.push("/otp");
       } else {
         toast.error(result.message || "Registration failed");
       }

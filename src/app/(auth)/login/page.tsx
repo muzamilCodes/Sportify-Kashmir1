@@ -44,13 +44,19 @@ export default function LoginPage() {
         localStorage.setItem("user", JSON.stringify(result.user));
         toast.success("Login successful!");
         
-        if (result.user.isAdmin) {
+        if (result.user?.isAdmin) {
           router.push("/admin");
         } else {
           router.push("/");
         }
       } else {
-        toast.error(result.message || "Login failed");
+        if (result.isUnverified) {
+          localStorage.setItem("verifyEmail", result.email || formData.email.trim().toLowerCase());
+          toast.error(result.message || "Please verify your OTP to continue");
+          router.push("/otp");
+        } else {
+          toast.error(result.message || "Login failed");
+        }
       }
     } catch (error) {
       console.error("Login error:", error);

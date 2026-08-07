@@ -43,10 +43,12 @@ export default function HomePage() {
   const [visibleProducts, setVisibleProducts] = useState(8); // Initially show 8 products
   const [wishlist, setWishlist] = useState<string[]>([]);
 
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+
   const getImageUrl = (url: string) => {
     if (!url) return "/placeholder.jpg";
     if (url.startsWith("http")) return url;
-    return `${process.env.NEXT_PUBLIC_API_URL}/uploads/${url}`;
+    return `${API_URL}/uploads/${url}`;
   };
 
   const calculateDiscountedPrice = (price: number, discount?: number) => {
@@ -76,7 +78,10 @@ export default function HomePage() {
   const fetchProducts = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/product/getAll`);
+      const response = await fetch(`${API_URL}/product/getAll`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
       const result = await response.json();
 
       if (result.success && result.data) {
@@ -115,7 +120,7 @@ export default function HomePage() {
       const body: any = { quantity: 1 };
       if (!token && cartId) body.cartId = cartId;
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/cart/addtoCart/${productId}`, {
+      const response = await fetch(`${API_URL}/cart/addtoCart/${productId}`, {
         method: "POST",
         headers,
         body: JSON.stringify(body),

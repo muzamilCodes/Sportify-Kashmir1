@@ -1,10 +1,12 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { ThemeProvider } from "next-themes";
-import SplashScreen from "@/components/shared/SplashScreen";
-import InstallPrompt from "@/components/shared/InstallPrompt";
-import MobileBottomNav from "@/components/shared/MobileBottomNav";
-import ScrollToTop from "@/components/shared/ScrollToTop";
+
+const SplashScreen = dynamic(() => import("@/components/shared/SplashScreen"), { ssr: false });
+const InstallPrompt = dynamic(() => import("@/components/shared/InstallPrompt"), { ssr: false });
+const MobileBottomNav = dynamic(() => import("@/components/shared/MobileBottomNav"), { ssr: false });
+const ScrollToTop = dynamic(() => import("@/components/shared/ScrollToTop"), { ssr: false });
 
 /**
  * ClientProviders

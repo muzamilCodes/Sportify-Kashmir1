@@ -44,7 +44,9 @@ const Cricket = ({ size = 24 }: { size?: number }) => (
 const getProfileImageUrl = (profilePic: string | undefined) => {
   if (!profilePic) return null;
   if (profilePic.startsWith("http")) return profilePic;
-  return `${process.env.NEXT_PUBLIC_API_URL}/uploads/${profilePic}`;
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+  if (profilePic.startsWith("/uploads/")) return `${API_URL}${profilePic}`;
+  return `${API_URL}/uploads/${profilePic}`;
 };
 
 export default function Header() {
@@ -60,6 +62,11 @@ export default function Header() {
   const [imageError, setImageError] = useState(false);
 
   const userMenuRef = useRef<HTMLDivElement>(null);
+
+  // Reset image error whenever user or profilePic changes
+  useEffect(() => {
+    setImageError(false);
+  }, [user?.profilePic, user?._id]);
 
   // Close user menu when clicking outside
   useEffect(() => {
@@ -78,7 +85,7 @@ export default function Header() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // ✅ FIXED: Check token on every route change
+  // ✅ CHECK AUTH & LISTEN FOR USER/AUTH UPDATES
   useEffect(() => {
     const checkAuth = () => {
       const token = localStorage.getItem("token");
@@ -89,6 +96,7 @@ export default function Header() {
           const parsedUser = JSON.parse(userData);
           setUser(parsedUser);
           setIsLoggedIn(true);
+          setImageError(false);
         } catch (e) {
           console.error("Error parsing user data:", e);
           setIsLoggedIn(false);
@@ -102,13 +110,14 @@ export default function Header() {
     
     checkAuth();
     
-    // Also check when pathname changes (after navigation)
-    const handleRouteChange = () => {
-      checkAuth();
+    window.addEventListener("authUpdated", checkAuth);
+    window.addEventListener("userUpdated", checkAuth);
+    window.addEventListener("popstate", checkAuth);
+    return () => {
+      window.removeEventListener("authUpdated", checkAuth);
+      window.removeEventListener("userUpdated", checkAuth);
+      window.removeEventListener("popstate", checkAuth);
     };
-    
-    window.addEventListener("popstate", handleRouteChange);
-    return () => window.removeEventListener("popstate", handleRouteChange);
   }, [pathname]);
 
   // Verify token with backend
@@ -249,13 +258,19 @@ export default function Header() {
         : "shadow-lg bg-white dark:bg-gray-900"
     }`}>
       {/* Top Banner */}
-      <div className="bg-gradient-to-r from-orange-600 to-red-600 text-white text-center py-2 px-4 text-xs font-medium">
-        <div className="flex items-center justify-center gap-4 flex-wrap">
-          <span>🚚 Free Shipping on orders above ₹999</span>
-          <span className="hidden sm:inline">|</span>
-          <span>⚡ Kashmir&apos;s Fastest Sports Delivery</span>
-          <span className="hidden sm:inline">|</span>
-          <span>🏆 100% Authentic Products</span>
+      <div className="bg-gradient-to-r from-orange-600 via-red-600 to-pink-600 text-white text-center py-2 px-4 text-xs font-semibold tracking-wide shadow-inner">
+        <div className="flex items-center justify-center gap-3 sm:gap-6 flex-wrap">
+          <span className="flex items-center gap-1.5 hover:opacity-90 transition-opacity">
+            <span>🚚</span> Free Shipping on orders above ₹999
+          </span>
+          <span className="hidden md:inline text-white/40">|</span>
+          <span className="flex items-center gap-1.5 hover:opacity-90 transition-opacity">
+            <span>⚡</span> Kashmir&apos;s Fastest Sports Delivery
+          </span>
+          <span className="hidden md:inline text-white/40">|</span>
+          <span className="flex items-center gap-1.5 hover:opacity-90 transition-opacity">
+            <span>🏆</span> 100% Authentic Products
+          </span>
         </div>
       </div>
 
