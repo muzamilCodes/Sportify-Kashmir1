@@ -29,14 +29,19 @@ console.log("Allowed origins:", allowedOrigins);
 
 app.use(cors({
   origin: function(origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl)
     if (!origin) return callback(null, true);
     
+    const cleanOrigin = origin.replace(/\/$/, "");
+    const isAllowed = allowedOrigins.some(o => {
+      const cleanO = o ? o.replace(/\/$/, "") : "";
+      return cleanOrigin === cleanO;
+    });
+
     if (
-      allowedOrigins.indexOf(origin) !== -1 || 
-      origin.startsWith('http://localhost:') || 
-      origin.startsWith('http://127.0.0.1:') ||
-      origin.endsWith('.vercel.app')
+      isAllowed || 
+      cleanOrigin.startsWith('http://localhost:') || 
+      cleanOrigin.startsWith('http://127.0.0.1:') ||
+      cleanOrigin.endsWith('.vercel.app')
     ) {
       callback(null, true);
     } else {

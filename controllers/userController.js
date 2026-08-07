@@ -5,7 +5,6 @@ const sendEmail = require("../utilities/emailService");
 require('dotenv').config();
 
 // ===================== REGISTER =====================
-// ===================== REGISTER =====================
 exports.register = async (req, res) => {
   try {
     const { username, email, password, mobile } = req.body;
@@ -18,16 +17,9 @@ exports.register = async (req, res) => {
     }
 
     const cleanEmail = String(email).trim().toLowerCase();
-    const existingUser = await User.findOne({ email: cleanEmail });
-    if (existingUser) {
-      return res.status(400).json({
-        success: false,
-        message: "User already exists",
-      });
-    }
-
     const mobileStr = String(mobile || "");
     const cleanMobile = mobileStr.replace(/\D/g, "").slice(-10);
+
     if (cleanMobile.length !== 10) {
       return res.status(400).json({
         success: false,
@@ -35,43 +27,76 @@ exports.register = async (req, res) => {
       });
     }
 
-    const existingMobileUser = await User.findOne({ mobile: cleanMobile });
-    if (existingMobileUser) {
+    // Check if user exists by email or mobile
+    const existingEmailUser = await User.findOne({ email: cleanEmail });
+    if (existingEmailUser && existingEmailUser.isVerified) {
       return res.status(400).json({
         success: false,
-        message: "Mobile number is already registered",
+        message: "An account with this email already exists. Please log in.",
+      });
+    }
+
+    const existingMobileUser = await User.findOne({ mobile: cleanMobile });
+    if (existingMobileUser && existingMobileUser.isVerified && String(existingMobileUser._id) !== String(existingEmailUser?._id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Mobile number is already registered to another verified user. Please log in.",
       });
     }
 
     const hashedPassword = await bcrypt.hash(password, 12);
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const profilePic = req.file ? `/uploads/${req.file.filename}` : undefined;
+    const profilePic = req.file
+      ? (req.file.filename
+          ? `/uploads/${req.file.filename}`
+          : `data:${req.file.mimetype};base64,${req.file.buffer.toString("base64")}`)
+      : undefined;
 
-    const newUser = await User.create({
-      username: String(username).trim(),
-      email: cleanEmail,
-      mobile: cleanMobile,
-      password: hashedPassword,
-      profilePic: profilePic,
-      otp: otp,
-      otpExpiry: new Date(Date.now() + 10 * 60 * 1000), // 10 mins
-      isVerified: false,
-    });
+    let targetUser = existingEmailUser || existingMobileUser;
 
+    if (targetUser && !targetUser.isVerified) {
+      // Update existing unverified user record
+      targetUser.username = String(username).trim();
+      targetUser.email = cleanEmail;
+      targetUser.mobile = cleanMobile;
+      targetUser.password = hashedPassword;
+      if (profilePic) targetUser.profilePic = profilePic;
+      targetUser.otp = otp;
+      targetUser.otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 mins
+      await targetUser.save();
+    } else {
+      // Create new user record
+      targetUser = await User.create({
+        username: String(username).trim(),
+        email: cleanEmail,
+        mobile: cleanMobile,
+        password: hashedPassword,
+        profilePic: profilePic,
+        otp: otp,
+        otpExpiry: new Date(Date.now() + 10 * 60 * 1000), // 10 mins
+        isVerified: false,
+      });
+    }
+
+    // Try sending email (with error catching so request never freezes)
+    let emailSent = false;
     try {
-      await sendEmail(
-        newUser.email,
-        "Your OTP for Registration",
+      emailSent = await sendEmail(
+        targetUser.email,
+        "Your OTP for Registration - Sportify Kashmir",
         `<h2>Welcome to Sportify Kashmir!</h2><p>Your OTP is: <strong>${otp}</strong></p><p>Valid for 10 minutes.</p>`
       );
     } catch (err) {
-      console.error("Failed to send email:", err);
+      console.error("Failed to send registration email:", err.message);
     }
 
     return res.status(200).json({
       success: true,
-      message: "OTP sent successfully! Please verify your email.",
-      email: newUser.email,
+      message: emailSent
+        ? "OTP sent successfully! Please verify your email."
+        : "Registration initiated! Please check your email for OTP (or click Resend OTP if needed).",
+      email: targetUser.email,
+      otpSent: emailSent,
     });
 
   } catch (error) {
@@ -174,7 +199,9 @@ exports.updateProfile = async (req, res) => {
     };
 
     if (req.file) {
-      updateData.profilePic = `${Date.now()}-${req.file.originalname}`;
+      updateData.profilePic = req.file.filename
+        ? `/uploads/${req.file.filename}`
+        : `data:${req.file.mimetype};base64,${req.file.buffer.toString("base64")}`;
     }
 
     Object.keys(updateData).forEach(
@@ -453,7 +480,9 @@ exports.changeUsername = async (req, res) => {
     };
 
     if (req.file) {
-      updateData.profilePic = `/uploads/${req.file.filename}`;
+      updateData.profilePic = req.file.filename
+        ? `/uploads/${req.file.filename}`
+        : `data:${req.file.mimetype};base64,${req.file.buffer.toString("base64")}`;
     }
 
     const updatedUser = await User.findByIdAndUpdate(userId, updateData, { new: true }).select("-password");
