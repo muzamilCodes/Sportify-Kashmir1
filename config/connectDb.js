@@ -17,6 +17,14 @@ const connectDb = async () => {
     });
     isConnected = db.connections[0].readyState === 1;
     console.log("✅ MongoDB connected successfully!");
+
+    // Safely drop legacy unique index on username_1 in MongoDB Atlas if it exists
+    try {
+      await mongoose.connection.collection("users").dropIndex("username_1");
+      console.log("✅ Legacy unique index username_1 dropped from MongoDB collection");
+    } catch (indexErr) {
+      // Index username_1 does not exist or already dropped - safe to ignore
+    }
   } catch (error) {
     console.error("❌ MongoDB connection error:", error.message);
   }

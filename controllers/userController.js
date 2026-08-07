@@ -105,10 +105,21 @@ exports.register = async (req, res) => {
     console.error("Register Error:", error);
 
     if (error.code === 11000) {
-      const field = Object.keys(error.keyPattern || {})[0] || "field";
+      const keyPattern = error.keyPattern || {};
+      const field = Object.keys(keyPattern)[0] || "field";
+      if (field === "username") {
+        try {
+          await User.collection.dropIndex("username_1");
+          console.log("Dropped legacy username_1 index on duplicate key trigger.");
+        } catch (e) {}
+      }
       return res.status(400).json({
         success: false,
-        message: `An account with this ${field} already exists.`,
+        message: field === "email"
+          ? "An account with this email already exists."
+          : field === "mobile"
+          ? "An account with this mobile number already exists."
+          : `An account with this ${field} already exists.`,
       });
     }
 

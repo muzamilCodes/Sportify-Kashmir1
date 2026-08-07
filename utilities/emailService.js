@@ -5,12 +5,43 @@ const sendEmail = async (to, subject, html) => {
   const cleanPass = (process.env.SMTP_PASS || '').replace(/\s+/g, '');
   const user = (process.env.SMTP_USER || 'warmuzamil68@gmail.com').trim();
   const fromEmail = (process.env.EMAIL_FROM || user).trim();
+  const brevoPass = (process.env.BREVO_SMTP_PASS || '').trim();
 
   console.log(`📧 Attempting to send email to: ${to} | Subject: ${subject}`);
 
-  // 1. Try Brevo SMTP if configured in .env (Extremely reliable on cloud servers)
+  // 1. Try SendGrid HTTP API if key (starting with SG.) is present
+  const sgKey = process.env.SENDGRID_API_KEY || (brevoPass.startsWith('SG.') ? brevoPass : null);
+  if (sgKey) {
+    try {
+      console.log('🚀 Sending email via SendGrid HTTP API...');
+      const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${sgKey}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          personalizations: [{ to: [{ email: to }] }],
+          from: { email: fromEmail, name: 'Sportify Kashmir' },
+          subject: subject,
+          content: [{ type: 'text/html', value: html }]
+        })
+      });
+
+      if (response.ok || response.status === 202) {
+        console.log(`✅ Email sent via SendGrid HTTP API to ${to}`);
+        return true;
+      } else {
+        const errorText = await response.text();
+        console.error('⚠️ SendGrid API error status:', response.status, errorText);
+      }
+    } catch (sgErr) {
+      console.error('⚠️ SendGrid API request failed:', sgErr.message);
+    }
+  }
+
+  // 2. Try Brevo SMTP if configured in .env (Extremely reliable on cloud servers)
   const brevoHost = process.env.BREVO_SMTP_HOST;
-  const brevoPass = (process.env.BREVO_SMTP_PASS || '').trim();
   const brevoUser = (process.env.BREVO_SMTP_USER || '').trim();
 
   if (brevoHost && brevoPass) {
@@ -40,7 +71,7 @@ const sendEmail = async (to, subject, html) => {
     }
   }
 
-  // 2. Try Gmail SMTP with Port 465 (Direct SSL - avoids port 587 STARTTLS blocks on cloud hosting)
+  // 3. Try Gmail SMTP with Port 465 (Direct SSL - avoids port 587 STARTTLS blocks on cloud hosting)
   if (user && cleanPass) {
     try {
       console.log('🚀 Sending email via Gmail Port 465 (Direct SSL)...');
@@ -68,7 +99,7 @@ const sendEmail = async (to, subject, html) => {
       console.error('⚠️ Gmail Port 465 failed:', err.message);
     }
 
-    // 3. Fallback: Try Gmail Service Transport
+    // 4. Fallback: Try Gmail Service Transport
     try {
       console.log('🚀 Retrying email via Gmail Service transport...');
       const serviceTransporter = nodemailer.createTransport({
