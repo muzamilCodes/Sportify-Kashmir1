@@ -144,6 +144,7 @@ const sendEmail = async (to, subject, html) => {
         secure: false, // true for 465, false for other ports
         auth: { user: user, pass: cleanPass },
         tls: { rejectUnauthorized: false },
+        family: 4, // Force IPv4 to fix Render's IPv6 networking bugs
         connectionTimeout: 10000,
         greetingTimeout: 10000,
         socketTimeout: 10000,
@@ -170,6 +171,7 @@ const sendEmail = async (to, subject, html) => {
           secure: true,
           auth: { user: user, pass: cleanPass },
           tls: { rejectUnauthorized: false },
+          family: 4, // Force IPv4
           connectionTimeout: 10000,
           greetingTimeout: 10000,
           socketTimeout: 10000,
@@ -193,6 +195,7 @@ const sendEmail = async (to, subject, html) => {
           const serviceTransporter = nodemailer.createTransport({
             service: 'gmail',
             auth: { user: user, pass: cleanPass },
+            family: 4, // Force IPv4
             connectionTimeout: 10000,
             greetingTimeout: 10000,
             socketTimeout: 10000,
