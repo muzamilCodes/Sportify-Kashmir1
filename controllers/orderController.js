@@ -5,7 +5,7 @@ const { Product } = require("../models/productModel");
 const { User } = require("../models/userModel");
 const { resHandler } = require("../utilities/resHandler");
 
-exports.createOrder = async (req, res) => {                                                    
+exports.createOrder = async (req, res) => {
   // create Order for single product
   try {
     const userId = req.userId; // token // logged in user's userId
@@ -19,11 +19,9 @@ exports.createOrder = async (req, res) => {
       return resHandler(res, 400, "Qty Feild is necessary ");
     }
 
-       if (!productId || !addressId || !userId) {
+    if (!productId || !addressId || !userId) {
       return resHandler(res, 400, "Some query Params are missing!");
     }
-
-
 
     let user = await User.findById(userId);
 
@@ -66,7 +64,7 @@ exports.createCartorder = async (req, res) => {
   try {
     const userId = req.userId;
 
-    const { cartId , addressId } = req.query;     
+    const { cartId, addressId } = req.query;
 
 
     if (!cartId || !addressId || !userId) {
@@ -203,7 +201,7 @@ exports.createOrderFromCheckout = async (req, res) => {
       const user = await User.findById(userId);
       orderData.userId = userId;
       orderData.shippingAddress = shippingAddress;
-      
+
       // Get user's cart
       cart = await Cart.findOne({ userId });
     } else {
@@ -217,7 +215,7 @@ exports.createOrderFromCheckout = async (req, res) => {
         state: guestAddress?.state || "",
         postalCode: guestAddress?.postalCode || guestAddress?.pincode || "",
       };
-      
+
       // Get guest cart by cartId
       cart = await Cart.findById(cartId);
     }
@@ -436,7 +434,7 @@ exports.verifyAndCreateOrder = async (req, res) => {
         { userId: userId },
         { $set: { products: [], cartValue: 0 } }
       );
-      
+
       const { User } = require("../models/userModel");
       await User.findByIdAndUpdate(userId, {
         $push: { orders: order._id },
@@ -461,11 +459,11 @@ exports.verifyAndCreateOrder = async (req, res) => {
 exports.getUserOrders = async (req, res) => {
   try {
     const userId = req.userId;
-    
+
     const orders = await Order.find({ userId })
       .populate('products.productId', 'name price productImgUrls')
       .sort({ createdAt: -1 });
-    
+
     return res.status(200).json({
       success: true,
       message: "User orders fetched",
@@ -527,7 +525,7 @@ exports.createCODOrder = async (req, res) => {
 async function sendOrderEmail(order, userEmail, userName, status) {
   try {
     const nodemailer = require("nodemailer");
-    
+
     const transporter = nodemailer.createTransport({
       service: "gmail",
       auth: {
@@ -592,7 +590,7 @@ async function sendOrderEmail(order, userEmail, userName, status) {
       subject: msg.subject,
       html: html,
     });
-    
+
     console.log(`✅ Email sent to ${userEmail} for status: ${status}`);
   } catch (error) {
     console.error("Email error:", error);
@@ -605,10 +603,10 @@ async function getUserDetails(order) {
     const user = await User.findById(order.userId);
     return { email: user?.email, name: user?.username, mobile: user?.mobile };
   } else if (order.guestAddress) {
-    return { 
-      email: order.guestAddress.email, 
+    return {
+      email: order.guestAddress.email,
       name: order.guestAddress.fullName,
-      mobile: order.guestAddress.mobileNumber 
+      mobile: order.guestAddress.mobileNumber
     };
   }
   return { email: null, name: null, mobile: null };

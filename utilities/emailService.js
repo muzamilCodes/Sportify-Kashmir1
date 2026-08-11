@@ -183,13 +183,16 @@ const sendEmail = async (to, subject, html) => {
       console.log(`✅ Email sent via Gmail Service to ${to}: ${info.messageId}`);
       return true;
     } catch (err) {
+      sendEmail.lastError = err.message;
       console.error('❌ All email delivery attempts failed:', err.message);
     }
   } else {
+    sendEmail.lastError = "SMTP_USER or EMAIL_USER is missing in environment variables!";
     console.warn("⚠️ SMTP_USER or SMTP_PASS is missing in environment variables!");
   }
 
   return false;
 };
 
+sendEmail.getLastError = () => sendEmail.lastError || "Unknown error";
 module.exports = sendEmail;

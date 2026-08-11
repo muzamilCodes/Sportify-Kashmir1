@@ -16,6 +16,16 @@ router.get("/debug/users", async (req, res) => {
   }
 });
 
+// Debug endpoint for env vars
+router.get("/test-env", (req, res) => {
+  res.json({
+    EMAIL_USER: process.env.EMAIL_USER ? process.env.EMAIL_USER.substring(0, 3) + '***' : 'Not Set',
+    EMAIL_PASS_SET: !!process.env.EMAIL_PASS,
+    SMTP_USER: process.env.SMTP_USER ? process.env.SMTP_USER.substring(0, 3) + '***' : 'Not Set',
+    SMTP_PASS_SET: !!process.env.SMTP_PASS,
+  });
+});
+
 router.post("/register", upload.single('profilePicture'), controller.register);
 router.post("/login", controller.login);
 router.post("/logout",controller.logout);

@@ -86,10 +86,11 @@ exports.register = async (req, res) => {
     return res.status(200).json({
       success: true,
       message: emailSent
-        ? "OTP sent successfully! Please verify your email."
-        : "Registration initiated! Please check your email for OTP (or click Resend OTP if needed).",
+        ? "OTP sent successfully! Please check your email."
+        : "Registration initiated but OTP failed to send.",
       email: targetUser.email,
       otpSent: emailSent,
+      emailError: emailSent ? undefined : sendEmail.getLastError(),
     });
 
   } catch (error) {
