@@ -134,57 +134,84 @@ const sendEmail = async (to, subject, html) => {
     }
   }
 
-  // 5. Try Gmail SMTP with Port 465 (Direct SSL) - Short connection timeouts (3s) to prevent hanging
+  // 5. Try Gmail SMTP with Port 587 (STARTTLS) - Often allowed by cloud providers
   if (user && cleanPass) {
     try {
-      console.log('🚀 Sending email via Gmail Port 465 (Direct SSL)...');
-      const sslTransporter = nodemailer.createTransport({
+      console.log('🚀 Sending email via Gmail Port 587 (STARTTLS)...');
+      const tlsTransporter = nodemailer.createTransport({
         host: 'smtp.gmail.com',
-        port: 465,
-        secure: true,
+        port: 587,
+        secure: false, // true for 465, false for other ports
         auth: { user: user, pass: cleanPass },
         tls: { rejectUnauthorized: false },
-        connectionTimeout: 3500,
-        greetingTimeout: 2500,
-        socketTimeout: 3500,
+        connectionTimeout: 10000,
+        greetingTimeout: 10000,
+        socketTimeout: 10000,
       });
 
-      const info = await sslTransporter.sendMail({
+      const info = await tlsTransporter.sendMail({
         from: `Sportify Kashmir <${fromEmail}>`,
         to: to,
         subject: subject,
         html: html,
       });
 
-      console.log(`✅ Email sent via Gmail Port 465 to ${to}: ${info.messageId}`);
+      console.log(`✅ Email sent via Gmail Port 587 to ${to}: ${info.messageId}`);
       return true;
     } catch (err) {
-      console.error('⚠️ Gmail Port 465 failed:', err.message);
-    }
+      console.error('⚠️ Gmail Port 587 failed:', err.message);
+      
+      // 6. Try Gmail SMTP with Port 465 (Direct SSL)
+      try {
+        console.log('🚀 Retrying email via Gmail Port 465 (Direct SSL)...');
+        const sslTransporter = nodemailer.createTransport({
+          host: 'smtp.gmail.com',
+          port: 465,
+          secure: true,
+          auth: { user: user, pass: cleanPass },
+          tls: { rejectUnauthorized: false },
+          connectionTimeout: 10000,
+          greetingTimeout: 10000,
+          socketTimeout: 10000,
+        });
 
-    // 6. Fallback: Try Gmail Service Transport
-    try {
-      console.log('🚀 Retrying email via Gmail Service transport...');
-      const serviceTransporter = nodemailer.createTransport({
-        service: 'gmail',
-        auth: { user: user, pass: cleanPass },
-        connectionTimeout: 3500,
-        greetingTimeout: 2500,
-        socketTimeout: 3500,
-      });
+        const info = await sslTransporter.sendMail({
+          from: `Sportify Kashmir <${fromEmail}>`,
+          to: to,
+          subject: subject,
+          html: html,
+        });
 
-      const info = await serviceTransporter.sendMail({
-        from: `Sportify Kashmir <${fromEmail}>`,
-        to: to,
-        subject: subject,
-        html: html,
-      });
+        console.log(`✅ Email sent via Gmail Port 465 to ${to}: ${info.messageId}`);
+        return true;
+      } catch (err2) {
+        console.error('⚠️ Gmail Port 465 failed:', err2.message);
+        
+        // 7. Try Gmail Service
+        try {
+          console.log('🚀 Retrying email via Gmail Service transport...');
+          const serviceTransporter = nodemailer.createTransport({
+            service: 'gmail',
+            auth: { user: user, pass: cleanPass },
+            connectionTimeout: 10000,
+            greetingTimeout: 10000,
+            socketTimeout: 10000,
+          });
 
-      console.log(`✅ Email sent via Gmail Service to ${to}: ${info.messageId}`);
-      return true;
-    } catch (err) {
-      sendEmail.lastError = err.message;
-      console.error('❌ All email delivery attempts failed:', err.message);
+          const info = await serviceTransporter.sendMail({
+            from: `Sportify Kashmir <${fromEmail}>`,
+            to: to,
+            subject: subject,
+            html: html,
+          });
+
+          console.log(`✅ Email sent via Gmail Service to ${to}: ${info.messageId}`);
+          return true;
+        } catch (err3) {
+          sendEmail.lastError = err3.message;
+          console.error('❌ All email delivery attempts failed:', err3.message);
+        }
+      }
     }
   } else {
     sendEmail.lastError = "SMTP_USER or EMAIL_USER is missing in environment variables!";
