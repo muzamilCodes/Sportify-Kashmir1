@@ -120,6 +120,8 @@ export default function Header() {
     };
   }, [pathname]);
 
+  const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000").replace(/\/$/, "");
+
   // Verify token with backend
   useEffect(() => {
     const verifyToken = async () => {
@@ -131,7 +133,7 @@ export default function Header() {
       }
       
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/user/verify`, {
+        const response = await fetch(`${API_URL}/user/verify`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const result = await response.json();
@@ -156,7 +158,7 @@ export default function Header() {
     }
   }, []);
 
-  // ✅ FIXED: Update cart count with event listener
+  // Update cart count with event listener
   const fetchCartCount = async () => {
     const token = localStorage.getItem("token");
     if (!token) {
@@ -164,8 +166,7 @@ export default function Header() {
       return;
     }
     try {
-      // ✅ Add cache: 'no-store' to force fresh data
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/cart/getCart`, {
+      const response = await fetch(`${API_URL}/cart/getCart`, {
         headers: { Authorization: `Bearer ${token}` },
         cache: 'no-store',
       });
@@ -185,17 +186,15 @@ export default function Header() {
   useEffect(() => {
     fetchCartCount();
     
-    // ✅ Listen for cart updates
+    // Listen for custom cart update event
     const handleCartUpdate = () => {
       fetchCartCount();
     };
     
     window.addEventListener("cartUpdated", handleCartUpdate);
-    window.addEventListener("focus", handleCartUpdate);
     
     return () => {
       window.removeEventListener("cartUpdated", handleCartUpdate);
-      window.removeEventListener("focus", handleCartUpdate);
     };
   }, []);
 
