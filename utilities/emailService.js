@@ -2,8 +2,8 @@ const nodemailer = require('nodemailer');
 require('dotenv').config();
 
 const sendEmail = async (to, subject, html) => {
-  const cleanPass = (process.env.SMTP_PASS || '').replace(/\s+/g, '');
-  const user = (process.env.SMTP_USER || 'warmuzamil68@gmail.com').trim();
+  const cleanPass = (process.env.SMTP_PASS || process.env.EMAIL_PASS || '').replace(/\s+/g, '');
+  const user = (process.env.SMTP_USER || process.env.EMAIL_USER || 'warmuzamil68@gmail.com').trim();
   const fromEmail = (process.env.EMAIL_FROM || user).trim();
   const brevoPass = (process.env.BREVO_SMTP_PASS || '').trim();
   const brevoApiKey = (process.env.BREVO_API_KEY || (brevoPass.startsWith('xkeysib-') ? brevoPass : null));
