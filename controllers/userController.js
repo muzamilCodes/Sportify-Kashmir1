@@ -27,22 +27,28 @@ exports.register = async (req, res) => {
       });
     }
 
-    // Check if user exists by email or mobile
-    const existingEmailUser = await User.findOne({ email: cleanEmail });
-    if (existingEmailUser && existingEmailUser.isVerified) {
+    // Check if verified user exists by email or mobile
+    const existingVerifiedEmail = await User.findOne({ email: cleanEmail, isVerified: true });
+    if (existingVerifiedEmail) {
       return res.status(400).json({
         success: false,
         message: "An account with this email already exists. Please log in.",
       });
     }
 
-    const existingMobileUser = await User.findOne({ mobile: cleanMobile });
-    if (existingMobileUser && existingMobileUser.isVerified && String(existingMobileUser._id) !== String(existingEmailUser?._id)) {
+    const existingVerifiedMobile = await User.findOne({ mobile: cleanMobile, isVerified: true });
+    if (existingVerifiedMobile) {
       return res.status(400).json({
         success: false,
         message: "Mobile number is already registered to another verified user. Please log in.",
       });
     }
+
+    // Clean up any stale/incomplete unverified registrations for this email OR mobile
+    await User.deleteMany({
+      $or: [{ email: cleanEmail }, { mobile: cleanMobile }],
+      isVerified: false
+    });
 
     const hashedPassword = await bcrypt.hash(password, 12);
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
@@ -52,31 +58,16 @@ exports.register = async (req, res) => {
           : `data:${req.file.mimetype};base64,${req.file.buffer.toString("base64")}`)
       : undefined;
 
-    let targetUser = existingEmailUser || existingMobileUser;
-
-    if (targetUser && !targetUser.isVerified) {
-      // Update existing unverified user record
-      targetUser.username = String(username).trim();
-      targetUser.email = cleanEmail;
-      targetUser.mobile = cleanMobile;
-      targetUser.password = hashedPassword;
-      if (profilePic) targetUser.profilePic = profilePic;
-      targetUser.otp = otp;
-      targetUser.otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 mins
-      await targetUser.save();
-    } else {
-      // Create new user record
-      targetUser = await User.create({
-        username: String(username).trim(),
-        email: cleanEmail,
-        mobile: cleanMobile,
-        password: hashedPassword,
-        profilePic: profilePic,
-        otp: otp,
-        otpExpiry: new Date(Date.now() + 10 * 60 * 1000), // 10 mins
-        isVerified: false,
-      });
-    }
+    const targetUser = await User.create({
+      username: String(username).trim(),
+      email: cleanEmail,
+      mobile: cleanMobile,
+      password: hashedPassword,
+      profilePic: profilePic,
+      otp: otp,
+      otpExpiry: new Date(Date.now() + 10 * 60 * 1000), // 10 mins
+      isVerified: false,
+    });
 
     console.log(`🔑 [REGISTRATION OTP GENERATED] Email: ${targetUser.email} | OTP: ${otp}`);
 

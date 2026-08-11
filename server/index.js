@@ -4,12 +4,13 @@ const cors = require("cors");
 const cookieParser = require("cookie-parser");
 require("dotenv").config();
 
+const mongoose = require("mongoose");
 const connectDb = require("./config/connectDb");
 
 const app = express();
 const port = process.env.PORT || 4000;
 
-// Connect DB
+// Connect DB at startup
 connectDb();
 
 // Middlewares
@@ -17,34 +18,53 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-// ✅ CORS with FRONTEND_URL from env
+// Auto-reconnect / check DB connection before handling requests
+app.use(async (req, res, next) => {
+  if (mongoose.connection.readyState !== 1) {
+    await connectDb();
+  }
+  next();
+});
+
+// ✅ CORS configuration
 const allowedOrigins = [
   'http://localhost:3000',
+  'http://localhost:3001',
   'http://localhost:4000',
-  process.env.FRONTEND_URL  // ✅ Yahan use ho raha hai
+  'https://sportify-kashmir1.vercel.app',
+  process.env.FRONTEND_URL
 ].filter(Boolean);
-
-console.log("Allowed origins:", allowedOrigins);
 
 app.use(cors({
   origin: function(origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl)
     if (!origin) return callback(null, true);
     
-    if (allowedOrigins.indexOf(origin) !== -1) {
+    const cleanOrigin = origin.replace(/\/$/, "");
+    const isAllowed = allowedOrigins.some(o => {
+      const cleanO = o ? o.replace(/\/$/, "") : "";
+      return cleanOrigin === cleanO;
+    });
+
+    if (
+      isAllowed || 
+      cleanOrigin.startsWith('http://localhost:') || 
+      cleanOrigin.startsWith('http://127.0.0.1:') ||
+      cleanOrigin.endsWith('.vercel.app')
+    ) {
       callback(null, true);
     } else {
-      console.log('❌ Blocked origin:', origin);
-      callback(new Error('Not allowed by CORS'));
+      console.warn('🚫 Blocked unlisted CORS origin:', origin);
+      callback(null, false);
     }
   },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept']
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+  optionsSuccessStatus: 200
 }));
 
 // Static uploads
-app.use("/uploads", express.static("uploads"));
+app.use("/uploads", express.static(require("path").join(__dirname, "uploads")));
 
 // Routes
 app.use("/user", require("./routes/userRoutes"));

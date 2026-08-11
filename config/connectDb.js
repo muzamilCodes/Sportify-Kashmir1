@@ -1,34 +1,66 @@
 // server/config/connectDb.js
 const mongoose = require("mongoose");
 
-let isConnected = false;
+let isConnecting = false;
+
+// Event listeners to log connection lifecycle events
+mongoose.connection.on("connected", () => {
+  console.log("✅ MongoDB connected successfully!");
+});
+
+mongoose.connection.on("error", (err) => {
+  console.error("❌ MongoDB connection error:", err.message);
+});
+
+mongoose.connection.on("disconnected", () => {
+  console.warn("⚠️ MongoDB disconnected!");
+});
 
 const connectDb = async () => {
-  if (isConnected) return;
+  if (mongoose.connection.readyState === 1) {
+    return true;
+  }
+
+  if (isConnecting) {
+    return false;
+  }
+
+  isConnecting = true;
   try {
-    const uri = process.env.MONGO_URI;
+    let uri = process.env.MONGO_URI;
     if (!uri) {
       console.error("❌ MONGO_URI is missing in environment variables!");
-      return;
+      isConnecting = false;
+      return false;
     }
-    console.log("Connecting to MongoDB...");
-    const db = await mongoose.connect(uri, {
-      serverSelectionTimeoutMS: 5000, // Timeout after 5s instead of hanging 30s
-    });
-    isConnected = db.connections[0].readyState === 1;
-    console.log("✅ MongoDB connected successfully!");
 
-    // Safely drop legacy unique index on username_1 in MongoDB Atlas if it exists
+    console.log("Connecting to MongoDB...");
+
     try {
-      await mongoose.connection.collection("users").dropIndex("username_1");
-      console.log("✅ Legacy unique index username_1 dropped from MongoDB collection");
-    } catch (indexErr) {
-      // Index username_1 does not exist or already dropped - safe to ignore
+      await mongoose.connect(uri, {
+        serverSelectionTimeoutMS: 5000,
+      });
+    } catch (primaryErr) {
+      if (uri.includes("localhost")) {
+        const fallbackUri = uri.replace("localhost", "127.0.0.1");
+        console.warn(`⚠️ Primary URI connection failed (${primaryErr.message}). Trying IPv4 fallback (${fallbackUri})...`);
+        await mongoose.connect(fallbackUri, {
+          serverSelectionTimeoutMS: 5000,
+        });
+      } else {
+        throw primaryErr;
+      }
     }
+
+    isConnecting = false;
+    return true;
   } catch (error) {
-    console.error("❌ MongoDB connection error:", error.message);
+    console.error("❌ MongoDB connection failed:", error.message);
+    isConnecting = false;
+    return false;
   }
 };
 
 module.exports = connectDb;
+
 

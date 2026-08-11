@@ -5,7 +5,6 @@ const sendEmail = require("../utilities/emailService");
 require('dotenv').config();
 
 // ===================== REGISTER =====================
-// ===================== REGISTER =====================
 exports.register = async (req, res) => {
   try {
     const { username, email, password, mobile } = req.body;
@@ -17,16 +16,9 @@ exports.register = async (req, res) => {
       });
     }
 
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return res.status(400).json({
-        success: false,
-        message: "User already exists",
-      });
-    }
-
-    // 🔥 CLEAN MOBILE
-    const cleanMobile = mobile.replace(/\D/g, "").slice(-10);
+    const cleanEmail = String(email).trim().toLowerCase();
+    const mobileStr = String(mobile || "");
+    const cleanMobile = mobileStr.replace(/\D/g, "").slice(-10);
 
     if (cleanMobile.length !== 10) {
       return res.status(400).json({
@@ -35,41 +27,104 @@ exports.register = async (req, res) => {
       });
     }
 
+    // Check if verified user exists by email or mobile
+    const existingVerifiedEmail = await User.findOne({ email: cleanEmail, isVerified: true });
+    if (existingVerifiedEmail) {
+      return res.status(400).json({
+        success: false,
+        message: "An account with this email already exists. Please log in.",
+      });
+    }
+
+    const existingVerifiedMobile = await User.findOne({ mobile: cleanMobile, isVerified: true });
+    if (existingVerifiedMobile) {
+      return res.status(400).json({
+        success: false,
+        message: "Mobile number is already registered to another verified user. Please log in.",
+      });
+    }
+
+    // Clean up any stale/incomplete unverified registrations for this email OR mobile
+    await User.deleteMany({
+      $or: [{ email: cleanEmail }, { mobile: cleanMobile }],
+      isVerified: false
+    });
+
     const hashedPassword = await bcrypt.hash(password, 12);
-
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const profilePic = req.file
+      ? (req.file.filename
+          ? `/uploads/${req.file.filename}`
+          : `data:${req.file.mimetype};base64,${req.file.buffer.toString("base64")}`)
+      : undefined;
 
-    const newUser = await User.create({
-      username: username.trim(),
-      email: email.trim().toLowerCase(),
+    const targetUser = await User.create({
+      username: String(username).trim(),
+      email: cleanEmail,
       mobile: cleanMobile,
       password: hashedPassword,
+      profilePic: profilePic,
       otp: otp,
       otpExpiry: new Date(Date.now() + 10 * 60 * 1000), // 10 mins
       isVerified: false,
     });
 
+    console.log(`🔑 [REGISTRATION OTP GENERATED] Email: ${targetUser.email} | OTP: ${otp}`);
+
+    // Try sending email (with error catching so request never freezes)
+    let emailSent = false;
     try {
-      await sendEmail(
-        newUser.email,
-        "Your OTP for Registration",
+      emailSent = await sendEmail(
+        targetUser.email,
+        "Your OTP for Registration - Sportify Kashmir",
         `<h2>Welcome to Sportify Kashmir!</h2><p>Your OTP is: <strong>${otp}</strong></p><p>Valid for 10 minutes.</p>`
       );
     } catch (err) {
-      console.error("Failed to send email:", err);
+      console.error("Failed to send registration email:", err.message);
     }
 
     return res.status(200).json({
       success: true,
-      message: "OTP sent successfully! Please verify your email.",
-      email: newUser.email,
+      message: emailSent
+        ? "OTP sent successfully! Please verify your email."
+        : "Registration initiated! Please check your email for OTP (or click Resend OTP if needed).",
+      email: targetUser.email,
+      otpSent: emailSent,
     });
 
   } catch (error) {
-    console.error(error);
+    console.error("Register Error:", error);
+
+    if (error.code === 11000) {
+      const keyPattern = error.keyPattern || {};
+      const field = Object.keys(keyPattern)[0] || "field";
+      if (field === "username") {
+        try {
+          await User.collection.dropIndex("username_1");
+          console.log("Dropped legacy username_1 index on duplicate key trigger.");
+        } catch (e) {}
+      }
+      return res.status(400).json({
+        success: false,
+        message: field === "email"
+          ? "An account with this email already exists."
+          : field === "mobile"
+          ? "An account with this mobile number already exists."
+          : `An account with this ${field} already exists.`,
+      });
+    }
+
+    if (error.name === "ValidationError") {
+      const messages = Object.values(error.errors || {}).map((e) => e.message);
+      return res.status(400).json({
+        success: false,
+        message: messages.join(", ") || "Validation error",
+      });
+    }
+
     return res.status(500).json({
       success: false,
-      message: "Server error",
+      message: error.message || "Server error",
     });
   }
 };
@@ -82,13 +137,21 @@ exports.login = async (req, res) => {
       return res.status(400).json({ success: false, message: "Email and password required" });
     }
 
-    const user = await User.findOne({ email });
+    const cleanEmail = String(email).toLowerCase().trim();
+    const user = await User.findOne({ email: cleanEmail });
     if (!user) return res.status(401).json({ success: false, message: "Invalid credentials" });
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(401).json({ success: false, message: "Invalid credentials" });
 
-
+    if (!user.isVerified) {
+      return res.status(400).json({
+        success: false,
+        isUnverified: true,
+        email: user.email,
+        message: "Account not verified yet. Please enter the OTP sent to your email.",
+      });
+    }
 
     const token = jwt.sign(
       { userId: user._id, email: user.email },
@@ -118,7 +181,7 @@ exports.login = async (req, res) => {
     });
 
   } catch (error) {
-    console.error(error);
+    console.error("Login Error:", error);
     return res.status(500).json({ success: false, message: "Server error" });
   }
 };
@@ -140,7 +203,9 @@ exports.updateProfile = async (req, res) => {
     };
 
     if (req.file) {
-      updateData.profilePic = `${Date.now()}-${req.file.originalname}`;
+      updateData.profilePic = req.file.filename
+        ? `/uploads/${req.file.filename}`
+        : `data:${req.file.mimetype};base64,${req.file.buffer.toString("base64")}`;
     }
 
     Object.keys(updateData).forEach(
@@ -211,7 +276,14 @@ exports.verifyOTP = async (req, res) => {
   try {
     const { email, otp } = req.body;
 
-    const user = await User.findOne({ email: email.toLowerCase().trim() });
+    if (!email || !otp) {
+      return res.status(400).json({
+        success: false,
+        message: "Email and OTP required",
+      });
+    }
+
+    const user = await User.findOne({ email: String(email).toLowerCase().trim() });
 
     if (!user) {
       return res.status(400).json({
@@ -223,12 +295,13 @@ exports.verifyOTP = async (req, res) => {
     if (user.isVerified) {
       return res.status(400).json({
         success: false,
-        message: "Already verified",
+        message: "Account is already verified. Please log in.",
       });
     }
 
     if (
-      user.otp !== otp ||
+      user.otp !== String(otp).trim() ||
+      !user.otpExpiry ||
       user.otpExpiry < new Date()
     ) {
       return res.status(400).json({
@@ -244,24 +317,34 @@ exports.verifyOTP = async (req, res) => {
     await user.save();
 
     const token = jwt.sign(
-      { userId: user._id },
+      { userId: user._id, email: user.email },
       process.env.SECRET_KEY,
       { expiresIn: "7d" }
     );
 
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 7 * 24 * 60 * 60 * 1000
+    });
+
     return res.status(200).json({
       success: true,
-      message: "Account verified",
+      message: "Account verified and logged in successfully!",
       token,
       user: {
         id: user._id,
-        email: user.email,
         username: user.username,
+        email: user.email,
+        mobile: user.mobile,
+        profilePic: user.profilePic,
+        isAdmin: user.isAdmin
       },
     });
 
   } catch (error) {
-    console.error(error);
+    console.error("Verify OTP error:", error);
     return res.status(500).json({
       success: false,
       message: "Server error",
@@ -384,24 +467,35 @@ exports.changeUsername = async (req, res) => {
     const { username, email, mobile } = req.body;
     if (!userId) return res.status(401).json({ success: false, message: "Not authenticated" });
     if (!username || !email) return res.status(400).json({ success: false, message: "Username and email required" });
-    const existingEmail = await User.findOne({ email, _id: { $ne: userId } });
+    
+    const cleanEmail = email.toLowerCase().trim();
+    const cleanUsername = username.trim();
+
+    const existingEmail = await User.findOne({ email: cleanEmail, _id: { $ne: userId } });
     if (existingEmail) return res.status(400).json({ success: false, message: "Email already in use" });
-    const existingUsername = await User.findOne({ username, _id: { $ne: userId } });
-    if (existingUsername) return res.status(400).json({ success: false, message: "Username taken" });
-    const updateData = { username: username.trim(), email: email.trim(), mobile: mobile ? mobile.trim() : "" };
+
+    const updateData = { 
+      username: cleanUsername, 
+      email: cleanEmail, 
+      mobile: mobile ? String(mobile).replace(/\D/g, "").slice(-10) : "" 
+    };
+
     if (req.file) {
-      updateData.profilePic = `${Date.now()}-${req.file.originalname}`;
-      const fs = require('fs');
-      const path = require('path');
-      const uploadDir = path.join(__dirname, '../uploads');
-      if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
-      const filePath = path.join(uploadDir, updateData.profilePic);
-      fs.writeFileSync(filePath, req.file.buffer);
+      updateData.profilePic = req.file.filename
+        ? `/uploads/${req.file.filename}`
+        : `data:${req.file.mimetype};base64,${req.file.buffer.toString("base64")}`;
     }
+
     const updatedUser = await User.findByIdAndUpdate(userId, updateData, { new: true }).select("-password");
-    return res.status(200).json({ success: true, message: "Profile updated", payload: updatedUser, profilePic: updatedUser.profilePic });
+    return res.status(200).json({ 
+      success: true, 
+      message: "Profile updated successfully", 
+      payload: updatedUser, 
+      user: updatedUser,
+      profilePic: updatedUser.profilePic 
+    });
   } catch (error) {
-    console.error(error);
+    console.error("Profile Edit Error:", error);
     return res.status(500).json({ success: false, message: "Server error" });
   }
 };

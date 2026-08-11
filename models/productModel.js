@@ -1,4 +1,6 @@
 const mongoose = require("mongoose");
+require("./categoryModel");
+require("./brandModel");
 
 const productSchema = new mongoose.Schema(
   {
