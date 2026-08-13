@@ -360,26 +360,37 @@ exports.resendOTP = async (req, res) => {
 
     if (!email) return res.status(400).json({ success: false, message: "Email required" });
 
-    const user = await User.findOne({ email });
+    const cleanEmail = String(email).trim().toLowerCase();
+    const user = await User.findOne({ email: cleanEmail });
     if (!user) return res.status(404).json({ success: false, message: "User not found" });
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
     user.otp = otp;
-    user.otpExpiry = new Date(Date.now() + 5 * 60 * 1000);
+    user.otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 mins
 
     await user.save();
 
-    await sendEmail(
-      email,
-      "Resend OTP",
-      `<h2>Your new OTP is ${otp}</h2><p>Valid for 5 minutes.</p>`
+    console.log(`🔑 [RESEND OTP GENERATED] Email: ${cleanEmail} | OTP: ${otp}`);
+
+    const emailSent = await sendEmail(
+      cleanEmail,
+      "Resend OTP - Sportify Kashmir",
+      `<h2>Welcome to Sportify Kashmir!</h2><p>Your new OTP is: <strong>${otp}</strong></p><p>Valid for 10 minutes.</p>`
     );
 
-    return res.status(200).json({ success: true, message: "OTP resent successfully" });
+    if (!emailSent) {
+      return res.status(500).json({
+        success: false,
+        message: "Failed to send OTP email: " + sendEmail.getLastError(),
+        emailError: sendEmail.getLastError(),
+      });
+    }
+
+    return res.status(200).json({ success: true, message: "OTP resent successfully! Please check your email." });
 
   } catch (error) {
-    console.error(error);
+    console.error("Resend OTP error:", error);
     return res.status(500).json({ success: false, message: "Server error" });
   }
 };

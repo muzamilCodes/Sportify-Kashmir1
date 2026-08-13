@@ -2,16 +2,21 @@ const nodemailer = require('nodemailer');
 require('dotenv').config();
 
 const sendEmail = async (to, subject, html) => {
-  const cleanPass = (process.env.SMTP_PASS || process.env.EMAIL_PASS || '').replace(/\s+/g, '');
-  const user = (process.env.SMTP_USER || process.env.EMAIL_USER || 'warmuzamil68@gmail.com').trim();
+  sendEmail.lastError = null;
+
+  const rawPass = process.env.SMTP_PASS || process.env.EMAIL_PASS || process.env.BREVO_SMTP_PASS || '';
+  const cleanPass = rawPass.replace(/\s+/g, '');
+  const user = (process.env.SMTP_USER || process.env.EMAIL_USER || process.env.BREVO_SMTP_USER || 'warmuzamil68@gmail.com').trim();
   const fromEmail = (process.env.EMAIL_FROM || user).trim();
-  const brevoPass = (process.env.BREVO_SMTP_PASS || '').trim();
-  const brevoApiKey = (process.env.BREVO_API_KEY || (brevoPass.startsWith('xkeysib-') ? brevoPass : null));
-  const resendApiKey = (process.env.RESEND_API_KEY || '').trim();
+  
+  // API Key Detections (HTTPS Port 443 - Most reliable on cloud platforms like Render & Vercel)
+  const brevoApiKey = (process.env.BREVO_API_KEY || (cleanPass.startsWith('xkeysib-') ? cleanPass : null));
+  const resendApiKey = (process.env.RESEND_API_KEY || (cleanPass.startsWith('re_') ? cleanPass : null));
+  const sgKey = process.env.SENDGRID_API_KEY || (cleanPass.startsWith('SG.') ? cleanPass : null);
 
   console.log(`📧 Attempting to send email to: ${to} | Subject: ${subject}`);
 
-  // 1. Try Brevo REST API (Most reliable on cloud environments like Render & Vercel, Port 443)
+  // 1. Try Brevo REST API (Port 443)
   if (brevoApiKey) {
     try {
       console.log('🚀 Sending email via Brevo REST API...');
@@ -36,13 +41,15 @@ const sendEmail = async (to, subject, html) => {
       } else {
         const errorText = await response.text();
         console.error('⚠️ Brevo REST API error status:', response.status, errorText);
+        sendEmail.lastError = `Brevo REST API error (${response.status}): ${errorText}`;
       }
     } catch (brevoErr) {
       console.error('⚠️ Brevo REST API request failed:', brevoErr.message);
+      sendEmail.lastError = `Brevo REST API failed: ${brevoErr.message}`;
     }
   }
 
-  // 2. Try Resend REST API if key is present (Port 443)
+  // 2. Try Resend REST API (Port 443)
   if (resendApiKey) {
     try {
       console.log('🚀 Sending email via Resend REST API...');
@@ -66,14 +73,15 @@ const sendEmail = async (to, subject, html) => {
       } else {
         const errorText = await response.text();
         console.error('⚠️ Resend REST API error status:', response.status, errorText);
+        sendEmail.lastError = `Resend API error (${response.status}): ${errorText}`;
       }
     } catch (resendErr) {
       console.error('⚠️ Resend REST API request failed:', resendErr.message);
+      sendEmail.lastError = `Resend API failed: ${resendErr.message}`;
     }
   }
 
-  // 3. Try SendGrid HTTP API if key (starting with SG.) is present
-  const sgKey = process.env.SENDGRID_API_KEY || (brevoPass.startsWith('SG.') ? brevoPass : null);
+  // 3. Try SendGrid HTTP API (Port 443)
   if (sgKey) {
     try {
       console.log('🚀 Sending email via SendGrid HTTP API...');
@@ -97,57 +105,62 @@ const sendEmail = async (to, subject, html) => {
       } else {
         const errorText = await response.text();
         console.error('⚠️ SendGrid API error status:', response.status, errorText);
+        sendEmail.lastError = `SendGrid API error (${response.status}): ${errorText}`;
       }
     } catch (sgErr) {
       console.error('⚠️ SendGrid API request failed:', sgErr.message);
+      sendEmail.lastError = `SendGrid API failed: ${sgErr.message}`;
     }
   }
 
-  // 4. Try Brevo SMTP if host and pass are configured
-  const brevoHost = process.env.BREVO_SMTP_HOST;
-  const brevoUser = (process.env.BREVO_SMTP_USER || '').trim();
+  // 4. Try Configured SMTP Host (Brevo or Custom SMTP in env)
+  const customHost = process.env.SMTP_HOST || process.env.BREVO_SMTP_HOST;
+  const customPort = parseInt(process.env.SMTP_PORT || process.env.BREVO_SMTP_PORT || '587');
 
-  if (brevoHost && brevoPass) {
+  if (customHost && customHost !== 'smtp.gmail.com' && cleanPass) {
     try {
-      console.log('🚀 Sending email via Brevo SMTP...');
-      const brevoTransporter = nodemailer.createTransport({
-        host: brevoHost,
-        port: parseInt(process.env.BREVO_SMTP_PORT || '587'),
-        secure: false,
-        auth: { user: brevoUser || user, pass: brevoPass },
-        connectionTimeout: 4000,
-        greetingTimeout: 3000,
-        socketTimeout: 4000,
+      console.log(`🚀 Sending email via Custom SMTP (${customHost}:${customPort})...`);
+      const customTransporter = nodemailer.createTransport({
+        host: customHost,
+        port: customPort,
+        secure: process.env.SMTP_SECURE === 'true' || customPort === 465,
+        auth: { user: user, pass: cleanPass },
+        tls: { rejectUnauthorized: false },
+        family: 4,
+        connectionTimeout: 5000,
+        greetingTimeout: 5000,
+        socketTimeout: 5000,
       });
 
-      const info = await brevoTransporter.sendMail({
+      const info = await customTransporter.sendMail({
         from: `Sportify Kashmir <${fromEmail}>`,
         to: to,
         subject: subject,
         html: html,
       });
 
-      console.log(`✅ Email sent via Brevo SMTP to ${to}: ${info.messageId}`);
+      console.log(`✅ Email sent via Custom SMTP (${customHost}) to ${to}: ${info.messageId}`);
       return true;
     } catch (err) {
-      console.error('⚠️ Brevo SMTP failed, falling back:', err.message);
+      console.error(`⚠️ Custom SMTP (${customHost}) failed:`, err.message);
+      sendEmail.lastError = `Custom SMTP (${customHost}) error: ${err.message}`;
     }
   }
 
-  // 5. Try Gmail SMTP with Port 587 (STARTTLS) - Often allowed by cloud providers
+  // 5. Try Gmail SMTP with Port 587 (STARTTLS)
   if (user && cleanPass) {
     try {
       console.log('🚀 Sending email via Gmail Port 587 (STARTTLS)...');
       const tlsTransporter = nodemailer.createTransport({
         host: 'smtp.gmail.com',
         port: 587,
-        secure: false, // true for 465, false for other ports
+        secure: false,
         auth: { user: user, pass: cleanPass },
         tls: { rejectUnauthorized: false },
         family: 4, // Force IPv4 to fix Render's IPv6 networking bugs
-        connectionTimeout: 10000,
-        greetingTimeout: 10000,
-        socketTimeout: 10000,
+        connectionTimeout: 5000,
+        greetingTimeout: 5000,
+        socketTimeout: 5000,
       });
 
       const info = await tlsTransporter.sendMail({
@@ -161,7 +174,8 @@ const sendEmail = async (to, subject, html) => {
       return true;
     } catch (err) {
       console.error('⚠️ Gmail Port 587 failed:', err.message);
-      
+      sendEmail.lastError = `Gmail Port 587 error: ${err.message}`;
+
       // 6. Try Gmail SMTP with Port 465 (Direct SSL)
       try {
         console.log('🚀 Retrying email via Gmail Port 465 (Direct SSL)...');
@@ -171,10 +185,10 @@ const sendEmail = async (to, subject, html) => {
           secure: true,
           auth: { user: user, pass: cleanPass },
           tls: { rejectUnauthorized: false },
-          family: 4, // Force IPv4
-          connectionTimeout: 10000,
-          greetingTimeout: 10000,
-          socketTimeout: 10000,
+          family: 4,
+          connectionTimeout: 5000,
+          greetingTimeout: 5000,
+          socketTimeout: 5000,
         });
 
         const info = await sslTransporter.sendMail({
@@ -188,17 +202,19 @@ const sendEmail = async (to, subject, html) => {
         return true;
       } catch (err2) {
         console.error('⚠️ Gmail Port 465 failed:', err2.message);
-        
-        // 7. Try Gmail Service
+        sendEmail.lastError = `Gmail Port 465 error: ${err2.message}`;
+
+        // 7. Try Gmail Service transport
         try {
           console.log('🚀 Retrying email via Gmail Service transport...');
           const serviceTransporter = nodemailer.createTransport({
             service: 'gmail',
             auth: { user: user, pass: cleanPass },
-            family: 4, // Force IPv4
-            connectionTimeout: 10000,
-            greetingTimeout: 10000,
-            socketTimeout: 10000,
+            tls: { rejectUnauthorized: false },
+            family: 4,
+            connectionTimeout: 5000,
+            greetingTimeout: 5000,
+            socketTimeout: 5000,
           });
 
           const info = await serviceTransporter.sendMail({
@@ -211,7 +227,7 @@ const sendEmail = async (to, subject, html) => {
           console.log(`✅ Email sent via Gmail Service to ${to}: ${info.messageId}`);
           return true;
         } catch (err3) {
-          sendEmail.lastError = err3.message;
+          sendEmail.lastError = `All delivery attempts failed. Last error: ${err3.message}`;
           console.error('❌ All email delivery attempts failed:', err3.message);
         }
       }
@@ -225,4 +241,5 @@ const sendEmail = async (to, subject, html) => {
 };
 
 sendEmail.getLastError = () => sendEmail.lastError || "Unknown error";
-module.exports = sendEmail;
+module.exports = sendEmail;
+

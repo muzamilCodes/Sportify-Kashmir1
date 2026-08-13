@@ -192,4 +192,4 @@ const sendEmail = async (to, subject, html) => {
   return false;
 };
 
-module.exports = sendEmail;
+module.exports = sendEmail;
