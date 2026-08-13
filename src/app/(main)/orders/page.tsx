@@ -51,11 +51,18 @@ export default function OrdersPage() {
     fetchOrders();
   }, []);
 
+  const normalizeStatus = (status: string) => {
+    if (!status) return "pending";
+    if (status === "processing") return "confirmed";
+    return status.replace(/-/g, "_");
+  };
+
   const getStatusIcon = (status: string) => {
-    switch (status?.toLowerCase()) {
+    switch (normalizeStatus(status)) {
       case "pending": return <Clock className="w-4 h-4 text-yellow-500" />;
-      case "processing": return <Loader2 className="w-4 h-4 text-blue-500 animate-spin" />;
+      case "confirmed": return <CheckCircle className="w-4 h-4 text-blue-500" />;
       case "shipped": return <Truck className="w-4 h-4 text-purple-500" />;
+      case "out_for_delivery": return <Truck className="w-4 h-4 text-indigo-500" />;
       case "delivered": return <CheckCircle className="w-4 h-4 text-green-500" />;
       case "cancelled": return <XCircle className="w-4 h-4 text-red-500" />;
       default: return <Package className="w-4 h-4 text-gray-500" />;
@@ -63,11 +70,12 @@ export default function OrdersPage() {
   };
 
   const getStatusColor = (status: string) => {
-    switch (status?.toLowerCase()) {
+    switch (normalizeStatus(status)) {
       case "delivered": return "bg-green-100 text-green-700";
       case "cancelled": return "bg-red-100 text-red-700";
       case "shipped": return "bg-purple-100 text-purple-700";
-      case "processing": return "bg-blue-100 text-blue-700";
+      case "confirmed": return "bg-blue-100 text-blue-700";
+      case "out_for_delivery": return "bg-indigo-100 text-indigo-700";
       default: return "bg-yellow-100 text-yellow-700";
     }
   };
@@ -139,7 +147,11 @@ export default function OrdersPage() {
                       </div>
                       <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium mt-1 ${getStatusColor(order.orderStatus)}`}>
                         {getStatusIcon(order.orderStatus)}
-                        <span className="capitalize">{order.orderStatus || "pending"}</span>
+                        <span className="capitalize">
+                          {normalizeStatus(order.orderStatus) === "out_for_delivery"
+                            ? "Out for Delivery"
+                            : normalizeStatus(order.orderStatus)}
+                        </span>
                       </div>
                     </div>
                   </div>

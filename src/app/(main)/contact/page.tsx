@@ -79,7 +79,7 @@ export default function ContactPage() {
     {
       icon: <MapPin className="w-6 h-6" />,
       title: "Visit Us",
-      details: ["Sportify Kashmir", "Handwara, Qalamabad", "Kupwara, J&K - 193302"],
+      details: ["Sportify Kashmir", "Handwara, Qalamabad"],
       color: "from-red-500 to-orange-500",
     },
     {
@@ -109,7 +109,7 @@ export default function ContactPage() {
     },
     {
       question: "What is your return policy?",
-      answer: "We offer 7-day easy returns on all products. Items must be unused and in original packaging.",
+      answer: "We offer 7-Day Return / Easy Returns on all products. Items must be unused and in original packaging.",
     },
     {
       question: "Do you offer cash on delivery?",
@@ -329,7 +329,7 @@ export default function ContactPage() {
                 </div>
                 <div className="flex items-center gap-1">
                   <RefreshCw className="w-4 h-4 text-purple-500" />
-                  <span className="text-xs text-gray-600">7-Day Returns</span>
+                  <span className="text-xs text-gray-600">7-Day Return / Easy Returns</span>
                 </div>
               </div>
             </div>
@@ -366,7 +366,6 @@ export default function ContactPage() {
                   <div>
                     <p className="text-gray-800 font-medium">Sportify Kashmir</p>
                     <p className="text-gray-600 text-sm">Handwara, Qalamabad</p>
-                    <p className="text-gray-600 text-sm">Kupwara, Jammu & Kashmir - 193302</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">

@@ -14,7 +14,7 @@ export default function ReturnPolicyPage() {
             <div className="w-20 h-20 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <RefreshCw className="w-10 h-10 text-orange-500" />
             </div>
-            <h1 className="text-3xl font-bold text-gray-900">7-Day Return Policy</h1>
+            <h1 className="text-3xl font-bold text-gray-900">7-Day Return / Easy Returns</h1>
             <p className="text-gray-600 mt-2">Easy returns, guaranteed satisfaction</p>
           </div>
 

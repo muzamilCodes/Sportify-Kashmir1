@@ -6,7 +6,7 @@ import { Trophy } from "lucide-react";
 /**
  * SplashScreen
  * Full-screen branded splash shown on first visit per session.
- * Auto-dismisses after 2.5 seconds with a smooth fade-out.
+ * Keeps the brand moment lightweight and non-blocking.
  */
 export default function SplashScreen() {
   const [show, setShow] = useState(false);
@@ -20,10 +20,9 @@ export default function SplashScreen() {
     setShow(true);
     sessionStorage.setItem("sportify-splash-shown", "true");
 
-    // Start fade-out after 2 seconds
-    const fadeTimer = setTimeout(() => setFadeOut(true), 2000);
-    // Remove completely after fade animation
-    const removeTimer = setTimeout(() => setShow(false), 2500);
+    // Keep it very brief so it never feels like a loading blocker.
+    const fadeTimer = setTimeout(() => setFadeOut(true), 120);
+    const removeTimer = setTimeout(() => setShow(false), 220);
 
     return () => {
       clearTimeout(fadeTimer);
@@ -35,9 +34,10 @@ export default function SplashScreen() {
 
   return (
     <div
-      className={`fixed inset-0 z-[9999] flex items-center justify-center bg-gradient-to-br from-orange-500 via-red-500 to-pink-500 transition-opacity duration-500 ${
+      className={`fixed inset-0 z-[9999] flex items-center justify-center bg-gradient-to-br from-orange-500 via-red-500 to-pink-500 transition-opacity duration-300 ${
         fadeOut ? "opacity-0 pointer-events-none" : "opacity-100"
-      }`}
+      } pointer-events-none`}
+      aria-hidden="true"
     >
       {/* Decorative circles */}
       <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-white/10 rounded-full blur-3xl animate-pulse" />

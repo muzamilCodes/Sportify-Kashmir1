@@ -235,8 +235,9 @@ export default function Header() {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    if (searchQuery.trim()) {
-      router.push(`/products?search=${encodeURIComponent(searchQuery)}`);
+    const query = searchQuery.trim();
+    if (query) {
+      router.push(`/products?search=${encodeURIComponent(query)}`);
       setIsMenuOpen(false);
     }
   };
@@ -454,8 +455,14 @@ export default function Header() {
                   placeholder="Search products..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400"
+                  className="w-full pl-10 pr-28 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400"
                 />
+                <button
+                  type="submit"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg bg-gradient-to-r from-orange-500 to-red-500 px-3 py-1.5 text-xs font-semibold text-white shadow-md"
+                >
+                  Search
+                </button>
               </div>
             </form>
             <div className="space-y-1">

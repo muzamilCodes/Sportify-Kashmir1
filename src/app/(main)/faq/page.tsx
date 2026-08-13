@@ -7,7 +7,7 @@ import Link from "next/link";
 const faqs = [
   {
     question: "What is your return policy?",
-    answer: "We offer a 7-day return policy for unused items in their original packaging. Custom-engraved trophies or personalized jerseys are not eligible for returns unless defective."
+    answer: "We offer a 7-Day Return / Easy Returns policy for unused items in their original packaging. Custom-engraved trophies or personalized jerseys are not eligible for returns unless defective."
   },
   {
     question: "How long does delivery take?",

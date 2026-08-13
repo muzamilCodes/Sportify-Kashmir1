@@ -1,13 +1,10 @@
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
 import Script from "next/script";
 import { Toaster } from "react-hot-toast";
 import Footer from "@/components/shared/Footer";
 import Header from "@/components/shared/Header";
 import ClientProviders from "@/components/providers/ClientProviders";
 import "./globals.css";
-
-const inter = Inter({ subsets: ["latin"] });
 
 /* ─── SEO & PWA Metadata ───────────────────────────────────────── */
 export const metadata: Metadata = {
@@ -73,7 +70,7 @@ export default function RootLayout({
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#f97316" />
       </head>
-      <body className={`${inter.className} bg-[var(--color-bg-primary)] text-[var(--color-text-primary)] transition-colors duration-300`} suppressHydrationWarning>
+      <body className="bg-[var(--color-bg-primary)] font-sans text-[var(--color-text-primary)] transition-colors duration-300" suppressHydrationWarning>
         <ClientProviders>
           <Header />
           <Toaster

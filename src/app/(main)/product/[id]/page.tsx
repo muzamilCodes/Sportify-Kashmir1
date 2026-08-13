@@ -609,7 +609,7 @@ const handleBuyNow = async () => {
                 </div>
                 <div className="flex items-center gap-3 text-sm text-gray-600">
                   <Shield className="w-5 h-5 text-blue-600" />
-                  <span>7-day return policy</span>
+                  <span>7-Day Return / Easy Returns</span>
                 </div>
                 <div className="flex items-center gap-3 text-sm text-gray-600">
                   <RotateCcw className="w-5 h-5 text-purple-600" />

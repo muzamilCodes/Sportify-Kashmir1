@@ -31,6 +31,12 @@ interface Order {
   orderStatus: string;
   createdAt: string;
   estimatedDelivery?: string;
+  statusHistory?: Array<{
+    status: string;
+    changedAt?: string;
+    changedByRole?: string;
+    note?: string;
+  }>;
   shippingAddress?: {
     firstName: string;
     lastName: string;
@@ -224,9 +230,21 @@ Thank you for shopping with Sportify Kashmir!
     return { street: "", city: "", state: "", pincode: "" };
   };
 
+  const normalizeStatus = (status?: string) => {
+    if (!status) return "pending";
+    if (status === "processing") return "confirmed";
+    return status.replace(/-/g, "_");
+  };
+
+  const getStatusLabel = (status?: string) => {
+    const normalized = normalizeStatus(status);
+    if (normalized === "out_for_delivery") return "Out for Delivery";
+    return normalized.replace(/_/g, " ");
+  };
+
   const canCancel = () => {
-    const status = order?.orderStatus?.toLowerCase();
-    return status === "pending" || status === "processing";
+    const status = normalizeStatus(order?.orderStatus);
+    return status === "pending" || status === "confirmed";
   };
 
   if (loading) {
@@ -249,8 +267,9 @@ Thank you for shopping with Sportify Kashmir!
     );
   }
 
-  const statusSteps = ["pending", "processing", "shipped", "delivered"];
-  const currentStep = statusSteps.indexOf(order.orderStatus?.toLowerCase());
+  const statusSteps = ["pending", "confirmed", "shipped", "out_for_delivery", "delivered"];
+  const currentStep = statusSteps.indexOf(normalizeStatus(order.orderStatus));
+  const progressStep = currentStep < 0 ? 0 : currentStep;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white py-8 px-4">
@@ -302,23 +321,26 @@ Thank you for shopping with Sportify Kashmir!
               <div className="text-right">
                 <div
                   className={`px-3 py-1.5 rounded-full text-sm font-medium capitalize inline-flex items-center gap-1 ${
-                    order.orderStatus === "delivered"
+                    normalizeStatus(order.orderStatus) === "delivered"
                       ? "bg-green-100 text-green-700"
-                      : order.orderStatus === "cancelled"
+                      : normalizeStatus(order.orderStatus) === "cancelled"
                       ? "bg-red-100 text-red-700"
-                      : order.orderStatus === "shipped"
+                      : normalizeStatus(order.orderStatus) === "shipped"
                       ? "bg-purple-100 text-purple-700"
-                      : order.orderStatus === "processing"
+                      : normalizeStatus(order.orderStatus) === "confirmed"
                       ? "bg-blue-100 text-blue-700"
+                      : normalizeStatus(order.orderStatus) === "out_for_delivery"
+                      ? "bg-indigo-100 text-indigo-700"
                       : "bg-yellow-100 text-yellow-700"
                   }`}
                 >
-                  {order.orderStatus === "delivered" && <CheckCircle className="w-4 h-4" />}
-                  {order.orderStatus === "shipped" && <Truck className="w-4 h-4" />}
-                  {order.orderStatus === "processing" && <Loader2 className="w-4 h-4 animate-spin" />}
-                  {order.orderStatus === "pending" && <Clock className="w-4 h-4" />}
-                  {order.orderStatus === "cancelled" && <XCircle className="w-4 h-4" />}
-                  {order.orderStatus}
+                  {normalizeStatus(order.orderStatus) === "delivered" && <CheckCircle className="w-4 h-4" />}
+                  {normalizeStatus(order.orderStatus) === "shipped" && <Truck className="w-4 h-4" />}
+                  {normalizeStatus(order.orderStatus) === "confirmed" && <CheckCircle className="w-4 h-4" />}
+                  {normalizeStatus(order.orderStatus) === "pending" && <Clock className="w-4 h-4" />}
+                  {normalizeStatus(order.orderStatus) === "out_for_delivery" && <Truck className="w-4 h-4" />}
+                  {normalizeStatus(order.orderStatus) === "cancelled" && <XCircle className="w-4 h-4" />}
+                  {getStatusLabel(order.orderStatus)}
                 </div>
                 <div className="mt-2 text-xl font-bold text-orange-600">
                   ₹{order.orderValue?.toFixed(2)}
@@ -345,12 +367,13 @@ Thank you for shopping with Sportify Kashmir!
                         }`}
                     >
                       {idx === 0 && <Clock className="w-4 h-4" />}
-                      {idx === 1 && <Package className="w-4 h-4" />}
+                      {idx === 1 && <CheckCircle className="w-4 h-4" />}
                       {idx === 2 && <Truck className="w-4 h-4" />}
-                      {idx === 3 && <CheckCircle className="w-4 h-4" />}
+                      {idx === 3 && <Truck className="w-4 h-4" />}
+                      {idx === 4 && <CheckCircle className="w-4 h-4" />}
                     </div>
                     <p className="text-xs font-medium mt-2 capitalize text-gray-600">
-                      {step}
+                      {step === "out_for_delivery" ? "Out for Delivery" : step}
                     </p>
                   </div>
                 ))}
@@ -358,7 +381,7 @@ Thank you for shopping with Sportify Kashmir!
               <div className="absolute top-4 left-0 w-full h-0.5 bg-gray-200 -translate-y-1/2 z-0">
                 <div
                   className="h-full bg-green-500 transition-all duration-500"
-                  style={{ width: `${(currentStep / (statusSteps.length - 1)) * 100}%` }}
+                  style={{ width: `${(progressStep / (statusSteps.length - 1)) * 100}%` }}
                 />
               </div>
             </div>
@@ -407,6 +430,36 @@ Thank you for shopping with Sportify Kashmir!
               </p>
             </div>
           </div>
+
+          {/* Status History */}
+          {Array.isArray(order.statusHistory) && order.statusHistory.length > 0 && (
+            <div className="p-6 border-b">
+              <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                <Clock className="w-4 h-4" /> Status History
+              </h3>
+              <div className="space-y-3">
+                {order.statusHistory.map((entry, index) => (
+                  <div key={`${entry.status}-${index}`} className="flex gap-3 p-4 border rounded-xl bg-gray-50">
+                    <div className="mt-1 w-3 h-3 rounded-full bg-orange-500 shrink-0"></div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="font-medium text-gray-800">
+                          {getStatusLabel(entry.status)}
+                        </p>
+                        {entry.changedByRole ? (
+                          <span className="text-xs text-gray-500">by {entry.changedByRole}</span>
+                        ) : null}
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {entry.changedAt ? new Date(entry.changedAt).toLocaleString("en-IN") : ""}
+                      </p>
+                      {entry.note ? <p className="text-sm text-gray-600 mt-1">{entry.note}</p> : null}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Order Items */}
           <div className="p-6 border-b">

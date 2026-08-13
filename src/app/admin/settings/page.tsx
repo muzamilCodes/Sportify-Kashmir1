@@ -12,7 +12,7 @@ export default function AdminSettingsPage() {
     siteName: "Sportify Kashmir",
     siteEmail: "sportify68@gmail.com",
     sitePhone: "+91 9682645127",
-    siteAddress: "Handwara, Qalamabad, Kupwara, J&K",
+    siteAddress: "Handwara, Qalamabad",
     currency: "INR",
     timezone: "Asia/Kolkata",
   });

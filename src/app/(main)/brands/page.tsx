@@ -1,8 +1,9 @@
 "use client";
 
-import { Award, ShoppingBag, Star, TrendingUp } from "lucide-react";
+import { AlertTriangle, Award, Loader2, ShoppingBag, Star, TrendingUp } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import EmptyState from "@/components/shared/EmptyState";
 
 interface Brand {
   _id: string;
@@ -19,38 +20,54 @@ interface Brand {
 export default function BrandsPage() {
   const [brands, setBrands] = useState<Brand[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState("all");
 
   useEffect(() => {
     fetchBrands();
   }, []);
 
+  const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000").replace(/\/$/, "");
+
+  const slugify = (value: string) =>
+    value
+      .toLowerCase()
+      .trim()
+      .replace(/[^\w\s-]/g, "")
+      .replace(/\s+/g, "-")
+      .replace(/-+/g, "-");
+
+  const getBrandHref = (brandName: string) => `/brands/${slugify(brandName)}`;
+
   const fetchBrands = async () => {
     try {
+      setError(null);
       setLoading(true);
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/brand/all`,
-      );
+      const response = await fetch(`${API_URL}/brand/all`);
+      if (!response.ok) {
+        throw new Error(`Request failed with status ${response.status}`);
+      }
       const result = await response.json();
       if (result.success && result.data) {
-        // Transform to match the expected interface
         const transformedBrands = result.data.map((brand: any) => ({
           _id: brand._id,
           name: brand.name,
-          logo: "/brands/default.png", // Default logo since backend doesn't have logos
+          logo: "/brands/default.png",
           description: brand.description || "Premium sports equipment",
-          category: "general", // Default category
-          rating: 4.5, // Default rating
-          totalProducts: 0, // Would need to count products per brand
-          isPopular: false,
-          discount: 0,
+          category: brand.category || "general",
+          rating: typeof brand.rating === "number" ? brand.rating : 4.5,
+          totalProducts: typeof brand.totalProducts === "number" ? brand.totalProducts : 0,
+          isPopular: Boolean(brand.isPopular),
+          discount: typeof brand.discount === "number" ? brand.discount : 0,
         }));
         setBrands(transformedBrands);
       } else {
         setBrands([]);
+        setError(result.message || "No brands were returned from the server.");
       }
     } catch (error) {
       console.error("Error fetching brands:", error);
+      setError("We couldn't load brands right now. Please try again.");
       setBrands([]);
     } finally {
       setLoading(false);
@@ -78,10 +95,23 @@ export default function BrandsPage() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          <Loader2 className="mx-auto h-12 w-12 animate-spin text-blue-600" />
           <p className="mt-4 text-gray-600">Loading brands...</p>
         </div>
       </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <EmptyState
+        variant="default"
+        icon={<AlertTriangle className="w-12 h-12" />}
+        title="Brands are unavailable"
+        description={error}
+        actionLabel="Try Again"
+        onAction={fetchBrands}
+      />
     );
   }
 
@@ -110,7 +140,7 @@ export default function BrandsPage() {
             {popularBrands.map((brand) => (
               <Link
                 key={brand._id}
-                href={`/products?brand=${brand.name.toLowerCase().replace(" ", "-")}`}
+                href={getBrandHref(brand.name)}
                 className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
               >
                 <div className="text-center">
@@ -155,8 +185,15 @@ export default function BrandsPage() {
         </div>
 
         {/* All Brands Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {filteredBrands.map((brand) => (
+        {filteredBrands.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-gray-300 bg-white p-10">
+            <p className="text-center text-gray-600">
+              No brands matched the selected category.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {filteredBrands.map((brand) => (
             <div
               key={brand._id}
               className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300"
@@ -199,7 +236,7 @@ export default function BrandsPage() {
                 </div>
 
                 <Link
-                  href={`/products?brand=${brand.name.toLowerCase().replace(" ", "-")}`}
+                  href={getBrandHref(brand.name)}
                   className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 font-medium"
                 >
                   <ShoppingBag className="w-4 h-4" />
@@ -208,7 +245,8 @@ export default function BrandsPage() {
               </div>
             </div>
           ))}
-        </div>
+          </div>
+        )}
 
         {/* Call to Action */}
         <div className="mt-16 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-8 text-center text-white">

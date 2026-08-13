@@ -1010,7 +1010,7 @@ const clearCartAfterOrder = async () => {
                   <RotateCcw className="w-5 h-5 text-purple-600" />
                   <div>
                     <p className="text-sm font-medium text-gray-900">Easy Returns</p>
-                    <p className="text-xs text-gray-500">30-day return policy</p>
+                    <p className="text-xs text-gray-500">7-Day Return / Easy Returns</p>
                   </div>
                 </div>
               </div>

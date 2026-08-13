@@ -22,6 +22,7 @@ import {
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import LoadingSpinner from "@/components/shared/LoadingSpinner";
 
 export default function AdminLayout({
   children,
@@ -145,14 +146,7 @@ export default function AdminLayout({
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-orange-50 to-red-50 dark:from-gray-900 dark:to-gray-800">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-10 w-10 sm:h-12 sm:w-12 border-4 border-orange-200 dark:border-orange-800 border-t-orange-500 mx-auto mb-4"></div>
-          <p className="text-sm sm:text-base text-gray-700 dark:text-gray-300 font-medium">Loading...</p>
-        </div>
-      </div>
-    );
+    return <LoadingSpinner />;
   }
 
   return (

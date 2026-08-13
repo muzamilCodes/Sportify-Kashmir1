@@ -27,6 +27,11 @@ interface DashboardStats {
   totalRevenue: number;
   todayOrders: number;
   pendingOrders: number;
+  confirmedOrders: number;
+  shippedOrders: number;
+  outForDeliveryOrders: number;
+  deliveredOrders: number;
+  cancelledOrders: number;
   productsGrowth: number;
   ordersGrowth: number;
   usersGrowth: number;
@@ -51,6 +56,11 @@ export default function AdminDashboard() {
     totalRevenue: 0,
     todayOrders: 0,
     pendingOrders: 0,
+    confirmedOrders: 0,
+    shippedOrders: 0,
+    outForDeliveryOrders: 0,
+    deliveredOrders: 0,
+    cancelledOrders: 0,
     productsGrowth: 0,
     ordersGrowth: 0,
     usersGrowth: 0,
@@ -88,8 +98,28 @@ export default function AdminDashboard() {
     }
   };
 
+  const normalizeStatus = (status: string) => {
+    if (!status) return "pending";
+    if (status === "processing") return "confirmed";
+    return status.replace(/-/g, "_");
+  };
+
   const getStatusBadge = (status: string) => {
-    switch (status) {
+    switch (normalizeStatus(status)) {
+      case "confirmed":
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-blue-100/80 dark:bg-blue-500/20 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-500/30 uppercase tracking-wide">
+            <CheckCircle className="w-3 h-3" />
+            Confirmed
+          </span>
+        );
+      case "out_for_delivery":
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-indigo-100/80 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30 uppercase tracking-wide">
+            <Truck className="w-3 h-3" />
+            Out for Delivery
+          </span>
+        );
       case "delivered":
         return (
           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-green-100/80 dark:bg-green-500/20 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-500/30 uppercase tracking-wide">
@@ -105,12 +135,6 @@ export default function AdminDashboard() {
           </span>
         );
       case "processing":
-        return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-blue-100/80 dark:bg-blue-500/20 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-500/30 uppercase tracking-wide">
-            <Clock className="w-3 h-3" />
-            Processing
-          </span>
-        );
       case "pending":
         return (
           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-orange-100/80 dark:bg-orange-500/20 text-orange-700 dark:text-orange-400 border border-orange-200 dark:border-orange-500/30 uppercase tracking-wide">
@@ -173,6 +197,15 @@ export default function AdminDashboard() {
     },
   ];
 
+  const orderStats = [
+    { title: "Pending", value: stats.pendingOrders, icon: <Clock className="w-5 h-5" />, color: "orange" },
+    { title: "Confirmed", value: stats.confirmedOrders, icon: <CheckCircle className="w-5 h-5" />, color: "blue" },
+    { title: "Shipped", value: stats.shippedOrders, icon: <Truck className="w-5 h-5" />, color: "purple" },
+    { title: "Out for Delivery", value: stats.outForDeliveryOrders, icon: <Truck className="w-5 h-5" />, color: "indigo" },
+    { title: "Delivered", value: stats.deliveredOrders, icon: <CheckCircle className="w-5 h-5" />, color: "green" },
+    { title: "Cancelled", value: stats.cancelledOrders, icon: <XCircle className="w-5 h-5" />, color: "red" },
+  ];
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -233,6 +266,47 @@ export default function AdminDashboard() {
             </div>
           </div>
         ))}
+      </div>
+
+      <div className="mb-8 bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl rounded-2xl shadow-xl border border-white dark:border-gray-700 p-6">
+        <div className="flex items-center justify-between mb-5">
+          <div>
+            <h3 className="text-base font-bold text-gray-900 dark:text-white">Order Status Breakdown</h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Live order counts across the full lifecycle.</p>
+          </div>
+          <Link href="/admin/orders" className="text-xs font-bold text-orange-500 hover:text-orange-700">
+            Open orders
+          </Link>
+        </div>
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+          {orderStats.map((item) => (
+            <div key={item.title} className="rounded-xl border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 shadow-sm">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">{item.title}</p>
+                  <p className="mt-1 text-2xl font-extrabold text-gray-900 dark:text-white">{item.value}</p>
+                </div>
+                <div
+                  className={`w-11 h-11 rounded-xl flex items-center justify-center text-white ${
+                    item.color === "orange"
+                      ? "bg-orange-500"
+                      : item.color === "blue"
+                      ? "bg-blue-500"
+                      : item.color === "purple"
+                      ? "bg-purple-500"
+                      : item.color === "indigo"
+                      ? "bg-indigo-500"
+                      : item.color === "green"
+                      ? "bg-green-500"
+                      : "bg-red-500"
+                  }`}
+                >
+                  {item.icon}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-6">

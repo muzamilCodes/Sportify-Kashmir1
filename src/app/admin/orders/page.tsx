@@ -44,7 +44,7 @@ interface Order {
   orderValue: number;
   paymentMethod: "cod" | "razorpay";
   paymentStatus: "pending" | "paid" | "failed";
-  orderStatus: "pending" | "processing" | "shipped" | "delivered" | "cancelled";
+  orderStatus: "pending" | "processing" | "confirmed" | "shipped" | "out_for_delivery" | "delivered" | "cancelled";
   shippingAddress?: {
     _id: string;
     firstName: string;
@@ -67,6 +67,13 @@ interface Order {
   };
   createdAt: string;
   updatedAt: string;
+  statusHistory?: Array<{
+    status: string;
+    changedAt?: string;
+    changedByRole?: string;
+    changedByUser?: string;
+    note?: string;
+  }>;
 }
 
 export default function AdminOrdersPage() {
@@ -134,14 +141,22 @@ export default function AdminOrdersPage() {
     }
   };
 
+  const normalizeStatus = (status: string) => {
+    if (!status) return "pending";
+    if (status === "processing") return "confirmed";
+    return status.replace(/-/g, "_");
+  };
+
   const getStatusBadge = (status: string) => {
-    switch (status) {
+    switch (normalizeStatus(status)) {
       case "pending":
         return <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800"><Clock className="w-3 h-3" /> Pending</span>;
-      case "processing":
-        return <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800"><Package className="w-3 h-3" /> Processing</span>;
+      case "confirmed":
+        return <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800"><CheckCircle className="w-3 h-3" /> Confirmed</span>;
       case "shipped":
         return <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800"><Truck className="w-3 h-3" /> Shipped</span>;
+      case "out_for_delivery":
+        return <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800"><Truck className="w-3 h-3" /> Out for Delivery</span>;
       case "delivered":
         return <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800"><CheckCircle className="w-3 h-3" /> Delivered</span>;
       case "cancelled":
@@ -241,8 +256,12 @@ export default function AdminOrdersPage() {
   };
 
   const getTotalOrders = () => orders.length;
-  const getPendingOrders = () => orders.filter(o => o.orderStatus === "pending").length;
-  const getDeliveredOrders = () => orders.filter(o => o.orderStatus === "delivered").length;
+  const getPendingOrders = () => orders.filter(o => normalizeStatus(o.orderStatus) === "pending").length;
+  const getConfirmedOrders = () => orders.filter(o => normalizeStatus(o.orderStatus) === "confirmed").length;
+  const getShippedOrders = () => orders.filter(o => normalizeStatus(o.orderStatus) === "shipped").length;
+  const getOutForDeliveryOrders = () => orders.filter(o => normalizeStatus(o.orderStatus) === "out_for_delivery").length;
+  const getDeliveredOrders = () => orders.filter(o => normalizeStatus(o.orderStatus) === "delivered").length;
+  const getCancelledOrders = () => orders.filter(o => normalizeStatus(o.orderStatus) === "cancelled").length;
 
   useEffect(() => {
     let filtered = [...orders];
@@ -256,7 +275,7 @@ export default function AdminOrdersPage() {
       );
     }
     if (statusFilter !== "all") {
-      filtered = filtered.filter((order) => order.orderStatus === statusFilter);
+      filtered = filtered.filter((order) => normalizeStatus(order.orderStatus) === statusFilter);
     }
     setFilteredOrders(filtered);
   }, [searchTerm, statusFilter, orders]);
@@ -290,7 +309,7 @@ export default function AdminOrdersPage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
         <div className="bg-white rounded-xl shadow-sm border p-4">
           <div className="flex items-center justify-between">
             <div>
@@ -305,22 +324,44 @@ export default function AdminOrdersPage() {
         <div className="bg-white rounded-xl shadow-sm border p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-500">Total Revenue</p>
-              <p className="text-2xl font-bold text-green-600">₹{getTotalRevenue().toLocaleString('en-IN', { minimumFractionDigits: 2 })}</p>
+              <p className="text-sm text-gray-500">Pending</p>
+              <p className="text-2xl font-bold text-yellow-600">{getPendingOrders()}</p>
             </div>
-            <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-              <IndianRupee className="w-5 h-5 text-green-600" />
+            <div className="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center">
+              <Clock className="w-5 h-5 text-yellow-600" />
             </div>
           </div>
         </div>
         <div className="bg-white rounded-xl shadow-sm border p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-500">Pending Orders</p>
-              <p className="text-2xl font-bold text-yellow-600">{getPendingOrders()}</p>
+              <p className="text-sm text-gray-500">Confirmed</p>
+              <p className="text-2xl font-bold text-blue-600">{getConfirmedOrders()}</p>
             </div>
-            <div className="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center">
-              <Clock className="w-5 h-5 text-yellow-600" />
+            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+              <CheckCircle className="w-5 h-5 text-blue-600" />
+            </div>
+          </div>
+        </div>
+        <div className="bg-white rounded-xl shadow-sm border p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-500">Shipped</p>
+              <p className="text-2xl font-bold text-purple-600">{getShippedOrders()}</p>
+            </div>
+            <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+              <Truck className="w-5 h-5 text-purple-600" />
+            </div>
+          </div>
+        </div>
+        <div className="bg-white rounded-xl shadow-sm border p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-500">Out for Delivery</p>
+              <p className="text-2xl font-bold text-indigo-600">{getOutForDeliveryOrders()}</p>
+            </div>
+            <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center">
+              <Truck className="w-5 h-5 text-indigo-600" />
             </div>
           </div>
         </div>
@@ -332,6 +373,17 @@ export default function AdminOrdersPage() {
             </div>
             <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
               <CheckCircle className="w-5 h-5 text-green-600" />
+            </div>
+          </div>
+        </div>
+        <div className="bg-white rounded-xl shadow-sm border p-4 lg:col-span-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-500">Cancelled</p>
+              <p className="text-2xl font-bold text-red-600">{getCancelledOrders()}</p>
+            </div>
+            <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
+              <XCircle className="w-5 h-5 text-red-600" />
             </div>
           </div>
         </div>
@@ -358,8 +410,9 @@ export default function AdminOrdersPage() {
             >
               <option value="all">All Status</option>
               <option value="pending">📋 Pending</option>
-              <option value="processing">⚙️ Processing</option>
+              <option value="confirmed">✅ Confirmed</option>
               <option value="shipped">🚚 Shipped</option>
+              <option value="out_for_delivery">📦 Out for Delivery</option>
               <option value="delivered">✅ Delivered</option>
               <option value="cancelled">❌ Cancelled</option>
             </select>
@@ -422,13 +475,14 @@ export default function AdminOrdersPage() {
                           <Loader2 className="w-4 h-4 animate-spin text-orange-500" />
                         ) : (
                           <select
-                            value={order.orderStatus}
+                            value={normalizeStatus(order.orderStatus)}
                             onChange={(e) => updateOrderStatus(order._id, e.target.value)}
                             className="text-sm border rounded-lg px-2 py-1 bg-white focus:ring-2 focus:ring-orange-500 cursor-pointer"
                           >
                             <option value="pending">📋 Pending</option>
-                            <option value="processing">⚙️ Processing</option>
+                            <option value="confirmed">✅ Confirmed</option>
                             <option value="shipped">🚚 Shipped</option>
+                            <option value="out_for_delivery">📦 Out for Delivery</option>
                             <option value="delivered">✅ Delivered</option>
                             <option value="cancelled">❌ Cancelled</option>
                           </select>
@@ -484,25 +538,55 @@ export default function AdminOrdersPage() {
               <div className="bg-gray-50 rounded-xl p-4">
                 <h3 className="font-semibold text-gray-900 mb-3">Order Status</h3>
                 <div className="flex items-center justify-between">
-                  {["pending", "processing", "shipped", "delivered"].map((status, idx) => (
+                  {["pending", "confirmed", "shipped", "out_for_delivery", "delivered"].map((status, idx) => (
                     <div key={status} className="flex-1 text-center">
                       <div
                         className={`w-8 h-8 rounded-full flex items-center justify-center mx-auto mb-2 ${
-                          ["pending", "processing", "shipped", "delivered"].indexOf(selectedOrder.orderStatus) >= idx
+                          ["pending", "confirmed", "shipped", "out_for_delivery", "delivered"].indexOf(normalizeStatus(selectedOrder.orderStatus)) >= idx
                             ? "bg-green-500 text-white"
                             : "bg-gray-200 text-gray-400"
                         }`}
                       >
                         {status === "pending" && <Clock className="w-4 h-4" />}
-                        {status === "processing" && <Package className="w-4 h-4" />}
+                        {status === "confirmed" && <CheckCircle className="w-4 h-4" />}
                         {status === "shipped" && <Truck className="w-4 h-4" />}
+                        {status === "out_for_delivery" && <Truck className="w-4 h-4" />}
                         {status === "delivered" && <CheckCircle className="w-4 h-4" />}
                       </div>
-                      <p className="text-xs text-gray-600 capitalize">{status}</p>
+                      <p className="text-xs text-gray-600 capitalize">
+                        {status === "out_for_delivery" ? "Out for Delivery" : status}
+                      </p>
                     </div>
                   ))}
                 </div>
               </div>
+
+              {Array.isArray(selectedOrder.statusHistory) && selectedOrder.statusHistory.length > 0 && (
+                <div className="bg-gray-50 rounded-xl p-4">
+                  <h3 className="font-semibold text-gray-900 mb-3">Status History</h3>
+                  <div className="space-y-3">
+                    {selectedOrder.statusHistory.map((entry, index) => (
+                      <div key={`${entry.status}-${index}`} className="flex gap-3 p-3 rounded-lg bg-white border border-gray-100">
+                        <div className="mt-1 w-3 h-3 rounded-full bg-orange-500 shrink-0"></div>
+                        <div className="flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className="font-semibold text-gray-900 capitalize">
+                              {normalizeStatus(entry.status).replace(/_/g, " ")}
+                            </p>
+                            <span className="text-xs text-gray-500">
+                              {entry.changedByRole ? `by ${entry.changedByRole}` : ""}
+                            </span>
+                          </div>
+                          <p className="text-xs text-gray-500 mt-1">
+                            {entry.changedAt ? new Date(entry.changedAt).toLocaleString() : ""}
+                          </p>
+                          {entry.note ? <p className="text-sm text-gray-600 mt-1">{entry.note}</p> : null}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Customer Information */}
               <div>
@@ -629,7 +713,7 @@ export default function AdminOrdersPage() {
 
             <div className="sticky bottom-0 bg-white border-t p-4 flex gap-3">
               <select
-                value={selectedOrder.orderStatus}
+                value={normalizeStatus(selectedOrder.orderStatus)}
                 onChange={(e) => {
                   updateOrderStatus(selectedOrder._id, e.target.value);
                   setSelectedOrder({ ...selectedOrder, orderStatus: e.target.value as any });
@@ -637,8 +721,9 @@ export default function AdminOrdersPage() {
                 className="flex-1 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500"
               >
                 <option value="pending">📋 Pending</option>
-                <option value="processing">⚙️ Processing</option>
+                <option value="confirmed">✅ Confirmed</option>
                 <option value="shipped">🚚 Shipped</option>
+                <option value="out_for_delivery">📦 Out for Delivery</option>
                 <option value="delivered">✅ Delivered</option>
                 <option value="cancelled">❌ Cancelled</option>
               </select>

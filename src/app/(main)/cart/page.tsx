@@ -391,7 +391,7 @@ const removeItem = async (productId: string) => {
                 </div>
                 <div className="flex items-center gap-2 text-sm text-gray-600">
                   <RotateCcw className="w-4 h-4 text-purple-600" />
-                  <span>7-day return policy</span>
+                  <span>7-Day Return / Easy Returns</span>
                 </div>
               </div>
             </div>

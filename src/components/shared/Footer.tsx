@@ -51,7 +51,7 @@ export default function Footer() {
   ];
 
   const policies = [
-    { name: "7-Day Return Policy", link: "/return-policy", highlight: true },
+    { name: "7-Day Return / Easy Returns", link: "/return-policy", highlight: true },
     { name: "Shipping Policy", link: "/shipping-policy" },
     { name: "Privacy Policy", link: "/privacy-policy" },
     { name: "Terms & Conditions", link: "/terms-conditions" },
@@ -77,7 +77,7 @@ export default function Footer() {
             </div>
             <div className="text-center">
               <RefreshCw className="w-10 h-10 text-orange-500 mx-auto mb-2" />
-              <div className="font-bold text-sm">7-Day Return</div>
+              <div className="font-bold text-sm">7-Day Return / Easy Returns</div>
               <div className="text-sm text-gray-400">Easy Returns</div>
             </div>
             <div className="text-center">
@@ -174,8 +174,7 @@ export default function Footer() {
                 <div>
                   <div className="font-medium">Store Location</div>
                   <div className="text-gray-400 text-sm">
-                    Handwara, Qalamabad<br />
-                    Kupwara, Jammu & Kashmir - 193302
+                    Handwara, Qalamabad
                   </div>
                 </div>
               </div>
@@ -293,9 +292,7 @@ export default function Footer() {
         {/* Bottom Bar */}
         <div className="mt-8 pt-8 border-t border-gray-800 text-center text-gray-400">
           <p>© {currentYear} Sportify Kashmir. All rights reserved.</p>
-          <p className="text-sm mt-2">
-            Proudly serving Kashmir&apos;s sports community from Handwara, Qalamabad
-          </p>
+          <p className="text-sm mt-2">Proudly serving Kashmir&apos;s sports community from Handwara, Qalamabad</p>
           <div className="flex justify-center gap-6 mt-4 text-xs">
             <Link href="/privacy-policy" className="hover:text-orange-500 transition">
               Privacy Policy
@@ -304,7 +301,7 @@ export default function Footer() {
               Terms of Use
             </Link>
             <Link href="/return-policy" className="text-orange-400 hover:text-orange-300 transition font-medium">
-              7-Day Return Policy
+              7-Day Return / Easy Returns
             </Link>
             <Link href="/sitemap" className="hover:text-orange-500 transition">
               Sitemap

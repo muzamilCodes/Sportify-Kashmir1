@@ -38,7 +38,7 @@ export default function TermsConditionsPage() {
 
             <div>
               <h2 className="text-xl font-bold text-gray-900 mb-3">5. Returns and Refunds</h2>
-              <p className="text-gray-600">Our 7-day return policy applies to eligible products. Items must be unused and in original packaging.</p>
+              <p className="text-gray-600">Our 7-Day Return / Easy Returns policy applies to eligible products. Items must be unused and in original packaging.</p>
             </div>
           </div>
         </div>

@@ -75,7 +75,7 @@ export default function AboutPage() {
       content: "As a cricket coach, I need reliable equipment for my team. Sportify Kashmir has never disappointed. Their expert advice is invaluable.",
       rating: 5, 
       image: "",
-      location: "Handwara Qalamabad",
+      location: "Handwara, Qalamabad",
     },
     {
       name: "Aamir nabi war",
@@ -83,7 +83,7 @@ export default function AboutPage() {
       content: "The yoga equipment from Sportify Kashmir is simply the best. Premium quality, affordable prices, and fast delivery. Highly recommended!",
       rating: 5,
       image: "",
-      location: "Handwara Qalamabad",
+      location: "Handwara, Qalamabad",
     },
   ];
 
@@ -194,7 +194,7 @@ export default function AboutPage() {
     },
     {
       icon: <RefreshCw className="w-8 h-8" />,
-      title: "7-Day Easy Returns",
+      title: "7-Day Return / Easy Returns",
       description: "Hassle-free return policy on all products within 7 days",
       color: "from-orange-500 to-red-500",
       stat: "7 Days",
@@ -294,7 +294,7 @@ export default function AboutPage() {
               </div>
               <div className="flex items-center gap-2 text-gray-500">
                 <RefreshCw className="w-5 h-5 text-purple-500" />
-                <span className="text-sm">7-Day Returns</span>
+                <span className="text-sm">7-Day Return / Easy Returns</span>
               </div>
             </div>
           </div>
@@ -361,7 +361,7 @@ export default function AboutPage() {
               </h2>
               <div className="space-y-4 text-gray-600">
                 <p className="leading-relaxed">
-                  Founded in 2020, Sportify Kashmir began as a small local store in Handwara, Qalamabad. 
+                  Founded in 2020, Sportify Kashmir began as a small local store in Handwara, Qalamabad.
                   We recognized the growing need for quality sports equipment in our beautiful region 
                   and set out to bridge that gap.
                 </p>
@@ -532,7 +532,7 @@ export default function AboutPage() {
                 <div className="w-10 h-10 bg-orange-500 rounded-full flex items-center justify-center">
                   <RefreshCw className="w-5 h-5 text-white" />
                 </div>
-                <span className="text-gray-700 font-medium">7-Day Easy Returns</span>
+                <span className="text-gray-700 font-medium">7-Day Return / Easy Returns</span>
               </div>
             </div>
           </div>
@@ -639,7 +639,7 @@ export default function AboutPage() {
               </Link>
             </div>
             <p className="text-sm text-gray-400 mt-8">
-              🔒 Secure checkout • 🚚 Free shipping on orders ₹999+ • 💯 Authentic products • 🔄 7-Day Returns
+              🔒 Secure checkout • 🚚 Free shipping on orders ₹999+ • 💯 Authentic products • 🔄 7-Day Return / Easy Returns
             </p>
           </div>
         </div>

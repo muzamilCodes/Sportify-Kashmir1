@@ -25,6 +25,7 @@ export default function SitemapPage() {
       links: [
         { name: "My Account", href: "/profile" },
         { name: "My Orders", href: "/orders" },
+        { name: "Transactions", href: "/transactions" },
         { name: "Wishlist", href: "/wishlist" },
         { name: "Cart", href: "/cart" },
         { name: "Checkout", href: "/checkout" },
@@ -48,7 +49,7 @@ export default function SitemapPage() {
       title: "Policies",
       icon: <Shield className="w-5 h-5" />,
       links: [
-        { name: "7-Day Return Policy", href: "/return-policy" },
+        { name: "7-Day Return / Easy Returns", href: "/return-policy" },
         { name: "Shipping Policy", href: "/shipping-policy" },
         { name: "Exchange Policy", href: "/exchange-policy" },
         { name: "Cancellation Policy", href: "/cancellation-policy" },
