@@ -1,6 +1,7 @@
 const express = require("express");
 const controller = require("../controllers/orderController");
 const authorize = require("../middlewares/authorize");
+const admin = require("../middlewares/admin");
 const optionalAuthorize = require("../middlewares/optionalAuthorize");
 
 const router = express.Router();
@@ -13,14 +14,16 @@ router.post("/create", authorize, controller.createOrder);
 router.post("/createCartOrder", authorize, controller.createCartorder);
 
 // ✅ Order status update routes
-router.put("/processing/:orderId", authorize, (req, res) => controller.updateOrderStatus(req, res, "processing"));
-router.put("/shipped/:orderId", authorize, (req, res) => controller.updateOrderStatus(req, res, "shipped"));
-router.put("/delivered/:orderId", authorize, (req, res) => controller.updateOrderStatus(req, res, "delivered"));
+router.put("/processing/:orderId", admin, (req, res) => controller.updateOrderStatus(req, res, "confirmed"));
+router.put("/confirmed/:orderId", admin, (req, res) => controller.updateOrderStatus(req, res, "confirmed"));
+router.put("/shipped/:orderId", admin, (req, res) => controller.updateOrderStatus(req, res, "shipped"));
+router.put("/out_for_delivery/:orderId", admin, (req, res) => controller.updateOrderStatus(req, res, "out_for_delivery"));
+router.put("/delivered/:orderId", admin, (req, res) => controller.updateOrderStatus(req, res, "delivered"));
 router.put("/cancelled/:orderId", authorize, (req, res) => controller.updateOrderStatus(req, res, "cancelled"));
 
 // ✅ Order fetch routes
 router.get("/user-orders", authorize, controller.getUserOrders);
-router.get("/fetchAllOrders", authorize, controller.fetchAllOrders);
+router.get("/fetchAllOrders", admin, controller.fetchAllOrders);
 router.get("/fetchOrderById/:orderId", authorize, controller.fetchOrderById);
 
 // ✅ Admin only - update order value (make sure this controller exists)

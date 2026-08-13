@@ -40,9 +40,35 @@ const orderSchema = new mongoose.Schema(
 
     orderStatus: {
       type: String,
-      enum: ["pending", "processing", "shipped", "delivered", "cancelled"],
+      enum: ["pending", "processing", "confirmed", "shipped", "out_for_delivery", "delivered", "cancelled"],
       default: "pending",
     },
+
+    statusHistory: [
+      {
+        status: {
+          type: String,
+          enum: ["pending", "processing", "confirmed", "shipped", "out_for_delivery", "delivered", "cancelled"],
+          required: true,
+        },
+        changedAt: { type: Date, default: Date.now },
+        changedByRole: { type: String, enum: ["system", "admin", "customer"], default: "system" },
+        changedByUser: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+        note: { type: String, default: "" },
+      },
+    ],
+
+    notificationLog: [
+      {
+        eventKey: { type: String, required: true },
+        type: { type: String, enum: ["created", "status"], default: "status" },
+        status: { type: String, required: true },
+        emailSent: { type: Boolean, default: false },
+        whatsappSent: { type: Boolean, default: false },
+        sentAt: { type: Date },
+        error: { type: String, default: "" },
+      },
+    ],
   },
   { timestamps: true }
 );

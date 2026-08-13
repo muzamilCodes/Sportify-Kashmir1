@@ -4,6 +4,7 @@ const { Payment } = require("../models/paymentModel");
 const Order = require("../models/orderModel");
 const Cart = require("../models/cartModel");
 const { resHandler } = require("../utilities/resHandler");
+const { notifyOrderEvent } = require("../utilities/orderNotificationService");
 
 // ✅ Initialize Razorpay with error handling
 let razorpay;
@@ -115,9 +116,18 @@ exports.verifyPaymentAndCreateOrder = async (req, res) => {
       razorpayOrderId: razorpay_order_id,
       razorpayPaymentId: razorpay_payment_id,
       orderStatus: "pending",
+      statusHistory: [
+        {
+          status: "pending",
+          changedAt: new Date(),
+          changedByRole: "system",
+          note: "Order created",
+        },
+      ],
     });
 
     console.log("✅ Order created:", order._id);
+    await notifyOrderEvent(order._id, { type: "created", status: "pending" });
 
     // Clear cart
     await Cart.findOneAndUpdate(

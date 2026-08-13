@@ -4,6 +4,23 @@ const Order = require("../models/orderModel");
 const { Product } = require("../models/productModel");
 const { User } = require("../models/userModel");
 const { resHandler } = require("../utilities/resHandler");
+const { notifyOrderEvent, normalizeOrderStatus } = require("../utilities/orderNotificationService");
+
+async function getActingUser(req) {
+  if (!req.userId) return null;
+  return User.findById(req.userId).select("username email mobile isAdmin");
+}
+
+function getStatusHistoryNote(status, actorRole) {
+  if (status === "cancelled" && actorRole === "customer") {
+    return "Order cancelled by customer";
+  }
+  if (status === "confirmed") return "Order confirmed by admin";
+  if (status === "shipped") return "Order marked as shipped";
+  if (status === "out_for_delivery") return "Order marked out for delivery";
+  if (status === "delivered") return "Order marked as delivered";
+  return "Order status updated";
+}
 
 exports.createOrder = async (req, res) => {
   // create Order for single product
@@ -46,11 +63,21 @@ exports.createOrder = async (req, res) => {
       shippingAddress: addressId,
       products: productsArr,
       orderValue: orderValue,
+      orderStatus: "pending",
+      statusHistory: [
+        {
+          status: "pending",
+          changedAt: new Date(),
+          changedByRole: "system",
+          note: "Order created",
+        },
+      ],
     });
 
     if (order) {
       user.orders.push(order._id);
       await user.save();
+      await notifyOrderEvent(order._id, { type: "created", status: "pending" });
 
       resHandler(res, 200, "Order created Succesfully!", order);
     }
@@ -97,6 +124,15 @@ exports.createCartorder = async (req, res) => {
       shippingAddress: addressId,
       products,
       orderValue,
+      orderStatus: "pending",
+      statusHistory: [
+        {
+          status: "pending",
+          changedAt: new Date(),
+          changedByRole: "system",
+          note: "Order created",
+        },
+      ],
     });
 
     if (createOrder) {
@@ -105,6 +141,7 @@ exports.createCartorder = async (req, res) => {
       cart.products = []
       await user.save();
       await cart.save();
+      await notifyOrderEvent(createOrder._id, { type: "created", status: "pending" });
       resHandler(res, 201, "Order Created", createOrder);
     }
   } catch (error) {
@@ -116,12 +153,54 @@ exports.createCartorder = async (req, res) => {
 exports.updateOrderStatus = async (req, res, orderStatus) => {
   try {
     const { orderId } = req.params;
+    const normalizedStatus = normalizeOrderStatus(orderStatus);
     const order = await Order.findById(orderId);
     if (!order) return res.status(404).json({ success: false, message: "Order not found" });
-    order.orderStatus = orderStatus;
+
+    const actingUser = await getActingUser(req);
+    const currentStatus = normalizeOrderStatus(order.orderStatus);
+
+    if (normalizedStatus !== "cancelled" && !actingUser?.isAdmin) {
+      return res.status(403).json({ success: false, message: "Admin access required to update order status" });
+    }
+
+    if (normalizedStatus === "cancelled" && !actingUser) {
+      return res.status(401).json({ success: false, message: "Authentication required" });
+    }
+
+    if (normalizedStatus === "cancelled" && !actingUser?.isAdmin) {
+      const ownerId = order.userId ? order.userId.toString() : "";
+      if (!ownerId || ownerId !== req.userId.toString()) {
+        return res.status(403).json({ success: false, message: "You can only cancel your own order" });
+      }
+    }
+
+    if (currentStatus === normalizedStatus) {
+      return res.status(200).json({
+        success: true,
+        message: `Order is already ${normalizedStatus.replace(/_/g, " ")}`,
+        order,
+      });
+    }
+
+    order.orderStatus = normalizedStatus;
+    order.statusHistory = Array.isArray(order.statusHistory) ? order.statusHistory : [];
+    order.statusHistory.push({
+      status: normalizedStatus,
+      changedAt: new Date(),
+      changedByRole: actingUser?.isAdmin ? "admin" : "customer",
+      changedByUser: req.userId,
+      note: getStatusHistoryNote(normalizedStatus, actingUser?.isAdmin ? "admin" : "customer"),
+    });
+
     await order.save();
-    // ... email sending code (ignore error for now)
-    return res.status(200).json({ success: true, message: `Order ${orderStatus}!`, order });
+
+    await notifyOrderEvent(order._id, {
+      type: normalizedStatus === "cancelled" ? "status" : "status",
+      status: normalizedStatus,
+    });
+
+    return res.status(200).json({ success: true, message: `Order ${normalizedStatus}!`, order });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
   }
@@ -175,6 +254,8 @@ exports.fetchOrderById = async (req, res) => {
   try {
     const { orderId } = req.params;
     const order = await Order.findById(orderId)
+      .populate('userId', 'username email mobile isAdmin')
+      .populate('shippingAddress', 'firstName lastName street city state pincode email mobile')
       .populate('products.productId', 'name price productImgUrls');
     if (!order) {
       return res.status(404).json({ success: false, message: "Order not found" });
@@ -229,6 +310,14 @@ exports.createOrderFromCheckout = async (req, res) => {
 
     orderData.products = cart.products;
     orderData.orderValue = cart.cartValue;
+    orderData.statusHistory = [
+      {
+        status: "pending",
+        changedAt: new Date(),
+        changedByRole: "system",
+        note: "Order created",
+      },
+    ];
 
     if (paymentMethod === 'razorpay') {
       const Razorpay = require('razorpay');
@@ -247,6 +336,10 @@ exports.createOrderFromCheckout = async (req, res) => {
       orderData.razorpayOrderId = razorpayOrder.id;
 
       const order = await Order.create(orderData);
+      if (userId) {
+        await User.findByIdAndUpdate(userId, { $push: { orders: order._id } });
+      }
+      await notifyOrderEvent(order._id, { type: "created", status: "pending" });
 
       return res.status(200).json({
         success: true,
@@ -263,9 +356,12 @@ exports.createOrderFromCheckout = async (req, res) => {
         cart.products = [];
         cart.cartValue = 0;
         await cart.save();
+        await User.findByIdAndUpdate(userId, { $push: { orders: order._id } });
       } else {
         await Cart.findByIdAndDelete(cartId);
       }
+
+      await notifyOrderEvent(order._id, { type: "created", status: "pending" });
 
       return res.status(200).json({
         success: true,
@@ -416,6 +512,14 @@ exports.verifyAndCreateOrder = async (req, res) => {
       paymentStatus: "paid",
       razorpayOrderId: razorpay_order_id,
       orderStatus: "pending",
+      statusHistory: [
+        {
+          status: "pending",
+          changedAt: new Date(),
+          changedByRole: "system",
+          note: "Order created",
+        },
+      ],
     };
 
     if (userId) {
@@ -426,6 +530,7 @@ exports.verifyAndCreateOrder = async (req, res) => {
     }
 
     const order = await Order.create(orderData);
+    await notifyOrderEvent(order._id, { type: "created", status: "pending" });
 
     // Clear cart
     if (userId) {
@@ -461,6 +566,8 @@ exports.getUserOrders = async (req, res) => {
     const userId = req.userId;
 
     const orders = await Order.find({ userId })
+      .populate('userId', 'username email mobile isAdmin')
+      .populate('shippingAddress', 'firstName lastName street city state pincode email mobile')
       .populate('products.productId', 'name price productImgUrls')
       .sort({ createdAt: -1 });
 
@@ -494,16 +601,27 @@ exports.createCODOrder = async (req, res) => {
       paymentMethod: "cod",
       paymentStatus: "pending",
       orderStatus: "pending",
+      statusHistory: [
+        {
+          status: "pending",
+          changedAt: new Date(),
+          changedByRole: "system",
+          note: "Order created",
+        },
+      ],
     };
 
     const order = await Order.create(orderData);
     console.log("Order created with value:", order.orderValue);
+    await User.findByIdAndUpdate(userId, { $push: { orders: order._id } });
 
     // Clear cart
     await Cart.findOneAndUpdate(
       { userId: userId },
       { $set: { products: [], cartValue: 0 } }
     );
+
+    await notifyOrderEvent(order._id, { type: "created", status: "pending" });
 
     return res.status(200).json({
       success: true,

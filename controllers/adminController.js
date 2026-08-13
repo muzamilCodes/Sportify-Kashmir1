@@ -2,6 +2,10 @@ const { Product } = require("../models/productModel");
 const Order = require("../models/orderModel");
 const { User } = require("../models/userModel");
 
+function buildStatusCountQuery(statuses) {
+  return Array.isArray(statuses) ? { $in: statuses } : statuses;
+}
+
 // Get dashboard statistics
 exports.getDashboardStats = async (req, res) => {
   try {
@@ -34,6 +38,26 @@ exports.getDashboardStats = async (req, res) => {
     // Get pending orders
     const pendingOrders = await Order.countDocuments({
       orderStatus: "pending"
+    });
+
+    const confirmedOrders = await Order.countDocuments({
+      orderStatus: buildStatusCountQuery(["confirmed", "processing"])
+    });
+
+    const shippedOrders = await Order.countDocuments({
+      orderStatus: "shipped"
+    });
+
+    const outForDeliveryOrders = await Order.countDocuments({
+      orderStatus: "out_for_delivery"
+    });
+
+    const deliveredOrders = await Order.countDocuments({
+      orderStatus: "delivered"
+    });
+
+    const cancelledOrders = await Order.countDocuments({
+      orderStatus: "cancelled"
     });
     
     // Get recent orders (last 5)
@@ -101,6 +125,11 @@ exports.getDashboardStats = async (req, res) => {
           totalRevenue,
           todayOrders,
           pendingOrders,
+          confirmedOrders,
+          shippedOrders,
+          outForDeliveryOrders,
+          deliveredOrders,
+          cancelledOrders,
           productsGrowth,
           ordersGrowth,
           usersGrowth,
