@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Calendar, User, Eye, Loader2 } from "lucide-react";
+import { Calendar, User, Loader2 } from "lucide-react";
 
 interface Post {
   _id: string;
@@ -10,7 +10,7 @@ interface Post {
   postDesc: string;
   shortDesc: string;
   postImgUrl?: string;
-  postAuthorId: {
+  postAuthorId?: {
     _id: string;
     username: string;
   };
@@ -29,19 +29,22 @@ export default function BlogPage() {
   const fetchPosts = async () => {
     try {
       setLoading(true);
-      console.log("Fetching posts from API...");
+      setError("");
+      const apiUrl = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000").replace(/\/$/, "");
       
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/posts/getAll`);
+      console.log("Fetching posts from API:", `${apiUrl}/posts/getAll`);
+      
+      const response = await fetch(`${apiUrl}/posts/getAll`);
       const result = await response.json();
       
       console.log("API Response:", result);
       
-      if (result.success && result.posts) {
+      if (result.success && Array.isArray(result.posts)) {
         setPosts(result.posts);
       } else {
         setError(result.message || "No posts found");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching posts:", error);
       setError("Failed to load posts");
     } finally {
@@ -49,11 +52,27 @@ export default function BlogPage() {
     }
   };
 
-  const getImageUrl = (url: string) => {
+  const getImageUrl = (url?: string) => {
     if (!url) return "/placeholder.jpg";
-    if (url.startsWith("http")) return url;
-    if (url.startsWith("/uploads/")) return `${process.env.NEXT_PUBLIC_API_URL}${url}`;
-    return `${process.env.NEXT_PUBLIC_API_URL}/uploads/${url}`;
+    if (url.startsWith("http://") || url.startsWith("https://")) return url;
+    const apiUrl = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000").replace(/\/$/, "");
+    if (url.startsWith("/")) return `${apiUrl}${url}`;
+    return `${apiUrl}/uploads/${url}`;
+  };
+
+  const formatDate = (dateStr?: string) => {
+    if (!dateStr) return "Recently";
+    try {
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return "Recently";
+      return d.toLocaleDateString("en-IN", {
+        year: "numeric",
+        month: "short",
+        day: "numeric"
+      });
+    } catch (e) {
+      return "Recently";
+    }
   };
 
   if (loading) {
@@ -115,34 +134,32 @@ export default function BlogPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {posts.map((post) => (
               <article key={post._id} className="bg-white rounded-2xl shadow-sm border overflow-hidden hover:shadow-lg transition-all duration-300 group">
-                {/* Image */}
-               {/* Image - Fixed size for grid */}
-<Link href={`/blog/${post._id}`}>
-  <div className="relative h-56 overflow-hidden bg-gray-100">
-    {post.postImgUrl ? (
-      <img
-        src={getImageUrl(post.postImgUrl)}
-        alt={post.postTitle}
-        className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
-        onError={(e) => {
-          (e.target as HTMLImageElement).src = "/placeholder.jpg";
-        }}
-      />
-    ) : (
-      <div className="w-full h-full flex items-center justify-center">
-        <svg className="w-16 h-16 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-        </svg>
-      </div>
-    )}
-  </div>
-</Link>
+                <Link href={`/blog/${post._id}`}>
+                  <div className="relative h-56 overflow-hidden bg-gray-100">
+                    {post.postImgUrl ? (
+                      <img
+                        src={getImageUrl(post.postImgUrl)}
+                        alt={post.postTitle || "Blog Post"}
+                        className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = "/placeholder.jpg";
+                        }}
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <svg className="w-16 h-16 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                      </div>
+                    )}
+                  </div>
+                </Link>
                 <div className="p-5">
                   {/* Meta Info */}
                   <div className="flex items-center gap-4 text-sm text-gray-500 mb-3">
                     <div className="flex items-center gap-1">
                       <Calendar size={14} />
-                      <span>{new Date(post.createdAt).toLocaleDateString()}</span>
+                      <span>{formatDate(post.createdAt)}</span>
                     </div>
                     <div className="flex items-center gap-1">
                       <User size={14} />
@@ -159,7 +176,7 @@ export default function BlogPage() {
 
                   {/* Excerpt */}
                   <p className="text-gray-600 mb-4 line-clamp-3">
-                    {post.shortDesc || post.postDesc?.substring(0, 120)}...
+                    {post.shortDesc || (post.postDesc ? post.postDesc.substring(0, 120) + "..." : "")}
                   </p>
 
                   {/* Read More */}

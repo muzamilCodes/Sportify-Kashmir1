@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
+import Script from "next/script";
 import { Toaster } from "react-hot-toast";
 import Footer from "@/components/shared/Footer";
 import Header from "@/components/shared/Header";
@@ -72,7 +73,7 @@ export default function RootLayout({
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#f97316" />
       </head>
-      <body className={`${inter.className} bg-[var(--color-bg-primary)] text-[var(--color-text-primary)] transition-colors duration-300`}>
+      <body className={`${inter.className} bg-[var(--color-bg-primary)] text-[var(--color-text-primary)] transition-colors duration-300`} suppressHydrationWarning>
         <ClientProviders>
           <Header />
           <Toaster
@@ -103,8 +104,10 @@ export default function RootLayout({
           <Footer />
         </ClientProviders>
 
-        {/* Service Worker Registration */}
-        <script
+        {/* Service Worker Registration via Next.js Script */}
+        <Script
+          id="register-sw"
+          strategy="afterInteractive"
           dangerouslySetInnerHTML={{
             __html: `
               if ('serviceWorker' in navigator) {

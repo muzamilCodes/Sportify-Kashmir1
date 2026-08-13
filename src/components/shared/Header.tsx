@@ -15,7 +15,6 @@ import {
   ShoppingBag,
   Trophy,
   Award,
-  Badge,
   Info,
   Mail,
   Goal,
@@ -28,7 +27,10 @@ import {
   Waves,
   Pocket,
   Gamepad2,
-  Tent
+  Tent,
+  FileText,
+  Sparkles,
+  Percent
 } from "lucide-react";
 import toast from "react-hot-toast";
 import ThemeToggle from "@/components/shared/ThemeToggle";
@@ -48,6 +50,39 @@ const getProfileImageUrl = (profilePic: string | undefined) => {
   if (profilePic.startsWith("/uploads/")) return `${API_URL}${profilePic}`;
   return `${API_URL}/uploads/${profilePic}`;
 };
+
+// Static, deterministic navigation arrays to guarantee identical SSR and client hydration HTML
+const SPORTS_CATEGORIES = [
+  { name: "Football", href: "/categories/football", icon: <Goal size={18} />, color: "from-blue-500 to-indigo-600" },
+  { name: "Cricket", href: "/categories/cricket", icon: <Cricket size={18} />, color: "from-green-500 to-emerald-600" },
+  { name: "Badminton", href: "/categories/badminton", icon: <Activity size={18} />, color: "from-red-400 to-orange-500" },
+  { name: "Basketball", href: "/categories/basketball", icon: <Activity size={18} />, color: "from-orange-500 to-red-600" },
+  { name: "Volleyball", href: "/categories/volleyball", icon: <Activity size={18} />, color: "from-yellow-400 to-orange-500" },
+  { name: "Tennis", href: "/categories/tennis", icon: <Activity size={18} />, color: "from-green-400 to-lime-500" },
+  { name: "Gym & Fitness", href: "/categories/gym-fitness", icon: <Dumbbell size={18} />, color: "from-slate-600 to-gray-800" },
+  { name: "Running", href: "/categories/running", icon: <Activity size={18} />, color: "from-cyan-400 to-blue-500" },
+  { name: "Cycling", href: "/categories/cycling", icon: <Bike size={18} />, color: "from-emerald-400 to-teal-600" },
+  { name: "Swimming", href: "/categories/swimming", icon: <Waves size={18} />, color: "from-blue-400 to-cyan-500" },
+  { name: "Indoor Games", href: "/categories/indoor-games", icon: <Gamepad2 size={18} />, color: "from-purple-500 to-pink-600" },
+  { name: "Sports Wear", href: "/categories/sports-wear", icon: <Shirt size={18} />, color: "from-pink-500 to-rose-600" },
+  { name: "Sports Shoes", href: "/categories/sports-shoes", icon: <Tent size={18} />, color: "from-orange-400 to-red-500" },
+  { name: "Accessories", href: "/categories/accessories", icon: <Pocket size={18} />, color: "from-gray-500 to-slate-700" },
+  { name: "Cups & Trophies", href: "/categories/cups-trophies", icon: <Trophy size={18} />, color: "from-yellow-500 to-amber-600" },
+];
+
+const MAIN_NAV = [
+  { href: "/", label: "Home", icon: <Home size={18} /> },
+  { href: "/products", label: "Shop All", icon: <ShoppingBag size={18} /> },
+  { href: "/sports", label: "Sports", icon: <Activity size={18} /> },
+  { href: "/new-arrivals", label: "New Arrivals", icon: <Sparkles size={18} /> },
+  { href: "/categories", label: "Categories", icon: <Trophy size={18} /> },
+  { href: "/brands", label: "Brands", icon: <Award size={18} /> },
+  { href: "/blog", label: "Blog", icon: <FileText size={18} /> },
+  { href: "/sale", label: "Deals", icon: <Percent size={18} /> },
+  { href: "/about", label: "About", icon: <Info size={18} /> },
+  { href: "/faq", label: "FAQ", icon: <Info size={18} /> },
+  { href: "/contact", label: "Contact", icon: <Mail size={20} /> },
+];
 
 export default function Header() {
   const router = useRouter();
@@ -197,37 +232,6 @@ export default function Header() {
       window.removeEventListener("cartUpdated", handleCartUpdate);
     };
   }, []);
-
-  const sportsCategories = [
-    { name: "Football", href: "/categories/football", icon: <Goal size={18} />, color: "from-blue-500 to-indigo-600" },
-    { name: "Cricket", href: "/categories/cricket", icon: <Cricket size={18} />, color: "from-green-500 to-emerald-600" },
-    { name: "Badminton", href: "/categories/badminton", icon: <Activity size={18} />, color: "from-red-400 to-orange-500" },
-    { name: "Basketball", href: "/categories/basketball", icon: <Activity size={18} />, color: "from-orange-500 to-red-600" },
-    { name: "Volleyball", href: "/categories/volleyball", icon: <Activity size={18} />, color: "from-yellow-400 to-orange-500" },
-    { name: "Tennis", href: "/categories/tennis", icon: <Activity size={18} />, color: "from-green-400 to-lime-500" },
-    { name: "Gym & Fitness", href: "/categories/gym-fitness", icon: <Dumbbell size={18} />, color: "from-slate-600 to-gray-800" },
-    { name: "Running", href: "/categories/running", icon: <Activity size={18} />, color: "from-cyan-400 to-blue-500" },
-    { name: "Cycling", href: "/categories/cycling", icon: <Bike size={18} />, color: "from-emerald-400 to-teal-600" },
-    { name: "Swimming", href: "/categories/swimming", icon: <Waves size={18} />, color: "from-blue-400 to-cyan-500" },
-    { name: "Indoor Games", href: "/categories/indoor-games", icon: <Gamepad2 size={18} />, color: "from-purple-500 to-pink-600" },
-    { name: "Sports Wear", href: "/categories/sports-wear", icon: <Shirt size={18} />, color: "from-pink-500 to-rose-600" },
-    { name: "Sports Shoes", href: "/categories/sports-shoes", icon: <Tent size={18} />, color: "from-orange-400 to-red-500" },
-    { name: "Accessories", href: "/categories/accessories", icon: <Pocket size={18} />, color: "from-gray-500 to-slate-700" },
-    { name: "Cups & Trophies", href: "/categories/cups-trophies", icon: <Trophy size={18} />, color: "from-yellow-500 to-amber-600" },
-  ];
-
-  const mainNav = [
-    { href: "/", label: "Home", icon: <Home size={18} /> },
-    { href: "/products", label: "Shop All", icon: <ShoppingBag size={18} /> },
-    { href: "/sports", label: "Sports", icon: <Activity size={18} /> },
-    { href: "/new-arrivals", label: "New Arrivals", icon: <Badge size={18} /> },
-    { href: "/categories", label: "Categories", icon: <Trophy size={18} /> },
-    { href: "/brands", label: "Brands", icon: <Award size={18} /> },
-    { href: "/sale", label: "Deals", icon: <Badge size={18} /> },
-    { href: "/about", label: "About", icon: <Info size={18} /> },
-    { href: "/faq", label: "FAQ", icon: <Info size={18} /> },
-    { href: "/contact", label: "Contact", icon: <Mail size={20} /> },
-  ];
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -420,7 +424,7 @@ export default function Header() {
         {/* Desktop Navigation */}
         <nav className="hidden lg:flex items-center justify-between py-2 border-t border-gray-200 dark:border-gray-700">
           <div className="flex items-center gap-1">
-            {mainNav.map((item) => (
+            {MAIN_NAV.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
@@ -455,7 +459,7 @@ export default function Header() {
               </div>
             </form>
             <div className="space-y-1">
-              {mainNav.map((item) => (
+              {MAIN_NAV.map((item) => (
                 <Link key={item.href} href={item.href} className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition text-gray-700 dark:text-gray-300" onClick={() => setIsMenuOpen(false)}>
                   {item.icon}
                   <span>{item.label}</span>
@@ -465,7 +469,7 @@ export default function Header() {
             <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
               <h3 className="font-semibold text-gray-900 dark:text-white mb-3 px-3">Sports Categories</h3>
               <div className="grid grid-cols-2 gap-2">
-                {sportsCategories.map((category) => (
+                {SPORTS_CATEGORIES.map((category) => (
                   <Link key={category.name} href={category.href} className="flex items-center gap-2 px-3 py-2.5 bg-gray-50 dark:bg-gray-800 rounded-xl hover:bg-orange-50 dark:hover:bg-orange-500/10 transition text-gray-700 dark:text-gray-300" onClick={() => setIsMenuOpen(false)}>
                     {category.icon}
                     <span className="text-sm font-medium">{category.name}</span>
