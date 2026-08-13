@@ -11,6 +11,8 @@ export default function OTPPage() {
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
 
+  const [resending, setResending] = useState(false);
+
   useEffect(() => {
     const stored = localStorage.getItem("verifyEmail");
     if (!stored) {
@@ -60,19 +62,26 @@ export default function OTPPage() {
   };
 
   const handleResend = async () => {
+    if (!email) {
+      toast.error("No email found. Please register again.");
+      return;
+    }
+    setResending(true);
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
       const cleanApiUrl = apiUrl.replace(/\/$/, "");
       const res = await fetch(`${cleanApiUrl}/user/resend-otp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email: email.trim() }),
       });
       const data = await res.json();
       if (data.success) toast.success(data.message || "OTP resent!");
       else toast.error(data.message || "Failed to resend OTP");
     } catch (error) {
-      toast.error("Failed to resend");
+      toast.error("Failed to resend OTP");
+    } finally {
+      setResending(false);
     }
   };
 
@@ -149,9 +158,10 @@ export default function OTPPage() {
             <div className="text-center mt-6">
               <button
                 onClick={handleResend}
-                className="text-blue-600 hover:text-blue-800 text-sm font-medium transition"
+                disabled={resending}
+                className="text-blue-600 hover:text-blue-800 text-sm font-medium transition disabled:opacity-50"
               >
-                Didn't receive OTP? Click here to resend
+                {resending ? "Resending OTP..." : "Didn't receive OTP? Click here to resend"}
               </button>
             </div>
           </div>

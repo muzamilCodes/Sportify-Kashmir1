@@ -78,7 +78,11 @@ export default function RegisterPage() {
 
       if (result.success) {
         localStorage.setItem("verifyEmail", formData.email.trim().toLowerCase());
-        toast.success(result.message || "Please verify your OTP to complete registration.");
+        if (result.otpSent === false) {
+          toast.error(result.message || "OTP email failed to send. Click Resend OTP on the next screen.");
+        } else {
+          toast.success(result.message || "Please verify your OTP to complete registration.");
+        }
         router.push("/otp");
       } else {
         toast.error(result.message || "Registration failed");
