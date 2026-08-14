@@ -26,6 +26,7 @@ interface DashboardStats {
   totalUsers: number;
   totalRevenue: number;
   todayOrders: number;
+  todayRevenue?: number;
   pendingOrders: number;
   confirmedOrders: number;
   shippedOrders: number;
@@ -55,6 +56,7 @@ export default function AdminDashboard() {
     totalUsers: 0,
     totalRevenue: 0,
     todayOrders: 0,
+    todayRevenue: 0,
     pendingOrders: 0,
     confirmedOrders: 0,
     shippedOrders: 0,
@@ -357,7 +359,7 @@ export default function AdminDashboard() {
                 </div>
                 <div>
                   <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Today's Revenue</p>
-                  <p className="text-xl font-extrabold text-gray-900 dark:text-white">₹0</p>
+                  <p className="text-xl font-extrabold text-gray-900 dark:text-white">₹{(stats.todayRevenue || 0).toLocaleString("en-IN")}</p>
                 </div>
               </div>
             </div>
