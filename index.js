@@ -79,6 +79,8 @@ app.use("/refund", require("./routes/refundRoutes"));
 app.use("/admin", require("./routes/adminRoutes"));
 app.use("/contact", require("./routes/contactRoutes"));
 app.use("/posts", require("./routes/postRoutes"));
+app.use("/coupon", require("./routes/couponRoutes"));
+
 
 // Health check
 app.get("/", (req, res) => {

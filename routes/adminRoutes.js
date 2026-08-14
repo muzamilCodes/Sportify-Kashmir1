@@ -8,4 +8,15 @@ const adminController = require("../controllers/adminController");
 router.get("/dashboard", authorize, admin, adminController.getDashboardStats);
 router.get("/revenue-chart", authorize, admin, adminController.getRevenueChart);
 
+// Admin inventory routes
+router.get("/inventory", authorize, admin, adminController.getInventoryData);
+router.put("/inventory/stock/:productId", authorize, admin, adminController.updateProductStock);
+
+// Admin analytics & reports route
+router.get("/reports", authorize, admin, adminController.getReportsData);
+
+// Admin store settings routes
+router.get("/settings", authorize, admin, adminController.getStoreSettings);
+router.post("/settings", authorize, admin, adminController.updateStoreSettings);
+
 module.exports = router;

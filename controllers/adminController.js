@@ -1,6 +1,8 @@
 const { Product } = require("../models/productModel");
 const Order = require("../models/orderModel");
 const { User } = require("../models/userModel");
+const { Category } = require("../models/categoryModel");
+const Setting = require("../models/settingModel");
 
 function buildStatusCountQuery(statuses) {
   return Array.isArray(statuses) ? { $in: statuses } : statuses;
@@ -25,7 +27,7 @@ exports.getDashboardStats = async (req, res) => {
     ]);
     const totalRevenue = revenueResult[0]?.total || 0;
     
-    // Get today's orders
+    // Get today's orders & revenue
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const tomorrow = new Date(today);
@@ -34,6 +36,17 @@ exports.getDashboardStats = async (req, res) => {
     const todayOrders = await Order.countDocuments({
       createdAt: { $gte: today, $lt: tomorrow }
     });
+
+    const todayRevenueResult = await Order.aggregate([
+      {
+        $match: {
+          paymentStatus: "paid",
+          createdAt: { $gte: today, $lt: tomorrow }
+        }
+      },
+      { $group: { _id: null, total: { $sum: "$orderValue" } } }
+    ]);
+    const todayRevenue = todayRevenueResult[0]?.total || 0;
     
     // Get pending orders
     const pendingOrders = await Order.countDocuments({
@@ -64,21 +77,21 @@ exports.getDashboardStats = async (req, res) => {
     const recentOrders = await Order.find()
       .sort({ createdAt: -1 })
       .limit(5)
-      .populate("userId", "name email")
+      .populate("userId", "username name email")
       .lean();
     
     // Format recent orders for frontend
     const formattedOrders = recentOrders.map(order => ({
       _id: order._id,
       orderId: order.orderId || order._id.toString().slice(-8),
-      customerName: order.userId?.name || "Guest User",
+      customerName: order.userId?.username || order.userId?.name || "Guest User",
       amount: order.orderValue,
       status: order.orderStatus,
       paymentMethod: order.paymentMethod,
       createdAt: order.createdAt
     }));
     
-    // Calculate growth percentages (mock for now - can be calculated from previous month)
+    // Calculate growth percentages
     const lastMonth = new Date();
     lastMonth.setMonth(lastMonth.getMonth() - 1);
     
@@ -124,6 +137,7 @@ exports.getDashboardStats = async (req, res) => {
           totalUsers,
           totalRevenue,
           todayOrders,
+          todayRevenue,
           pendingOrders,
           confirmedOrders,
           shippedOrders,
@@ -179,6 +193,245 @@ exports.getRevenueChart = async (req, res) => {
     });
   } catch (error) {
     console.error("Revenue chart error:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+// Inventory management data
+exports.getInventoryData = async (req, res) => {
+  try {
+    const products = await Product.find()
+      .populate("category", "name")
+      .populate("brand", "name")
+      .sort({ stock: 1 })
+      .lean();
+
+    const stockSumResult = await Product.aggregate([
+      { $group: { _id: null, totalStock: { $sum: "$stock" } } }
+    ]);
+    const totalItemsInStock = stockSumResult[0]?.totalStock || 0;
+
+    const lowStockThreshold = 10;
+    const lowStockItems = products.filter(p => (p.stock || 0) <= lowStockThreshold);
+    const lowStockAlerts = lowStockItems.length;
+
+    const categoryIdsWithStock = await Product.distinct("category", { stock: { $gt: 0 } });
+    const inStockCategories = categoryIdsWithStock.length;
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        totalItemsInStock,
+        lowStockAlerts,
+        inStockCategories,
+        products,
+        lowStockItems
+      }
+    });
+  } catch (error) {
+    console.error("Inventory data error:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+// Update stock quantity for a product
+exports.updateProductStock = async (req, res) => {
+  try {
+    const { productId } = req.params;
+    const { stock } = req.body;
+
+    if (stock === undefined || Number(stock) < 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Valid stock quantity required",
+      });
+    }
+
+    const updated = await Product.findByIdAndUpdate(
+      productId,
+      { stock: Number(stock) },
+      { new: true }
+    );
+
+    if (!updated) {
+      return res.status(404).json({
+        success: false,
+        message: "Product not found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Stock updated successfully",
+      data: updated,
+    });
+  } catch (error) {
+    console.error("Update stock error:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+// Analytics & Reports data
+exports.getReportsData = async (req, res) => {
+  try {
+    // Total sales & order count
+    const salesResult = await Order.aggregate([
+      { $match: { paymentStatus: "paid" } },
+      { $group: { _id: null, total: { $sum: "$orderValue" }, count: { $sum: 1 } } }
+    ]);
+    const totalSales = salesResult[0]?.total || 0;
+    const paidOrdersCount = salesResult[0]?.count || 0;
+
+    // Customer metrics
+    const totalCustomers = await User.countDocuments({ isAdmin: false });
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const newCustomers = await User.countDocuments({
+      isAdmin: false,
+      createdAt: { $gte: thirtyDaysAgo }
+    });
+
+    const conversionRate = totalCustomers > 0 
+      ? Math.round((paidOrdersCount / totalCustomers) * 100 * 10) / 10
+      : 0;
+
+    // Category breakdown
+    const categorySales = await Order.aggregate([
+      { $match: { paymentStatus: "paid" } },
+      { $unwind: "$orderItems" },
+      {
+        $lookup: {
+          from: "products",
+          localField: "orderItems.productId",
+          foreignField: "_id",
+          as: "productDetails"
+        }
+      },
+      { $unwind: { path: "$productDetails", preserveNullAndEmptyArrays: true } },
+      {
+        $lookup: {
+          from: "categories",
+          localField: "productDetails.category",
+          foreignField: "_id",
+          as: "categoryDetails"
+        }
+      },
+      { $unwind: { path: "$categoryDetails", preserveNullAndEmptyArrays: true } },
+      {
+        $group: {
+          _id: "$categoryDetails.name",
+          totalRevenue: { $sum: { $multiply: ["$orderItems.price", "$orderItems.quantity"] } },
+          itemsSold: { $sum: "$orderItems.quantity" }
+        }
+      },
+      { $sort: { totalRevenue: -1 } }
+    ]);
+
+    // Top selling products
+    const topProducts = await Order.aggregate([
+      { $match: { paymentStatus: "paid" } },
+      { $unwind: "$orderItems" },
+      {
+        $group: {
+          _id: "$orderItems.productId",
+          name: { $first: "$orderItems.name" },
+          totalRevenue: { $sum: { $multiply: ["$orderItems.price", "$orderItems.quantity"] } },
+          quantitySold: { $sum: "$orderItems.quantity" }
+        }
+      },
+      { $sort: { quantitySold: -1 } },
+      { $limit: 5 }
+    ]);
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        totalSales,
+        newCustomers,
+        totalCustomers,
+        conversionRate,
+        categorySales: categorySales.map(c => ({
+          category: c._id || "Uncategorized",
+          revenue: c.totalRevenue,
+          itemsSold: c.itemsSold
+        })),
+        topProducts
+      }
+    });
+  } catch (error) {
+    console.error("Reports error:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+// Get Store Settings
+exports.getStoreSettings = async (req, res) => {
+  try {
+    let setting = await Setting.findOne();
+    if (!setting) {
+      setting = await Setting.create({});
+    }
+    return res.status(200).json({
+      success: true,
+      data: setting,
+    });
+  } catch (error) {
+    console.error("Get settings error:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+// Update Store Settings
+exports.updateStoreSettings = async (req, res) => {
+  try {
+    const {
+      siteName,
+      siteEmail,
+      sitePhone,
+      siteAddress,
+      currency,
+      timezone,
+      freeShippingThreshold,
+      maintenanceMode
+    } = req.body;
+
+    let setting = await Setting.findOne();
+    if (!setting) {
+      setting = new Setting();
+    }
+
+    if (siteName !== undefined) setting.siteName = siteName;
+    if (siteEmail !== undefined) setting.siteEmail = siteEmail;
+    if (sitePhone !== undefined) setting.sitePhone = sitePhone;
+    if (siteAddress !== undefined) setting.siteAddress = siteAddress;
+    if (currency !== undefined) setting.currency = currency;
+    if (timezone !== undefined) setting.timezone = timezone;
+    if (freeShippingThreshold !== undefined) setting.freeShippingThreshold = freeShippingThreshold;
+    if (maintenanceMode !== undefined) setting.maintenanceMode = maintenanceMode;
+
+    await setting.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Settings saved successfully",
+      data: setting,
+    });
+  } catch (error) {
+    console.error("Update settings error:", error);
     return res.status(500).json({
       success: false,
       message: error.message
