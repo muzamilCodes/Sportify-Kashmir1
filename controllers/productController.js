@@ -122,9 +122,18 @@ exports.addProduct = async (req, res) => {
       brandId = brandDoc._id;
     }
 
-    const files = Array.isArray(req.files)
-      ? req.files.filter((file) => ["images", "image"].includes(file.fieldname))
-      : Object.values(req.files || {}).flat();
+    let files = [];
+    if (Array.isArray(req.files)) {
+      files = req.files;
+    } else if (req.files && typeof req.files === "object") {
+      files = Object.values(req.files).flat();
+    } else if (req.file) {
+      files = [req.file];
+    }
+
+    files = files.filter(
+      (file) => file && (file.mimetype ? file.mimetype.startsWith("image/") : true)
+    );
     console.log(`[product/add] received ${files.length} image file(s):`, files.map((file) => file.fieldname));
     if (files.length < 3) return resHandler(res, 400, `At least 3 product images are required (received ${files.length})`);
 

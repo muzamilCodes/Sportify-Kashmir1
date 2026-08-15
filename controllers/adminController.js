@@ -11,7 +11,14 @@ function buildStatusCountQuery(statuses) {
 // Revenue is based on completed/confirmed sales, regardless of whether the
 // customer paid online or by COD. Pending and cancelled orders are excluded.
 const REVENUE_STATUSES = ["confirmed", "processing", "shipped", "out_for_delivery", "delivered"];
-const revenueMatch = (extra = {}) => ({ orderStatus: { $in: REVENUE_STATUSES }, ...extra });
+const revenueMatch = (extra = {}) => ({
+  orderStatus: { $ne: "cancelled" },
+  $or: [
+    { orderStatus: { $in: REVENUE_STATUSES } },
+    { paymentStatus: "paid" }
+  ],
+  ...extra
+});
 
 // Get dashboard statistics
 exports.getDashboardStats = async (req, res) => {
@@ -96,31 +103,39 @@ exports.getDashboardStats = async (req, res) => {
       createdAt: order.createdAt
     }));
     
-    // Calculate growth percentages
+    // Calculate growth percentages (Current Month vs Previous Month)
     const currentMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
     const previousMonthStart = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-    const lastMonth = previousMonthStart;
     
-    const lastMonthProducts = await Product.countDocuments({
-      createdAt: { $lt: today, $gte: lastMonth }
+    const currentMonthProducts = await Product.countDocuments({
+      createdAt: { $gte: currentMonthStart, $lt: tomorrow }
     });
-    const productsGrowth = lastMonthProducts > 0 
-      ? Math.round(((totalProducts - lastMonthProducts) / lastMonthProducts) * 100)
-      : 0;
+    const previousMonthProducts = await Product.countDocuments({
+      createdAt: { $gte: previousMonthStart, $lt: currentMonthStart }
+    });
+    const productsGrowth = previousMonthProducts > 0 
+      ? Math.round(((currentMonthProducts - previousMonthProducts) / previousMonthProducts) * 100)
+      : currentMonthProducts > 0 ? 100 : 0;
     
-    const lastMonthOrders = await Order.countDocuments({
-      createdAt: { $lt: today, $gte: lastMonth }
+    const currentMonthOrders = await Order.countDocuments({
+      createdAt: { $gte: currentMonthStart, $lt: tomorrow }
     });
-    const ordersGrowth = lastMonthOrders > 0
-      ? Math.round(((totalOrders - lastMonthOrders) / lastMonthOrders) * 100)
-      : 0;
+    const previousMonthOrders = await Order.countDocuments({
+      createdAt: { $gte: previousMonthStart, $lt: currentMonthStart }
+    });
+    const ordersGrowth = previousMonthOrders > 0
+      ? Math.round(((currentMonthOrders - previousMonthOrders) / previousMonthOrders) * 100)
+      : currentMonthOrders > 0 ? 100 : 0;
     
-    const lastMonthUsers = await User.countDocuments({
-      createdAt: { $lt: today, $gte: lastMonth }
+    const currentMonthUsers = await User.countDocuments({
+      createdAt: { $gte: currentMonthStart, $lt: tomorrow }
     });
-    const usersGrowth = lastMonthUsers > 0
-      ? Math.round(((totalUsers - lastMonthUsers) / lastMonthUsers) * 100)
-      : 0;
+    const previousMonthUsers = await User.countDocuments({
+      createdAt: { $gte: previousMonthStart, $lt: currentMonthStart }
+    });
+    const usersGrowth = previousMonthUsers > 0
+      ? Math.round(((currentMonthUsers - previousMonthUsers) / previousMonthUsers) * 100)
+      : currentMonthUsers > 0 ? 100 : 0;
     
     const currentMonthRevenue = await Order.aggregate([
       { $match: revenueMatch({ createdAt: { $gte: currentMonthStart, $lt: tomorrow } }) },
@@ -228,7 +243,11 @@ exports.getInventoryData = async (req, res) => {
       { $unwind: "$products" },
       { $group: { _id: "$products.productId", soldQuantity: { $sum: "$products.quantity" } } },
     ]);
-    const soldMap = new Map(soldByProduct.map((item) => [item._id.toString(), item.soldQuantity || 0]));
+    const soldMap = new Map(
+      soldByProduct
+        .filter((item) => item && item._id != null)
+        .map((item) => [item._id.toString(), item.soldQuantity || 0])
+    );
     const inventoryProducts = products.map((product) => ({
       ...product,
       availableQuantity: product.stock || 0,
