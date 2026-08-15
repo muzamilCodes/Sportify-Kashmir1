@@ -151,8 +151,8 @@ export default function AddProductPage() {
       return;
     }
 
-    if (images.length === 0) {
-      toast.error("Please upload at least one product image");
+    if (images.length < 3) {
+      toast.error(`Please upload at least 3 product images (${images.length}/3 selected)`);
       return;
     }
 
@@ -179,10 +179,8 @@ export default function AddProductPage() {
       if (sizes.length > 0) data.append("sizes", sizes.join(","));
       if (tags.length > 0) data.append("tags", tags.join(","));
 
-      // Add image
-      if (images.length > 0) {
-        data.append("image", images[0]);
-      }
+      // Must match upload.array("images") on the backend. Send every selected file.
+      images.forEach((image) => data.append("images", image));
 
       const token = localStorage.getItem("token");
       
@@ -426,7 +424,10 @@ export default function AddProductPage() {
 
         {/* Product Images */}
         <div className="bg-white rounded-xl shadow-sm border p-6">
-          <h2 className="text-xl font-semibold mb-4">Product Images *</h2>
+          <h2 className="text-xl font-semibold mb-2">Product Images * <span className="text-orange-600">(minimum 3)</span></h2>
+          <p className={`text-sm mb-4 ${images.length < 3 ? "text-red-600" : "text-green-600"}`}>
+            {images.length < 3 ? `Select at least ${3 - images.length} more image${3 - images.length === 1 ? "" : "s"}.` : `${images.length} images ready.`}
+          </p>
 
           <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-orange-500 transition">
             <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
@@ -438,6 +439,7 @@ export default function AddProductPage() {
               Browse Files
               <input
                 type="file"
+                name="images"
                 multiple
                 accept="image/*"
                 onChange={handleImageUpload}

@@ -9,6 +9,10 @@ interface ProductInventory {
   name: string;
   price: number;
   stock: number;
+  availableQuantity: number;
+  soldQuantity: number;
+  isLowStock: boolean;
+  isOutOfStock: boolean;
   category?: { _id: string; name: string } | string;
   brand?: { _id: string; name: string } | string;
 }
@@ -22,6 +26,7 @@ export default function InventoryPage() {
     totalItemsInStock: 0,
     lowStockAlerts: 0,
     inStockCategories: 0,
+    outOfStock: 0,
   });
 
   const [products, setProducts] = useState<ProductInventory[]>([]);
@@ -39,51 +44,18 @@ export default function InventoryPage() {
       const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
       const token = localStorage.getItem("token");
 
-      let loadedFromAdminApi = false;
-
-      if (token) {
-        try {
-          const res = await fetch(`${baseUrl}/admin/inventory`, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          const result = await res.json();
-          if (result.success && result.data) {
-            setStats({
-              totalItemsInStock: result.data.totalItemsInStock || 0,
-              lowStockAlerts: result.data.lowStockAlerts || 0,
-              inStockCategories: result.data.inStockCategories || 0,
-            });
-            setProducts(result.data.products || []);
-            loadedFromAdminApi = true;
-          }
-        } catch (adminErr) {
-          console.warn("Admin inventory endpoint check failed, falling back to public product list:", adminErr);
-        }
-      }
-
-      if (!loadedFromAdminApi) {
-        const res = await fetch(`${baseUrl}/product/getAll`);
-        const result = await res.json();
-        if (result.success && Array.isArray(result.data)) {
-          const prods: ProductInventory[] = result.data;
-          setProducts(prods);
-
-          const totalItemsInStock = prods.reduce((sum, p) => sum + (p.stock || 0), 0);
-          const lowStockAlerts = prods.filter((p) => (p.stock || 0) <= 10).length;
-          
-          const uniqueCategories = new Set(
-            prods
-              .map((p) => (typeof p.category === "string" ? p.category : p.category?.name))
-              .filter(Boolean)
-          );
-
-          setStats({
-            totalItemsInStock,
-            lowStockAlerts,
-            inStockCategories: uniqueCategories.size,
-          });
-        }
-      }
+      const res = await fetch(`${baseUrl}/admin/inventory`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const result = await res.json();
+      if (!result.success || !result.data) throw new Error(result.message || "Inventory endpoint failed");
+      setStats({
+        totalItemsInStock: result.data.totalItemsInStock || 0,
+        lowStockAlerts: result.data.lowStockAlerts || 0,
+        inStockCategories: result.data.inStockCategories || 0,
+        outOfStock: result.data.products?.filter((p: ProductInventory) => p.isOutOfStock).length || 0,
+      });
+      setProducts(result.data.products || []);
     } catch (error) {
       console.error("Inventory error:", error);
       toast.error("Error loading inventory");
@@ -138,8 +110,8 @@ export default function InventoryPage() {
     const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase());
     if (!matchesSearch) return false;
 
-    if (stockFilter === "low") return (item.stock || 0) <= 10 && (item.stock || 0) > 0;
-    if (stockFilter === "out") return (item.stock || 0) === 0;
+    if (stockFilter === "low") return item.isLowStock;
+    if (stockFilter === "out") return item.isOutOfStock;
     if (stockFilter === "instock") return (item.stock || 0) > 10;
     return true;
   });
@@ -234,15 +206,16 @@ export default function InventoryPage() {
                   <th className="px-6 py-4">Product Name</th>
                   <th className="px-6 py-4">Category</th>
                   <th className="px-6 py-4">Price</th>
-                  <th className="px-6 py-4">Current Stock</th>
+                  <th className="px-6 py-4">Available</th>
+                  <th className="px-6 py-4">Sold</th>
                   <th className="px-6 py-4">Status</th>
                   <th className="px-6 py-4 text-right">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {filteredProducts.map((product) => {
-                  const isLow = (product.stock || 0) <= 10 && (product.stock || 0) > 0;
-                  const isOut = (product.stock || 0) === 0;
+                  const isLow = product.isLowStock;
+                  const isOut = product.isOutOfStock;
 
                   return (
                     <tr key={product._id} className="hover:bg-orange-50/20 transition-colors">
@@ -256,7 +229,10 @@ export default function InventoryPage() {
                         ₹{product.price.toLocaleString("en-IN")}
                       </td>
                       <td className="px-6 py-4 text-sm font-extrabold text-gray-900">
-                        {product.stock || 0} units
+                        {product.availableQuantity} units
+                      </td>
+                      <td className="px-6 py-4 text-sm font-extrabold text-gray-700">
+                        {product.soldQuantity} units
                       </td>
                       <td className="px-6 py-4">
                         {isOut ? (

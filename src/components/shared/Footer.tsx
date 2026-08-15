@@ -60,75 +60,75 @@ export default function Footer() {
   ];
 
   return (
-    <footer className="bg-gray-900 dark:bg-gray-950 text-white mt-20 pb-20 md:pb-0">
+    <footer className="bg-gray-900 dark:bg-gray-950 text-white mt-10 pb-16 md:pb-0 text-sm">
       {/* Trust Badges */}
-      <div className="bg-gray-800 dark:bg-gray-900 py-6">
+      <div className="bg-gray-800 dark:bg-gray-900 py-2">
         <div className="container mx-auto px-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+          <div className="grid grid-cols-4 gap-1">
             <div className="text-center">
-              <Truck className="w-10 h-10 text-green-500 mx-auto mb-2" />
-              <div className="font-bold text-sm">Free Shipping</div>
-              <div className="text-sm text-gray-400">Across Kashmir</div>
+              <Truck className="w-5 h-5 text-green-500 mx-auto mb-1" />
+              <div className="font-bold text-[10px] leading-tight">Free Shipping</div>
+              <div className="hidden sm:block text-[10px] text-gray-400">Across Kashmir</div>
             </div>
             <div className="text-center">
-              <Shield className="w-10 h-10 text-blue-500 mx-auto mb-2" />
-              <div className="font-bold text-sm">Authentic Products</div>
-              <div className="text-sm text-gray-400">100% Guaranteed</div>
+              <Shield className="w-5 h-5 text-blue-500 mx-auto mb-1" />
+              <div className="font-bold text-[10px] leading-tight">Authentic Products</div>
+              <div className="hidden sm:block text-[10px] text-gray-400">100% Guaranteed</div>
             </div>
             <div className="text-center">
-              <RefreshCw className="w-10 h-10 text-orange-500 mx-auto mb-2" />
-              <div className="font-bold text-sm">7-Day Return / Easy Returns</div>
-              <div className="text-sm text-gray-400">Easy Returns</div>
+              <RefreshCw className="w-5 h-5 text-orange-500 mx-auto mb-1" />
+              <div className="font-bold text-[10px] leading-tight">7-Day Returns</div>
+              <div className="hidden sm:block text-[10px] text-gray-400">Easy Returns</div>
             </div>
             <div className="text-center">
-              <Headphones className="w-10 h-10 text-purple-500 mx-auto mb-2" />
-              <div className="font-bold text-sm">24/7 Support</div>
-              <div className="text-sm text-gray-400">Expert Help</div>
+              <Headphones className="w-5 h-5 text-purple-500 mx-auto mb-1" />
+              <div className="font-bold text-[10px] leading-tight">24/7 Support</div>
+              <div className="hidden sm:block text-[10px] text-gray-400">Expert Help</div>
             </div>
           </div>
         </div>
       </div>
 
       {/* Main Footer */}
-      <div className="container mx-auto px-4 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+      <div className="container mx-auto px-4 py-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
           {/* Company Info */}
           <div>
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-red-500 rounded-lg flex items-center justify-center">
-                <div className="text-white font-bold text-lg">SK</div>
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-red-500 rounded-lg flex items-center justify-center">
+                <div className="text-white font-bold">SK</div>
               </div>
-              <h3 className="text-xl font-bold">
+              <h3 className="text-base font-bold">
                 Sportify <span className="text-orange-500">Kashmir</span>
               </h3>
             </div>
-            <p className="text-gray-400 mb-6 text-sm">
+            <p className="text-gray-400 mb-2 text-[11px] leading-4">
               Kashmir&apos;s premier destination for premium sports equipment,
               athletic apparel, and expert advice. Serving athletes since 2024.
             </p>
-            <div className="flex gap-4">
+            <div className="flex gap-3">
               <a href="#" className="text-gray-400 hover:text-orange-500 transition" aria-label="Instagram">
-                <Instagram size={20} />
+                <Instagram size={16} />
               </a>
               <a href="#" className="text-gray-400 hover:text-orange-500 transition" aria-label="Facebook">
-                <Facebook size={20} />
+                <Facebook size={16} />
               </a>
               <a href="#" className="text-gray-400 hover:text-orange-500 transition" aria-label="Twitter">
-                <Twitter size={20} />
+                <Twitter size={16} />
               </a>
               <a href="#" className="text-gray-400 hover:text-orange-500 transition" aria-label="YouTube">
-                <Youtube size={20} />
+                <Youtube size={16} />
               </a>
             </div>
           </div>
 
           {/* Sports Categories */}
           <div>
-            <h4 className="text-lg font-bold mb-4 flex items-center gap-2">
-              <span className="w-2 h-6 bg-orange-500 rounded"></span>
+              <h4 className="text-base font-bold mb-2 flex items-center gap-2">
+                <span className="w-1.5 h-5 bg-orange-500 rounded"></span>
               Shop by Sport
             </h4>
-            <ul className="space-y-2">
+            <ul className="space-y-1">
               {sportCategories.map((category) => (
                 <li key={category.name}>
                   <Link
@@ -144,11 +144,11 @@ export default function Footer() {
 
           {/* Quick Links */}
           <div>
-            <h4 className="text-lg font-bold mb-4 flex items-center gap-2">
-              <span className="w-2 h-6 bg-orange-500 rounded"></span>
+              <h4 className="text-base font-bold mb-2 flex items-center gap-2">
+              <span className="w-1.5 h-5 bg-orange-500 rounded"></span>
               Quick Links
             </h4>
-            <ul className="space-y-2">
+            <ul className="space-y-1">
               {quickLinks.map((link) => (
                 <li key={link.name}>
                   <Link
@@ -164,11 +164,11 @@ export default function Footer() {
 
           {/* Contact Info - Handwara Address */}
           <div>
-            <h4 className="text-lg font-bold mb-4 flex items-center gap-2">
-              <span className="w-2 h-6 bg-orange-500 rounded"></span>
+              <h4 className="text-base font-bold mb-2 flex items-center gap-2">
+              <span className="w-1.5 h-5 bg-orange-500 rounded"></span>
               Contact Us
             </h4>
-            <div className="space-y-4">
+            <div className="space-y-2">
               <div className="flex items-start gap-3">
                 <MapPin className="w-5 h-5 text-orange-500 mt-1 flex-shrink-0" />
                 <div>
@@ -197,11 +197,11 @@ export default function Footer() {
         </div>
 
         {/* Policies & Services */}
-        <div className="mt-12 pt-8 border-t border-gray-800">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="mt-4 pt-3 border-t border-gray-800">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div>
-              <h5 className="font-bold mb-3">Customer Services</h5>
-              <ul className="space-y-2">
+              <h5 className="font-bold mb-2">Customer Services</h5>
+              <ul className="space-y-1">
                 <li>
                   <Link href="/product-guides" className="text-gray-400 hover:text-orange-500 text-sm transition">
                     Product Guides
@@ -231,8 +231,8 @@ export default function Footer() {
             </div>
 
             <div>
-              <h5 className="font-bold mb-3">Policies</h5>
-              <ul className="space-y-2">
+              <h5 className="font-bold mb-2">Policies</h5>
+              <ul className="space-y-1">
                 {policies.map((policy) => (
                   <li key={policy.name}>
                     <Link
@@ -257,7 +257,7 @@ export default function Footer() {
                   <Link
                     key={brand.name}
                     href={brand.link}
-                    className="px-3 py-1.5 bg-gray-800 dark:bg-gray-800 text-gray-300 rounded-lg hover:bg-orange-500 hover:text-white transition text-sm"
+                    className="px-2 py-1 bg-gray-800 dark:bg-gray-800 text-gray-300 rounded-lg hover:bg-orange-500 hover:text-white transition text-xs"
                   >
                     {brand.name}
                   </Link>
@@ -268,10 +268,10 @@ export default function Footer() {
         </div>
 
         {/* Newsletter Section */}
-        <div className="mt-8 pt-8 border-t border-gray-800">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+        <div className="mt-4 pt-3 border-t border-gray-800">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 items-center">
             <div>
-              <h5 className="font-bold text-lg mb-2">Subscribe to Newsletter</h5>
+              <h5 className="font-bold text-base mb-1">Subscribe to Newsletter</h5>
               <p className="text-gray-400 text-sm">
                 Get exclusive deals, new arrivals, and sports tips directly in your inbox!
               </p>
@@ -280,9 +280,9 @@ export default function Footer() {
               <input
                 type="email"
                 placeholder="Enter your email"
-                className="flex-1 px-4 py-3 bg-gray-800 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 border border-gray-700"
+                className="flex-1 px-3 py-2 bg-gray-800 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 border border-gray-700"
               />
-              <button className="bg-orange-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-orange-600 transition">
+              <button className="bg-orange-500 text-white px-4 py-2 rounded-lg font-semibold hover:bg-orange-600 transition">
                 Subscribe
               </button>
             </div>
@@ -290,10 +290,10 @@ export default function Footer() {
         </div>
 
         {/* Bottom Bar */}
-        <div className="mt-8 pt-8 border-t border-gray-800 text-center text-gray-400">
+        <div className="mt-4 pt-3 border-t border-gray-800 text-center text-gray-400 text-[11px]">
           <p>© {currentYear} Sportify Kashmir. All rights reserved.</p>
-          <p className="text-sm mt-2">Proudly serving Kashmir&apos;s sports community from Handwara, Qalamabad</p>
-          <div className="flex justify-center gap-6 mt-4 text-xs">
+          <p className="text-[11px] mt-1">Proudly serving Kashmir&apos;s sports community from Handwara, Qalamabad</p>
+          <div className="flex justify-center gap-3 mt-2 text-[10px]">
             <Link href="/privacy-policy" className="hover:text-orange-500 transition">
               Privacy Policy
             </Link>

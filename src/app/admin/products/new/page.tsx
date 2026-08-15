@@ -75,10 +75,31 @@ export default function AddProductPage() {
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
-    const newImages = Array.from(files);
+    const newImages = Array.from(files).filter((file) => {
+      if (!file.type.startsWith("image/")) {
+        toast.error(`${file.name} is not an image`);
+        return false;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error(`${file.name} is larger than 5MB`);
+        return false;
+      }
+      return true;
+    });
     const newPreviews = newImages.map((file) => URL.createObjectURL(file));
     setImages((prev) => [...prev, ...newImages]);
     setImagePreviews((prev) => [...prev, ...newPreviews]);
+    e.target.value = "";
+  };
+
+  const replaceImage = (index: number, file?: File) => {
+    if (!file || !file.type.startsWith("image/") || file.size > 5 * 1024 * 1024) {
+      toast.error("Please select an image smaller than 5MB");
+      return;
+    }
+    const nextPreview = URL.createObjectURL(file);
+    setImages((prev) => prev.map((item, i) => (i === index ? file : item)));
+    setImagePreviews((prev) => prev.map((item, i) => (i === index ? nextPreview : item)));
   };
 
   const removeImage = (index: number) => {
@@ -137,8 +158,8 @@ export default function AddProductPage() {
       return;
     }
 
-    if (images.length === 0) {
-      toast.error("Please upload at least one product image");
+    if (images.length < 3) {
+      toast.error(`Please upload at least 3 product images (${images.length}/3 selected)`);
       return;
     }
 
@@ -157,9 +178,7 @@ export default function AddProductPage() {
       data.append("colors", colors.join(","));
       data.append("sizes", sizes.join(","));
       data.append("tags", tags.join(","));
-      if (images.length > 0) {
-        data.append("image", images[0]);
-      }
+      images.forEach((image) => data.append("images", image));
 
       const token = localStorage.getItem("token");
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/product/add`, {
@@ -332,7 +351,10 @@ export default function AddProductPage() {
 
         {/* ✅ Product Images Section */}
         <div className="bg-white rounded-xl shadow p-6">
-          <h2 className="text-xl font-semibold mb-4">Product Images *</h2>
+          <h2 className="text-xl font-semibold mb-2">Product Images * <span className="text-orange-600">(minimum 3)</span></h2>
+          <p className={`text-sm mb-4 ${images.length < 3 ? "text-red-600" : "text-green-600"}`}>
+            {images.length < 3 ? `Select at least ${3 - images.length} more image${3 - images.length === 1 ? "" : "s"}.` : `${images.length} images ready. You can add more or replace any image.`}
+          </p>
           
           <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-orange-500 transition">
             <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
@@ -340,7 +362,7 @@ export default function AddProductPage() {
             <p className="text-sm text-gray-500 mb-4">Supports JPG, PNG, WEBP. Max 5MB per image.</p>
             <label className="inline-block bg-orange-500 text-white px-6 py-2 rounded-lg cursor-pointer hover:bg-orange-600 transition">
               Browse Files
-              <input type="file" multiple accept="image/*" onChange={handleImageUpload} className="hidden" />
+              <input type="file" name="images" multiple accept="image/*" onChange={handleImageUpload} className="hidden" />
             </label>
           </div>
 
@@ -351,6 +373,10 @@ export default function AddProductPage() {
                 {imagePreviews.map((preview, index) => (
                   <div key={index} className="relative group">
                     <img src={preview} alt={`Preview ${index + 1}`} className="w-full h-32 object-cover rounded-lg border" />
+                    <label className="absolute bottom-2 left-2 bg-white/95 text-gray-800 rounded px-2 py-1 text-xs font-semibold cursor-pointer shadow">
+                      Replace
+                      <input type="file" accept="image/*" className="hidden" onChange={(e) => replaceImage(index, e.target.files?.[0])} />
+                    </label>
                     <button
                       type="button"
                       onClick={() => removeImage(index)}
@@ -454,7 +480,7 @@ export default function AddProductPage() {
 
         {/* Submit Buttons */}
         <div className="flex gap-4 sticky bottom-4 bg-white p-4 rounded-xl shadow-lg">
-          <button type="submit" disabled={loading} className="flex-1 bg-orange-500 text-white py-3 rounded-lg font-semibold hover:bg-orange-600 transition disabled:opacity-50">
+          <button type="submit" disabled={loading || images.length < 3} className="flex-1 bg-orange-500 text-white py-3 rounded-lg font-semibold hover:bg-orange-600 transition disabled:opacity-50">
             {loading ? <div className="flex items-center justify-center gap-2"><div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div> Adding Product...</div> : "Add Product"}
           </button>
           <button type="button" onClick={() => router.push("/admin/products")} className="px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition">
