@@ -5,6 +5,7 @@ const Order = require("../models/orderModel");
 const Cart = require("../models/cartModel");
 const { resHandler } = require("../utilities/resHandler");
 const { notifyOrderEvent } = require("../utilities/orderNotificationService");
+const { createOrderWithInventory } = require("../utilities/inventoryService");
 
 // ✅ Initialize Razorpay with error handling
 let razorpay;
@@ -106,7 +107,7 @@ exports.verifyPaymentAndCreateOrder = async (req, res) => {
     console.log("✅ Signature verified");
 
     // Create order
-    const order = await Order.create({
+    const order = await createOrderWithInventory(Order, {
       userId: userId,
       shippingAddress: shippingAddressId,
       products: products,

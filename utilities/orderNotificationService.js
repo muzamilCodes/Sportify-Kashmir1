@@ -69,8 +69,12 @@ function normalizeMobileNumber(mobile) {
 }
 
 async function sendWhatsAppNotification(mobile, message) {
+  sendWhatsAppNotification.lastError = null;
   const recipient = normalizeMobileNumber(mobile);
-  if (!recipient) return false;
+  if (!recipient) {
+    sendWhatsAppNotification.lastError = "Recipient mobile number is missing or invalid";
+    return false;
+  }
 
   const twilioSid = process.env.TWILIO_ACCOUNT_SID;
   const twilioToken = process.env.TWILIO_AUTH_TOKEN;
@@ -82,8 +86,17 @@ async function sendWhatsAppNotification(mobile, message) {
       const payload = new URLSearchParams({
         From: twilioFrom.startsWith("whatsapp:") ? twilioFrom : `whatsapp:${twilioFrom}`,
         To: recipient.startsWith("whatsapp:") ? recipient : `whatsapp:${recipient}`,
-        Body: message,
       });
+
+      // WhatsApp production traffic must use an approved template outside the
+      // 24-hour customer-service window. Keep Body for sandbox/active sessions.
+      if (process.env.TWILIO_WHATSAPP_CONTENT_SID) {
+        payload.set("ContentSid", process.env.TWILIO_WHATSAPP_CONTENT_SID);
+        const variables = process.env.TWILIO_WHATSAPP_CONTENT_VARIABLES;
+        if (variables) payload.set("ContentVariables", variables.replace("{{message}}", JSON.stringify(message)));
+      } else {
+        payload.set("Body", message);
+      }
 
       const response = await fetch(endpoint, {
         method: "POST",
@@ -99,9 +112,11 @@ async function sendWhatsAppNotification(mobile, message) {
       }
 
       const errorText = await response.text();
-      console.error("WhatsApp Twilio error:", response.status, errorText);
+      sendWhatsAppNotification.lastError = `Twilio API ${response.status}: ${errorText}`;
+      console.error("[whatsapp]", sendWhatsAppNotification.lastError);
     } catch (error) {
-      console.error("WhatsApp Twilio request failed:", error.message);
+      sendWhatsAppNotification.lastError = `Twilio request failed: ${error.message}`;
+      console.error("[whatsapp]", sendWhatsAppNotification.lastError);
     }
   }
 
@@ -128,13 +143,18 @@ async function sendWhatsAppNotification(mobile, message) {
       }
 
       const errorText = await response.text();
-      console.error("WhatsApp API error:", response.status, errorText);
+      sendWhatsAppNotification.lastError = `WhatsApp API ${response.status}: ${errorText}`;
+      console.error("[whatsapp]", sendWhatsAppNotification.lastError);
     } catch (error) {
-      console.error("WhatsApp API request failed:", error.message);
+      sendWhatsAppNotification.lastError = `WhatsApp request failed: ${error.message}`;
+      console.error("[whatsapp]", sendWhatsAppNotification.lastError);
     }
   }
 
-  console.warn("WhatsApp notification skipped because no provider is configured.");
+  if (!twilioSid || !twilioToken || !twilioFrom) {
+    sendWhatsAppNotification.lastError = sendWhatsAppNotification.lastError || "WhatsApp provider is not configured: set TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN and TWILIO_WHATSAPP_FROM, or WHATSAPP_API_URL and WHATSAPP_API_TOKEN";
+  }
+  console.error("[whatsapp] delivery failed:", sendWhatsAppNotification.lastError);
   return false;
 }
 
@@ -249,14 +269,14 @@ async function updateNotificationResult(orderId, eventKey, result) {
       $set: {
         "notificationLog.$.emailSent": result.emailSent,
         "notificationLog.$.whatsappSent": result.whatsappSent,
-        "notificationLog.$.sentAt": new Date(),
+        "notificationLog.$.sentAt": result.emailSent || result.whatsappSent ? new Date() : null,
         "notificationLog.$.error": result.error || "",
       },
     }
   );
 }
 
-async function notifyOrderEvent(orderId, { type = "status", status = "pending" } = {}) {
+async function notifyOrderEventInternal(orderId, { type = "status", status = "pending" } = {}) {
   const order = await Order.findById(orderId).populate("userId", "username email mobile isAdmin");
   if (!order) {
     return { success: false, skipped: false, message: "Order not found" };
@@ -287,21 +307,26 @@ async function notifyOrderEvent(orderId, { type = "status", status = "pending" }
   const template = buildOrderNotification(order, normalizedStatus, type);
 
   const emailPromise = recipient.email
-    ? sendEmail(recipient.email, template.subject, template.html)
+    ? sendEmail(recipient.email, template.subject, template.html).then((sent) => ({ sent, error: sent ? "" : sendEmail.getLastError() }))
     : Promise.resolve(false);
 
   const whatsappPromise = recipient.mobile
-    ? sendWhatsAppNotification(recipient.mobile, template.whatsappText)
+    ? sendWhatsAppNotification(recipient.mobile, template.whatsappText).then((sent) => ({ sent, error: sent ? "" : sendWhatsAppNotification.lastError }))
     : Promise.resolve(false);
 
   const [emailResult, whatsappResult] = await Promise.allSettled([emailPromise, whatsappPromise]);
 
-  const emailSent = emailResult.status === "fulfilled" ? Boolean(emailResult.value) : false;
-  const whatsappSent = whatsappResult.status === "fulfilled" ? Boolean(whatsappResult.value) : false;
+  const emailSent = emailResult.status === "fulfilled" ? Boolean(emailResult.value?.sent ?? emailResult.value) : false;
+  const whatsappSent = whatsappResult.status === "fulfilled" ? Boolean(whatsappResult.value?.sent ?? whatsappResult.value) : false;
   const errorMessages = [];
 
-  if (emailResult.status === "rejected") errorMessages.push(emailResult.reason?.message || "Email failed");
-  if (whatsappResult.status === "rejected") errorMessages.push(whatsappResult.reason?.message || "WhatsApp failed");
+  if (!recipient.email) errorMessages.push("Email: recipient email is missing");
+  if (!recipient.mobile) errorMessages.push("WhatsApp: recipient mobile is missing");
+
+  if (emailResult.status === "rejected") errorMessages.push(`Email: ${emailResult.reason?.message || "Email failed"}`);
+  else if (emailResult.value?.error) errorMessages.push(`Email: ${emailResult.value.error}`);
+  if (whatsappResult.status === "rejected") errorMessages.push(`WhatsApp: ${whatsappResult.reason?.message || "WhatsApp failed"}`);
+  else if (whatsappResult.value?.error) errorMessages.push(`WhatsApp: ${whatsappResult.value.error}`);
 
   await updateNotificationResult(order._id, eventKey, {
     emailSent,
@@ -317,6 +342,17 @@ async function notifyOrderEvent(orderId, { type = "status", status = "pending" }
     eventKey,
     status: normalizedStatus,
   };
+}
+
+// Notifications are a side effect. Never let an SMTP/WhatsApp/database-log error
+// turn a successfully persisted order into a failed order response.
+async function notifyOrderEvent(orderId, options = {}) {
+  try {
+    return await notifyOrderEventInternal(orderId, options);
+  } catch (error) {
+    console.error(`[notifications] unexpected failure for order ${orderId}:`, error.stack || error.message);
+    return { success: false, skipped: false, emailSent: false, whatsappSent: false, error: error.message };
+  }
 }
 
 module.exports = {

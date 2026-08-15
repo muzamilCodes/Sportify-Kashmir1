@@ -6,7 +6,7 @@ const upload = require("../middlewares/multer"); // ✅ Change 'multmid' to 'upl
 
 const router = express.Router();
 
-router.post("/add", authorize, admin, upload.single("image"), controller.addProduct);  // ✅ Change multmid to upload.single("image")
+router.post("/add", authorize, admin, upload.any(), controller.addProduct);
 router.put("/edit/:productId", authorize, admin, upload.single("image"), controller.editProduct);  // ✅ Change multmid to upload.single("image")
 router.delete("/delete/:productId", authorize, admin, controller.deleteProduct);
 router.put("/archive/:productId", controller.archive_UnArchiveProduct);

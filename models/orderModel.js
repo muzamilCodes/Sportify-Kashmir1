@@ -44,6 +44,9 @@ const orderSchema = new mongoose.Schema(
       default: "pending",
     },
 
+    inventoryReserved: { type: Boolean, default: false },
+    inventoryReleased: { type: Boolean, default: false },
+
     statusHistory: [
       {
         status: {

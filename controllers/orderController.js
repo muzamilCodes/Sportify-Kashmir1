@@ -5,6 +5,7 @@ const { Product } = require("../models/productModel");
 const { User } = require("../models/userModel");
 const { resHandler } = require("../utilities/resHandler");
 const { notifyOrderEvent, normalizeOrderStatus } = require("../utilities/orderNotificationService");
+const { createOrderWithInventory, releaseOrderInventory } = require("../utilities/inventoryService");
 
 async function getActingUser(req) {
   if (!req.userId) return null;
@@ -58,7 +59,7 @@ exports.createOrder = async (req, res) => {
       );
     }
 
-    const order = await Order.create({
+    const order = await createOrderWithInventory(Order, {
       userId: userId, // Already should be ObjectId from token
       shippingAddress: addressId,
       products: productsArr,
@@ -119,7 +120,7 @@ exports.createCartorder = async (req, res) => {
     const products = cart.products;
     const orderValue = cart.cartValue;
 
-    const createOrder = await Order.create({
+    const createOrder = await createOrderWithInventory(Order, {
       userId: userId, // Already ObjectId from token
       shippingAddress: addressId,
       products,
@@ -181,6 +182,10 @@ exports.updateOrderStatus = async (req, res, orderStatus) => {
         message: `Order is already ${normalizedStatus.replace(/_/g, " ")}`,
         order,
       });
+    }
+
+    if (normalizedStatus === "cancelled") {
+      await releaseOrderInventory(order);
     }
 
     order.orderStatus = normalizedStatus;
@@ -335,7 +340,7 @@ exports.createOrderFromCheckout = async (req, res) => {
       const razorpayOrder = await razorpay.orders.create(options);
       orderData.razorpayOrderId = razorpayOrder.id;
 
-      const order = await Order.create(orderData);
+      const order = await createOrderWithInventory(Order, orderData);
       if (userId) {
         await User.findByIdAndUpdate(userId, { $push: { orders: order._id } });
       }
@@ -350,7 +355,7 @@ exports.createOrderFromCheckout = async (req, res) => {
         }
       });
     } else {
-      const order = await Order.create(orderData);
+      const order = await createOrderWithInventory(Order, orderData);
 
       if (userId) {
         cart.products = [];
@@ -529,7 +534,7 @@ exports.verifyAndCreateOrder = async (req, res) => {
       orderData.guestAddress = guestAddress;
     }
 
-    const order = await Order.create(orderData);
+    const order = await createOrderWithInventory(Order, orderData);
     await notifyOrderEvent(order._id, { type: "created", status: "pending" });
 
     // Clear cart
@@ -611,7 +616,7 @@ exports.createCODOrder = async (req, res) => {
       ],
     };
 
-    const order = await Order.create(orderData);
+    const order = await createOrderWithInventory(Order, orderData);
     console.log("Order created with value:", order.orderValue);
     await User.findByIdAndUpdate(userId, { $push: { orders: order._id } });
 

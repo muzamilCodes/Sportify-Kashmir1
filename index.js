@@ -1,4 +1,3 @@
-process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 const express = require("express");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
@@ -6,6 +5,7 @@ require("dotenv").config();
 
 const mongoose = require("mongoose");
 const connectDb = require("./config/connectDb");
+const sendEmail = require("./utilities/emailService");
 
 const app = express();
 const port = process.env.PORT || 4000;
@@ -87,6 +87,18 @@ app.get("/", (req, res) => {
   res.status(200).json({ success: true, message: "API is running!" });
 });
 
+app.get("/health/notifications", (req, res) => {
+  res.json({
+    success: true,
+    email: sendEmail.getConfig(),
+    whatsapp: {
+      twilioConfigured: Boolean(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_WHATSAPP_FROM),
+      apiConfigured: Boolean(process.env.WHATSAPP_API_URL),
+      templateConfigured: Boolean(process.env.TWILIO_WHATSAPP_CONTENT_SID),
+    },
+  });
+});
+
 // 404 handler
 app.use("*", (req, res) => {
   res.status(404).json({ success: false, message: "Route not found" });
@@ -95,12 +107,18 @@ app.use("*", (req, res) => {
 // Error handler
 app.use((err, req, res, next) => {
   console.error("Error:", err.stack);
+  if (err.code === "LIMIT_UNEXPECTED_FILE") {
+    return res.status(400).json({ success: false, message: `Unexpected upload field "${err.field || "unknown"}". Use "images" for product images.` });
+  }
+  if (err.name === "MulterError" || err.message === "Only image files are allowed") {
+    return res.status(400).json({ success: false, message: err.message });
+  }
   res.status(500).json({ success: false, message: err.message || "Something went wrong!" });
 });
 
 // Start server
 app.listen(port, () => {
   console.log(`🚀 Server running on port ${port}`);
-  // console.log(`📍 Environment: ${process.env.NODE_ENV || "development"}`);
-  // console.log(`📍 Frontend URL: ${process.env.FRONTEND_URL || "Not set"}`);
+  console.log("[notifications] email configuration:", sendEmail.getConfig());
+  console.log("[notifications] WhatsApp configured:", Boolean(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_WHATSAPP_FROM) || Boolean(process.env.WHATSAPP_API_URL));
 });

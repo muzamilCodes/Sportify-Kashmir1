@@ -81,7 +81,7 @@ exports.addProduct = async (req, res) => {
     let sizesARR = sizes ? sizes.split(",") : [];
     let tagsARR = tags ? tags.split(",") : [];
 
-    if (!name || !description || !price || !category) {
+    if (!name || !price || !category) {
       return resHandler(res, 400, "All required fields must be provided");
     }
 
@@ -122,19 +122,23 @@ exports.addProduct = async (req, res) => {
       brandId = brandDoc._id;
     }
 
-    // Image upload
-    let upload;
-    let imageUrl = "";
+    const files = Array.isArray(req.files)
+      ? req.files.filter((file) => ["images", "image"].includes(file.fieldname))
+      : Object.values(req.files || {}).flat();
+    console.log(`[product/add] received ${files.length} image file(s):`, files.map((file) => file.fieldname));
+    if (files.length < 3) return resHandler(res, 400, `At least 3 product images are required (received ${files.length})`);
 
-    if (req.file?.path) {
-      upload = await cloudinary.uploader.upload(req.file.path);
-      imageUrl = upload.secure_url;
-      if (!upload) {
-        return resHandler(res, 500, "Image upload failed!");
-      }
-    } else {
-      return resHandler(res, 400, "Image is required");
-    }
+    const imageUrls = await Promise.all(files.map(async (file) => {
+      if (file.path) return (await cloudinary.uploader.upload(file.path)).secure_url;
+      if (!file.buffer) throw new Error("Uploaded image has no file data");
+      return new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream({ resource_type: "image" }, (error, result) => {
+          if (error) return reject(error);
+          resolve(result.secure_url);
+        });
+        stream.end(file.buffer);
+      });
+    }));
 
     // Create product
     let product = await Product.create({
@@ -145,7 +149,7 @@ exports.addProduct = async (req, res) => {
       colors: colorsARR,
       sizes: sizesARR,
       tags: tagsARR,
-      productImgUrls: [imageUrl],
+      productImgUrls: imageUrls,
       category: categoryDoc._id,
       brand: brandId,
       isAvailable: true,
@@ -157,7 +161,7 @@ exports.addProduct = async (req, res) => {
     return resHandler(res, 201, "Product created successfully", product);
   } catch (error) {
     console.error(error);
-    return resHandler(res, 500, "Server Error!");
+    return resHandler(res, 500, `Product image upload failed: ${error.message}`);
   }
 };
 

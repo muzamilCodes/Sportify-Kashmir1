@@ -8,6 +8,11 @@ function buildStatusCountQuery(statuses) {
   return Array.isArray(statuses) ? { $in: statuses } : statuses;
 }
 
+// Revenue is based on completed/confirmed sales, regardless of whether the
+// customer paid online or by COD. Pending and cancelled orders are excluded.
+const REVENUE_STATUSES = ["confirmed", "processing", "shipped", "out_for_delivery", "delivered"];
+const revenueMatch = (extra = {}) => ({ orderStatus: { $in: REVENUE_STATUSES }, ...extra });
+
 // Get dashboard statistics
 exports.getDashboardStats = async (req, res) => {
   try {
@@ -20,9 +25,9 @@ exports.getDashboardStats = async (req, res) => {
     // Get total users
     const totalUsers = await User.countDocuments();
     
-    // Get total revenue from paid orders
+    // Get total revenue from real, non-cancelled sales.
     const revenueResult = await Order.aggregate([
-      { $match: { paymentStatus: "paid" } },
+      { $match: revenueMatch() },
       { $group: { _id: null, total: { $sum: "$orderValue" } } }
     ]);
     const totalRevenue = revenueResult[0]?.total || 0;
@@ -40,7 +45,7 @@ exports.getDashboardStats = async (req, res) => {
     const todayRevenueResult = await Order.aggregate([
       {
         $match: {
-          paymentStatus: "paid",
+          ...revenueMatch(),
           createdAt: { $gte: today, $lt: tomorrow }
         }
       },
@@ -92,8 +97,9 @@ exports.getDashboardStats = async (req, res) => {
     }));
     
     // Calculate growth percentages
-    const lastMonth = new Date();
-    lastMonth.setMonth(lastMonth.getMonth() - 1);
+    const currentMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+    const previousMonthStart = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+    const lastMonth = previousMonthStart;
     
     const lastMonthProducts = await Product.countDocuments({
       createdAt: { $lt: today, $gte: lastMonth }
@@ -116,17 +122,19 @@ exports.getDashboardStats = async (req, res) => {
       ? Math.round(((totalUsers - lastMonthUsers) / lastMonthUsers) * 100)
       : 0;
     
-    const lastMonthRevenue = await Order.aggregate([
-      { $match: { 
-        paymentStatus: "paid",
-        createdAt: { $lt: today, $gte: lastMonth }
-      }},
+    const currentMonthRevenue = await Order.aggregate([
+      { $match: revenueMatch({ createdAt: { $gte: currentMonthStart, $lt: tomorrow } }) },
       { $group: { _id: null, total: { $sum: "$orderValue" } } }
     ]);
-    const lastMonthRevenueTotal = lastMonthRevenue[0]?.total || 0;
-    const revenueGrowth = lastMonthRevenueTotal > 0
-      ? Math.round(((totalRevenue - lastMonthRevenueTotal) / lastMonthRevenueTotal) * 100)
-      : 0;
+    const previousMonthRevenue = await Order.aggregate([
+      { $match: revenueMatch({ createdAt: { $gte: previousMonthStart, $lt: currentMonthStart } }) },
+      { $group: { _id: null, total: { $sum: "$orderValue" } } }
+    ]);
+    const currentMonthRevenueTotal = currentMonthRevenue[0]?.total || 0;
+    const previousMonthRevenueTotal = previousMonthRevenue[0]?.total || 0;
+    const revenueGrowth = previousMonthRevenueTotal > 0
+      ? Math.round(((currentMonthRevenueTotal - previousMonthRevenueTotal) / previousMonthRevenueTotal) * 100)
+      : currentMonthRevenueTotal > 0 ? 100 : 0;
     
     return res.status(200).json({
       success: true,
@@ -173,7 +181,7 @@ exports.getRevenueChart = async (req, res) => {
     const revenueData = await Order.aggregate([
       {
         $match: {
-          paymentStatus: "paid",
+          ...revenueMatch(),
           createdAt: { $gte: startDate }
         }
       },
@@ -215,7 +223,20 @@ exports.getInventoryData = async (req, res) => {
     const totalItemsInStock = stockSumResult[0]?.totalStock || 0;
 
     const lowStockThreshold = 10;
-    const lowStockItems = products.filter(p => (p.stock || 0) <= lowStockThreshold);
+    const soldByProduct = await Order.aggregate([
+      { $match: { orderStatus: { $ne: "cancelled" } } },
+      { $unwind: "$products" },
+      { $group: { _id: "$products.productId", soldQuantity: { $sum: "$products.quantity" } } },
+    ]);
+    const soldMap = new Map(soldByProduct.map((item) => [item._id.toString(), item.soldQuantity || 0]));
+    const inventoryProducts = products.map((product) => ({
+      ...product,
+      availableQuantity: product.stock || 0,
+      soldQuantity: soldMap.get(product._id.toString()) || 0,
+      isLowStock: (product.stock || 0) > 0 && (product.stock || 0) <= lowStockThreshold,
+      isOutOfStock: (product.stock || 0) === 0,
+    }));
+    const lowStockItems = inventoryProducts.filter(p => p.isLowStock);
     const lowStockAlerts = lowStockItems.length;
 
     const categoryIdsWithStock = await Product.distinct("category", { stock: { $gt: 0 } });
@@ -227,7 +248,7 @@ exports.getInventoryData = async (req, res) => {
         totalItemsInStock,
         lowStockAlerts,
         inStockCategories,
-        products,
+        products: inventoryProducts,
         lowStockItems
       }
     });
@@ -285,7 +306,7 @@ exports.getReportsData = async (req, res) => {
   try {
     // Total sales & order count
     const salesResult = await Order.aggregate([
-      { $match: { paymentStatus: "paid" } },
+      { $match: revenueMatch() },
       { $group: { _id: null, total: { $sum: "$orderValue" }, count: { $sum: 1 } } }
     ]);
     const totalSales = salesResult[0]?.total || 0;
@@ -305,7 +326,7 @@ exports.getReportsData = async (req, res) => {
 
     // Category breakdown
     const categorySales = await Order.aggregate([
-      { $match: { paymentStatus: "paid" } },
+      { $match: revenueMatch() },
       { $unwind: "$orderItems" },
       {
         $lookup: {
@@ -337,7 +358,7 @@ exports.getReportsData = async (req, res) => {
 
     // Top selling products
     const topProducts = await Order.aggregate([
-      { $match: { paymentStatus: "paid" } },
+      { $match: revenueMatch() },
       { $unwind: "$orderItems" },
       {
         $group: {
