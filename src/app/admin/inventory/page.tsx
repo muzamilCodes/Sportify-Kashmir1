@@ -147,31 +147,40 @@ export default function InventoryPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
+        <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex items-center gap-4">
+          <div className="w-12 h-12 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center shrink-0">
             <Box size={24} />
           </div>
           <div>
-            <p className="text-sm text-gray-500 font-medium">Total Items in Stock</p>
+            <p className="text-xs text-gray-500 font-medium">Total In Stock</p>
             <p className="text-2xl font-bold text-gray-900">{stats.totalItemsInStock.toLocaleString()}</p>
           </div>
         </div>
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-red-100 text-red-600 flex items-center justify-center">
+        <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex items-center gap-4">
+          <div className="w-12 h-12 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center shrink-0">
             <AlertTriangle size={24} />
           </div>
           <div>
-            <p className="text-sm text-gray-500 font-medium">Low Stock Alerts</p>
-            <p className="text-2xl font-bold text-red-600">{stats.lowStockAlerts}</p>
+            <p className="text-xs text-gray-500 font-medium">Low Stock Alerts</p>
+            <p className="text-2xl font-bold text-amber-600">{stats.lowStockAlerts}</p>
           </div>
         </div>
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-green-100 text-green-600 flex items-center justify-center">
+        <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex items-center gap-4">
+          <div className="w-12 h-12 rounded-xl bg-red-100 text-red-600 flex items-center justify-center shrink-0">
+            <AlertTriangle size={24} />
+          </div>
+          <div>
+            <p className="text-xs text-gray-500 font-medium">Out of Stock</p>
+            <p className="text-2xl font-bold text-red-600">{stats.outOfStock}</p>
+          </div>
+        </div>
+        <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex items-center gap-4">
+          <div className="w-12 h-12 rounded-xl bg-green-100 text-green-600 flex items-center justify-center shrink-0">
             <CheckCircle size={24} />
           </div>
           <div>
-            <p className="text-sm text-gray-500 font-medium">Active Stock Categories</p>
+            <p className="text-xs text-gray-500 font-medium">Active Categories</p>
             <p className="text-2xl font-bold text-gray-900">{stats.inStockCategories}</p>
           </div>
         </div>
