@@ -30,7 +30,9 @@ import {
   Tent,
   FileText,
   Sparkles,
-  Percent
+  Percent,
+  Loader2,
+  Tag,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import ThemeToggle from "@/components/shared/ThemeToggle";
@@ -51,7 +53,6 @@ const getProfileImageUrl = (profilePic: string | undefined) => {
   return `${API_URL}/uploads/${profilePic}`;
 };
 
-// Static, deterministic navigation arrays to guarantee identical SSR and client hydration HTML
 const SPORTS_CATEGORIES = [
   { name: "Football", href: "/categories/football", icon: <Goal size={18} />, color: "from-blue-500 to-indigo-600" },
   { name: "Cricket", href: "/categories/cricket", icon: <Cricket size={18} />, color: "from-green-500 to-emerald-600" },
@@ -93,21 +94,28 @@ export default function Header() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [searchSuggestions, setSearchSuggestions] = useState<any[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [imageError, setImageError] = useState(false);
 
   const userMenuRef = useRef<HTMLDivElement>(null);
+  const searchContainerRef = useRef<HTMLDivElement>(null);
 
-  // Reset image error whenever user or profilePic changes
+  const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000").replace(/\/$/, "");
+
   useEffect(() => {
     setImageError(false);
   }, [user?.profilePic, user?._id]);
 
-  // Close user menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
         setIsUserMenuOpen(false);
+      }
+      if (searchContainerRef.current && !searchContainerRef.current.contains(event.target as Node)) {
+        setShowSuggestions(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -120,7 +128,39 @@ export default function Header() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // ✅ CHECK AUTH & LISTEN FOR USER/AUTH UPDATES
+  // Smart search suggestions effect
+  useEffect(() => {
+    const query = searchQuery.trim();
+    if (query.length < 2) {
+      setSearchSuggestions([]);
+      setIsSearching(false);
+      return;
+    }
+
+    setIsSearching(true);
+    const timeout = setTimeout(async () => {
+      try {
+        const res = await fetch(`${API_URL}/product/getAll?search=${encodeURIComponent(query)}&limit=6`);
+        const data = await res.json();
+        if (data.success && data.data) {
+          const items = Array.isArray(data.data) ? data.data : data.data.items || [];
+          setSearchSuggestions(items.slice(0, 6));
+          setShowSuggestions(true);
+        } else {
+          setSearchSuggestions([]);
+        }
+      } catch (err) {
+        console.error("Search suggestion error:", err);
+        setSearchSuggestions([]);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 250);
+
+    return () => clearTimeout(timeout);
+  }, [searchQuery]);
+
+  // Auth checking
   useEffect(() => {
     const checkAuth = () => {
       const token = localStorage.getItem("token");
@@ -155,9 +195,7 @@ export default function Header() {
     };
   }, [pathname]);
 
-  const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000").replace(/\/$/, "");
-
-  // Verify token with backend
+  // Verify token
   useEffect(() => {
     const verifyToken = async () => {
       const token = localStorage.getItem("token");
@@ -193,7 +231,6 @@ export default function Header() {
     }
   }, []);
 
-  // Update cart count with event listener
   const fetchCartCount = async () => {
     const token = localStorage.getItem("token");
     if (!token) {
@@ -203,7 +240,7 @@ export default function Header() {
     try {
       const response = await fetch(`${API_URL}/cart/getCart`, {
         headers: { Authorization: `Bearer ${token}` },
-        cache: 'no-store',
+        cache: "no-store",
       });
       const result = await response.json();
       if (result.success && result.data) {
@@ -220,14 +257,10 @@ export default function Header() {
 
   useEffect(() => {
     fetchCartCount();
-    
-    // Listen for custom cart update event
     const handleCartUpdate = () => {
       fetchCartCount();
     };
-    
     window.addEventListener("cartUpdated", handleCartUpdate);
-    
     return () => {
       window.removeEventListener("cartUpdated", handleCartUpdate);
     };
@@ -237,6 +270,7 @@ export default function Header() {
     e.preventDefault();
     const query = searchQuery.trim();
     if (query) {
+      setShowSuggestions(false);
       router.push(`/products?search=${encodeURIComponent(query)}`);
       setIsMenuOpen(false);
     }
@@ -293,21 +327,87 @@ export default function Header() {
             </div>
           </Link>
 
-          {/* Desktop Search */}
-          <div className="hidden lg:block flex-1 max-w-2xl mx-6">
+          {/* Desktop Search with Smart Suggestions */}
+          <div className="hidden lg:block flex-1 max-w-2xl mx-6 relative" ref={searchContainerRef}>
             <form onSubmit={handleSearch} className="relative">
               <Search className="absolute left-3.5 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
               <input
                 type="text"
-                placeholder="Search products..."
+                placeholder="Search sports gear, shoes, jerseys, equipment..."
                 value={searchQuery}
+                onFocus={() => {
+                  if (searchQuery.trim().length >= 2) setShowSuggestions(true);
+                }}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-10 pr-28 py-2.5 text-sm border-2 border-gray-200 dark:border-gray-700 rounded-full focus:outline-none focus:border-orange-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 transition-colors"
               />
-              <button type="submit" className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-gradient-to-r from-orange-500 to-red-500 text-white px-4 py-1 rounded-full text-xs font-medium hover:shadow-md transition-shadow">
-                Search
+              <button
+                type="submit"
+                className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-gradient-to-r from-orange-500 to-red-500 text-white px-4 py-1.5 rounded-full text-xs font-semibold hover:shadow-md transition-shadow flex items-center gap-1"
+              >
+                {isSearching ? <Loader2 size={13} className="animate-spin" /> : "Search"}
               </button>
             </form>
+
+            {/* Suggestions Popup */}
+            {showSuggestions && searchSuggestions.length > 0 && (
+              <div className="absolute left-0 right-0 top-full mt-2 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+                <div className="p-2 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between text-xs text-gray-500 font-semibold px-3">
+                  <span>Search Suggestions</span>
+                  <span className="text-[11px] font-normal">{searchSuggestions.length} items found</span>
+                </div>
+                <div className="max-h-80 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-700/50">
+                  {searchSuggestions.map((item) => {
+                    const img = item.productImgUrls?.[0] || item.images?.[0];
+                    const imgSrc = img?.startsWith("http") ? img : img ? `${API_URL}/uploads/${img}` : "/placeholder.jpg";
+                    const hasDiscount = item.discount && item.discount > 0;
+                    const finalPrice = hasDiscount ? item.price - (item.price * item.discount) / 100 : item.price;
+
+                    return (
+                      <Link
+                        key={item._id}
+                        href={`/product/${item._id}`}
+                        onClick={() => setShowSuggestions(false)}
+                        className="flex items-center gap-3 p-2.5 hover:bg-orange-50/70 dark:hover:bg-orange-950/30 transition-colors group"
+                      >
+                        <img
+                          src={imgSrc}
+                          alt={item.name}
+                          className="w-11 h-11 rounded-lg object-contain bg-gray-50 dark:bg-gray-700 shrink-0 border border-gray-100 dark:border-gray-600"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate group-hover:text-orange-600 transition-colors">
+                            {item.name}
+                          </p>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <span className="text-xs font-bold text-orange-600">
+                              ₹{Math.round(finalPrice).toLocaleString("en-IN")}
+                            </span>
+                            {hasDiscount && (
+                              <span className="text-[10px] text-gray-400 line-through">
+                                ₹{item.price}
+                              </span>
+                            )}
+                            {item.category && (
+                              <span className="text-[10px] text-gray-500 bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded">
+                                {typeof item.category === "object" ? item.category.name : item.category}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
+                <button
+                  type="button"
+                  onClick={handleSearch}
+                  className="w-full py-2 bg-gray-50 dark:bg-gray-750 hover:bg-orange-50 dark:hover:bg-gray-700 text-xs font-semibold text-orange-600 text-center transition-colors border-t border-gray-100 dark:border-gray-700"
+                >
+                  View all results for &quot;{searchQuery}&quot; →
+                </button>
+              </div>
+            )}
           </div>
 
           {/* User Actions */}
@@ -316,12 +416,12 @@ export default function Header() {
             <ThemeToggle />
 
             {/* Wishlist - Desktop */}
-            <Link href="/wishlist" className="hidden md:flex relative p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition group">
+            <Link href="/wishlist" className="hidden md:flex relative p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition group" aria-label="Wishlist">
               <Heart className="text-gray-700 dark:text-gray-300 group-hover:text-orange-500 transition" size={22} />
             </Link>
 
             {/* Cart */}
-            <Link href="/cart" className="relative p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition group">
+            <Link href="/cart" className="relative p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition group" aria-label="Shopping Cart">
               <ShoppingCart className="text-gray-700 dark:text-gray-300 group-hover:text-orange-500 transition" size={24} />
               {cartCount > 0 && (
                 <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center animate-scale-in">

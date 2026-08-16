@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 import ProductCard from "@/components/ProductCard";
+import RecentlyViewed from "@/components/RecentlyViewed";
 import { ProductGridSkeleton } from "@/components/shared/SkeletonLoaders";
 
 interface Product {
@@ -375,6 +376,8 @@ export default function HomePage() {
             </>
           )}
         </section>
+
+        <RecentlyViewed products={products} apiUrl={API_URL} />
 
         {/* Features Section */}
         <section className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">

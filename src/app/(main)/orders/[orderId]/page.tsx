@@ -13,16 +13,15 @@ import {
   Share2,
   Download,
   Home,
-  ShoppingBag,
   Clock,
   Shield,
   ChevronRight,
-  Mail,
   Loader2,
   XCircle,
   AlertCircle,
 } from "lucide-react";
 import toast from "react-hot-toast";
+import { generateAndDownloadInvoice } from "@/lib/invoice";
 
 interface Order {
   _id: string;
@@ -87,7 +86,6 @@ export default function OrderDetailPage() {
       );
       const data = await res.json();
       if (data.success && data.data) {
-        // Calculate estimated delivery (4 days from order date)
         const orderDate = new Date(data.data.createdAt);
         const deliveryDate = new Date(orderDate);
         deliveryDate.setDate(orderDate.getDate() + 4);
@@ -113,15 +111,14 @@ export default function OrderDetailPage() {
 
   useEffect(() => {
     fetchOrder();
-    // Auto-refresh every 15 seconds to reflect status changes from admin
     const interval = setInterval(fetchOrder, 15000);
 
-    // Fetch recommended products
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/products/all`)
-      .then(res => res.json())
-      .then(data => {
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/product/getAll`)
+      .then((res) => res.json())
+      .then((data) => {
         if (data.success && data.data) {
-          const shuffled = [...data.data].sort(() => 0.5 - Math.random());
+          const list = Array.isArray(data.data) ? data.data : data.data.items || [];
+          const shuffled = [...list].sort(() => 0.5 - Math.random());
           setRecommendedProducts(shuffled.slice(0, 4));
         }
       })
@@ -142,7 +139,7 @@ export default function OrderDetailPage() {
       const data = await res.json();
       if (data.success) {
         toast.success("Order cancelled successfully!");
-        fetchOrder(); // refresh
+        fetchOrder();
       } else {
         toast.error(data.message || "Failed to cancel order");
       }
@@ -154,30 +151,9 @@ export default function OrderDetailPage() {
   };
 
   const downloadInvoice = () => {
-    const invoiceContent = `
-SPORTIFY KASHMIR - INVOICE
-================================
-Order ID: ${order?._id?.slice(-8)}
-Date: ${new Date().toLocaleDateString()}
-Total Amount: ₹${order?.orderValue?.toFixed(2)}
-Payment Method: ${order?.paymentMethod === "cod" ? "Cash on Delivery" : "Online Payment"}
-
-Shipping Address:
-${getCustomerName(order)} 
-${getAddress(order).street}
-${getAddress(order).city}, ${getAddress(order).state} - ${getAddress(order).pincode}
-Phone: ${getCustomerPhone(order)}
-
-Thank you for shopping with Sportify Kashmir!
-    `;
-    const blob = new Blob([invoiceContent], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `invoice_${order?._id?.slice(-8)}.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
-    toast.success("Invoice downloaded!");
+    if (!order) return;
+    generateAndDownloadInvoice(order as any);
+    toast.success("Invoice opened — select Save as PDF to download");
   };
 
   const shareOrder = () => {
@@ -193,11 +169,10 @@ Thank you for shopping with Sportify Kashmir!
     }
   };
 
-  // Helper functions to handle both logged-in and guest orders
   const getCustomerName = (order: Order | null) => {
     if (!order) return "Customer";
     if (order.shippingAddress?.firstName)
-      return `${order.shippingAddress.firstName} ${order.shippingAddress.lastName}`;
+      return `${order.shippingAddress.firstName} ${order.shippingAddress.lastName || ""}`.trim();
     if (order.guestAddress?.fullName) return order.guestAddress.fullName;
     return "Guest User";
   };
@@ -278,24 +253,24 @@ Thank you for shopping with Sportify Kashmir!
         <div className="flex justify-between items-center mb-6">
           <Link
             href="/orders"
-            className="inline-flex items-center text-gray-600 hover:text-gray-900"
+            className="inline-flex items-center text-gray-600 hover:text-gray-900 font-medium text-sm"
           >
             ← Back to Orders
           </Link>
           <div className="flex gap-2">
             <button
               onClick={downloadInvoice}
-              className="p-2 text-gray-500 hover:text-gray-700"
-              title="Download Invoice"
+              className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-orange-200 bg-orange-50 text-orange-600 hover:bg-orange-100 text-xs font-semibold transition"
+              title="Download Tax Invoice"
             >
-              <Download className="w-5 h-5" />
+              <Download className="w-4 h-4" /> Download Invoice
             </button>
             <button
               onClick={shareOrder}
-              className="p-2 text-gray-500 hover:text-gray-700"
+              className="p-2 text-gray-500 hover:text-gray-700 rounded-lg border"
               title="Share Order"
             >
-              <Share2 className="w-5 h-5" />
+              <Share2 className="w-4 h-4" />
             </button>
           </div>
         </div>
@@ -473,19 +448,21 @@ Thank you for shopping with Sportify Kashmir!
                 const productPrice = Number(product?.price) || Number(item.price) || 0;
                 const quantity = Number(item.quantity) || 1;
                 const itemTotal = productPrice * quantity;
-                const imgUrl =
-                  product?.productImgUrls?.[0] ||
-                  "https://placehold.co/400x400/EEE/999?text=No+Image";
+                const rawImg = product?.productImgUrls?.[0];
+                const imgUrl = rawImg?.startsWith("http")
+                  ? rawImg
+                  : rawImg
+                  ? `${process.env.NEXT_PUBLIC_API_URL}/uploads/${rawImg}`
+                  : "/placeholder.jpg";
                 return (
                   <div key={idx} className="flex gap-4 p-3 border rounded-xl bg-white shadow-sm">
                     <div className="w-20 h-20 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
                       <img
                         src={imgUrl}
                         alt={productName}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-contain"
                         onError={(e) =>
-                          (e.currentTarget.src =
-                            "https://placehold.co/400x400/EEE/999?text=No+Image")
+                          (e.currentTarget.src = "/placeholder.jpg")
                         }
                       />
                     </div>
@@ -529,52 +506,54 @@ Thank you for shopping with Sportify Kashmir!
         {/* Recommended Products Section */}
         {recommendedProducts.length > 0 && (
           <div className="mt-12">
-            <div className="flex justify-between items-end mb-8">
+            <div className="flex justify-between items-end mb-6">
               <div>
-                <h2 className="text-2xl md:text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-gray-900 to-gray-600">
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
                   You May Also Like
                 </h2>
+                <p className="text-sm text-gray-500">Popular sports gear curated for you</p>
               </div>
-              <Link href="/products" className="group text-orange-600 hover:text-orange-700 flex items-center gap-1 font-bold transition-all">
-                View All <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" />
+              <Link href="/products" className="group text-orange-600 hover:text-orange-700 flex items-center gap-1 font-bold text-sm">
+                View All <ChevronRight size={16} />
               </Link>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {recommendedProducts.map((product) => {
-                const imgUrl = product.productImgUrls?.[0] 
-                  ? `${process.env.NEXT_PUBLIC_API_URL}${product.productImgUrls[0]}`
-                  : "https://placehold.co/400x400/EEE/999?text=No+Image";
+                const rawImg = product.productImgUrls?.[0] || product.images?.[0];
+                const imgUrl = rawImg?.startsWith("http")
+                  ? rawImg
+                  : rawImg
+                  ? `${process.env.NEXT_PUBLIC_API_URL}/uploads/${rawImg}`
+                  : "/placeholder.jpg";
                 const discountedPrice = product.discount 
                   ? product.price - (product.price * product.discount) / 100 
                   : product.price;
 
                 return (
                   <Link key={product._id} href={`/product/${product._id}`} className="group h-full">
-                    <div className="glass rounded-2xl hover:border-orange-200 transition-all duration-300 overflow-hidden group-hover:-translate-y-2 h-full flex flex-col hover:shadow-2xl border-white/60">
-                      <div className="relative aspect-square bg-gray-50 overflow-hidden">
+                    <div className="bg-white rounded-xl border p-3 hover:shadow-lg transition-all flex flex-col h-full">
+                      <div className="relative aspect-square bg-gray-50 rounded-lg overflow-hidden mb-2">
                         <img
                           src={imgUrl}
                           alt={product.name}
-                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out"
+                          className="w-full h-full object-contain group-hover:scale-105 transition-transform"
                         />
                         {product.discount > 0 && (
-                          <div className="absolute top-2 left-2 bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full">
+                          <div className="absolute top-2 left-2 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
                             {product.discount}% OFF
                           </div>
                         )}
                       </div>
-                      <div className="p-4 flex-1 flex flex-col">
-                        <h3 className="font-bold text-gray-900 text-sm mb-1.5 line-clamp-2 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-brand transition-all">
-                          {product.name}
-                        </h3>
-                        <div className="mt-auto flex items-center gap-2 flex-wrap">
-                          <span className="text-lg font-black bg-gradient-brand bg-clip-text text-transparent">
-                            ₹{discountedPrice.toFixed(2)}
-                          </span>
-                          {product.discount > 0 && (
-                            <span className="text-xs font-medium text-gray-400 line-through">₹{product.price.toFixed(2)}</span>
-                          )}
-                        </div>
+                      <h3 className="font-semibold text-gray-900 text-xs sm:text-sm line-clamp-2 mb-1 group-hover:text-orange-600">
+                        {product.name}
+                      </h3>
+                      <div className="mt-auto flex items-center gap-1.5">
+                        <span className="text-sm sm:text-base font-bold text-orange-600">
+                          ₹{Math.round(discountedPrice).toLocaleString("en-IN")}
+                        </span>
+                        {product.discount > 0 && (
+                          <span className="text-[11px] text-gray-400 line-through">₹{product.price}</span>
+                        )}
                       </div>
                     </div>
                   </Link>

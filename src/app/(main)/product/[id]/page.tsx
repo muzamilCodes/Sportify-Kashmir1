@@ -25,6 +25,8 @@ import {
   Zap,
   ThumbsUp,
   Award,
+  Bell,
+  MapPin,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import ProductCard from "@/components/ProductCard";
@@ -57,6 +59,8 @@ interface RelatedProduct {
   isAvailable: boolean;
 }
 
+interface Review { _id: string; rating: number; title?: string; comment: string; createdAt: string; user?: { username?: string } }
+
 export default function ProductDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -71,17 +75,66 @@ export default function ProductDetailPage() {
   const [selectedImage, setSelectedImage] = useState(0);
   const [wishlist, setWishlist] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState<"description" | "details" | "reviews">("description");
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [reviewSummary, setReviewSummary] = useState({ average: 0, count: 0 });
+  const [reviewForm, setReviewForm] = useState({ rating: 5, title: "", comment: "" });
+  const [reviewing, setReviewing] = useState(false);
+  const [pincode, setPincode] = useState("");
+  const [deliveryMessage, setDeliveryMessage] = useState("");
+  const [notifyEmail, setNotifyEmail] = useState("");
+  const [notifying, setNotifying] = useState(false);
 
   useEffect(() => {
     if (productId) {
       fetchProduct();
       fetchRelatedProducts();
+      fetchReviews();
+      const recent = JSON.parse(localStorage.getItem("recentlyViewed") || "[]") as string[];
+      localStorage.setItem("recentlyViewed", JSON.stringify([productId, ...recent.filter((id) => id !== productId)].slice(0, 10)));
     }
     const savedWishlist = localStorage.getItem("wishlist");
     if (savedWishlist) {
       setWishlist(JSON.parse(savedWishlist));
     }
   }, [productId]);
+
+  const fetchReviews = async () => {
+    try {
+      const result = await (await fetch(`${API_URL}/reviews/${productId}`)).json();
+      if (result.success) { setReviews(result.data || []); setReviewSummary(result.summary || { average: 0, count: 0 }); }
+    } catch (error) { console.error("Error fetching reviews:", error); }
+  };
+
+  const checkDelivery = () => {
+    if (!/^\d{6}$/.test(pincode)) { setDeliveryMessage("Enter a valid 6-digit pincode"); return; }
+    const remote = ![19, 18, 17].includes(Number(pincode.slice(0, 2)));
+    const date = new Date(); date.setDate(date.getDate() + (remote ? 5 : 3));
+    setDeliveryMessage(`${remote ? "Delivery available" : "Fast delivery available"} · Expected by ${date.toLocaleDateString("en-IN", { day: "numeric", month: "short" })}`);
+  };
+
+  const submitReview = async () => {
+    const token = localStorage.getItem("token");
+    if (!token) { toast.error("Please login to write a review"); router.push("/login"); return; }
+    if (!reviewForm.comment.trim()) { toast.error("Please write a review"); return; }
+    setReviewing(true);
+    try {
+      const response = await fetch(`${API_URL}/reviews/${productId}`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify(reviewForm) });
+      const result = await response.json();
+      if (!result.success) throw new Error(result.message);
+      toast.success("Review saved"); setReviewForm({ rating: 5, title: "", comment: "" }); await fetchReviews();
+    } catch (error: any) { toast.error(error.message || "Unable to save review"); } finally { setReviewing(false); }
+  };
+
+  const subscribeBackInStock = async () => {
+    if (!notifyEmail) { toast.error("Enter your email address"); return; }
+    setNotifying(true);
+    try {
+      const response = await fetch(`${API_URL}/stock-notifications/${productId}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: notifyEmail }) });
+      const result = await response.json();
+      if (!result.success) throw new Error(result.message);
+      toast.success(result.message); setNotifyEmail("");
+    } catch (error: any) { toast.error(error.message || "Unable to subscribe"); } finally { setNotifying(false); }
+  };
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 
@@ -460,8 +513,8 @@ export default function ProductDetailPage() {
                   <Star className="w-5 h-5 fill-yellow-400 text-yellow-400" />
                   <Star className="w-5 h-5 text-gray-300" />
                 </div>
-                <span className="text-sm text-gray-500">(128 reviews)</span>
-                <button className="text-sm text-blue-600 hover:text-blue-700">Write a review</button>
+                <span className="text-sm text-gray-500">({reviewSummary.average || "New"} · {reviewSummary.count} reviews)</span>
+                <button onClick={() => setActiveTab("reviews")} className="text-sm text-blue-600 hover:text-blue-700">Write a review</button>
               </div>
 
               {/* Price */}
@@ -495,6 +548,12 @@ export default function ProductDetailPage() {
                   <span className="text-sm text-yellow-700">
                     Only {product.stock} items left in stock! Order soon.
                   </span>
+                </div>
+              )}
+              {product.stock === 0 && (
+                <div className="mb-4 rounded-lg border border-orange-200 bg-orange-50 p-3">
+                  <div className="flex items-center gap-2 text-sm font-medium text-orange-700"><Bell className="h-4 w-4" /> Get notified when back in stock</div>
+                  <div className="mt-2 flex gap-2"><input value={notifyEmail} onChange={(e) => setNotifyEmail(e.target.value)} type="email" placeholder="your@email.com" className="min-w-0 flex-1 rounded-lg border px-3 py-2 text-sm" /><button onClick={subscribeBackInStock} disabled={notifying} className="rounded-lg bg-orange-500 px-3 py-2 text-sm font-semibold text-white disabled:opacity-50">Notify me</button></div>
                 </div>
               )}
 
@@ -604,6 +663,8 @@ export default function ProductDetailPage() {
 
               {/* Delivery Info */}
               <div className="border-t pt-6 space-y-3">
+                <div className="flex flex-wrap items-center gap-2 text-sm text-gray-600"><MapPin className="w-5 h-5 text-orange-600" /><span>Check delivery:</span><input value={pincode} onChange={(e) => setPincode(e.target.value.replace(/\D/g, "").slice(0, 6))} placeholder="Pincode" className="w-24 rounded border px-2 py-1" /><button onClick={checkDelivery} className="rounded bg-gray-900 px-3 py-1 text-xs font-semibold text-white">Check</button></div>
+                {deliveryMessage && <p className="ml-8 text-xs font-medium text-green-700">{deliveryMessage}</p>}
                 <div className="flex items-center gap-3 text-sm text-gray-600">
                   <Truck className="w-5 h-5 text-green-600" />
                   <span>Free delivery on orders above ₹999</span>
@@ -653,7 +714,7 @@ export default function ProductDetailPage() {
                     : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
                 }`}
               >
-                Reviews (128)
+                Reviews ({reviewSummary.count})
               </button>
             </div>
           </div>
@@ -712,13 +773,12 @@ export default function ProductDetailPage() {
               </div>
             )}
             {activeTab === "reviews" && (
-              <div className="text-center py-8">
-                <Star className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">No reviews yet</h3>
-                <p className="text-gray-600 dark:text-gray-400 mb-4 text-sm">Be the first to review this product</p>
-                <button className="bg-orange-500 text-white px-6 py-2 rounded-lg text-[14px] font-semibold hover:bg-orange-600 transition">
-                  Write a Review
-                </button>
+              <div className="space-y-6">
+                <div className="grid gap-4 md:grid-cols-[180px_1fr]">
+                  <div className="rounded-xl bg-orange-50 p-4 text-center"><div className="text-3xl font-bold text-orange-600">{reviewSummary.average || "—"}</div><div className="mt-1 text-amber-500">★★★★★</div><div className="text-xs text-gray-500">{reviewSummary.count} verified reviews</div></div>
+                  <div className="rounded-xl border p-4"><h3 className="mb-3 font-semibold">Write a review</h3><div className="mb-2 flex gap-1">{[1, 2, 3, 4, 5].map((star) => <button key={star} onClick={() => setReviewForm({ ...reviewForm, rating: star })} aria-label={`${star} stars`}><Star className={`h-5 w-5 ${star <= reviewForm.rating ? "fill-amber-400 text-amber-400" : "text-gray-300"}`} /></button>)}</div><input value={reviewForm.title} onChange={(e) => setReviewForm({ ...reviewForm, title: e.target.value })} placeholder="Review title (optional)" className="mb-2 w-full rounded border px-3 py-2 text-sm" /><textarea value={reviewForm.comment} onChange={(e) => setReviewForm({ ...reviewForm, comment: e.target.value })} placeholder="Share your experience" rows={3} className="mb-2 w-full rounded border px-3 py-2 text-sm" /><button onClick={submitReview} disabled={reviewing} className="rounded-lg bg-orange-500 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{reviewing ? "Saving…" : "Submit review"}</button></div>
+                </div>
+                {reviews.length === 0 ? <div className="py-6 text-center text-sm text-gray-500">No reviews yet. Be the first to review this product.</div> : reviews.map((review) => <article key={review._id} className="border-b pb-4"><div className="flex items-center gap-2"><span className="font-semibold">{review.user?.username || "Customer"}</span><span className="text-amber-500">{"★".repeat(review.rating)}{"☆".repeat(5 - review.rating)}</span></div>{review.title && <h4 className="mt-1 font-medium">{review.title}</h4>}<p className="mt-1 text-sm text-gray-600">{review.comment}</p><time className="mt-2 block text-xs text-gray-400">{new Date(review.createdAt).toLocaleDateString("en-IN")}</time></article>)}
               </div>
             )}
           </div>

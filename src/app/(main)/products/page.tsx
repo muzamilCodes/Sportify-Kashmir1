@@ -440,7 +440,7 @@ function ProductsContent() {
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4 md:gap-4.5">
             {filteredProducts.map((product) => {
               const discountedPrice = calculateDiscountedPrice(product.price, product.discount);
-              const hasDiscount = product.discount && product.discount > 0;
+              const hasDiscount = Boolean(product.discount && product.discount > 0);
               
               return (
                 <ProductCard

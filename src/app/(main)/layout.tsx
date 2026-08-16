@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import CompareBar from "@/components/CompareBar";
 
 export default function MainLayout({
   children,
@@ -18,6 +19,7 @@ export default function MainLayout({
   return (
     <main className="min-h-screen bg-[var(--color-bg-primary)] transition-colors duration-300 has-bottom-nav md:pb-0">
       {children}
+      <CompareBar />
     </main>
   );
 }

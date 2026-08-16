@@ -1,11 +1,11 @@
-// app/orders/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Package, Eye, Loader2, Calendar, IndianRupee, Truck, Clock, CheckCircle, XCircle, ChevronRight } from "lucide-react";
+import { Package, Loader2, Calendar, IndianRupee, Truck, Clock, CheckCircle, XCircle, ChevronRight, Download } from "lucide-react";
 import toast from "react-hot-toast";
+import { generateAndDownloadInvoice } from "@/lib/invoice";
 
 interface Order {
   _id: string;
@@ -19,6 +19,9 @@ interface Order {
   }>;
   orderValue: number;
   orderStatus: string;
+  paymentMethod?: string;
+  shippingAddress?: any;
+  guestAddress?: any;
   createdAt: string;
 }
 
@@ -100,7 +103,7 @@ export default function OrdersPage() {
           <Package className="w-12 h-12 text-gray-400" />
         </div>
         <h2 className="text-2xl font-semibold text-gray-700">No orders yet</h2>
-        <p className="text-gray-500 mt-2 text-center">Looks like you haven't placed any order.</p>
+        <p className="text-gray-500 mt-2 text-center">Looks like you haven&apos;t placed any order.</p>
         <Link href="/products" className="mt-6 bg-orange-500 hover:bg-orange-600 text-white px-6 py-2.5 rounded-xl font-medium transition shadow-md">
           Start Shopping
         </Link>
@@ -115,7 +118,7 @@ export default function OrdersPage() {
           <h1 className="text-3xl md:text-4xl font-bold text-gray-800 flex items-center gap-2">
             📦 My Orders
           </h1>
-          <p className="text-gray-500 mt-1">Track and manage all your orders</p>
+          <p className="text-gray-500 mt-1">Track and manage all your orders & download tax invoices</p>
         </div>
 
         <div className="space-y-5">
@@ -156,20 +159,29 @@ export default function OrdersPage() {
                     </div>
                   </div>
 
-                  {/* Product preview */}
-                  <div className="flex items-center gap-4 mt-4">
+                  {/* Product preview & Actions */}
+                  <div className="flex items-center gap-4 mt-4 flex-wrap">
                     <div className="w-16 h-16 rounded-xl overflow-hidden bg-gray-100 flex-shrink-0 border border-gray-200">
                       <img src={productImage} alt={productName} className="w-full h-full object-cover" />
                     </div>
-                    <div className="flex-1 min-w-0">
+                    <div className="flex-1 min-w-[200px]">
                       <p className="font-medium text-gray-800 truncate">{productName}</p>
                       <p className="text-sm text-gray-500">{order.products?.length || 1} item(s)</p>
                     </div>
-                    <Link href={`/orders/${order._id}`}>
-                      <button className="flex items-center gap-1 text-sm bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded-full transition">
-                        View Details <ChevronRight className="w-4 h-4" />
+                    <div className="flex items-center gap-2 ml-auto">
+                      <button
+                        onClick={() => generateAndDownloadInvoice(order as any)}
+                        className="flex items-center gap-1 text-xs font-semibold bg-orange-50 hover:bg-orange-100 text-orange-600 px-3.5 py-2 rounded-full transition border border-orange-200"
+                        title="Download Tax Invoice Receipt"
+                      >
+                        <Download className="w-3.5 h-3.5" /> Invoice
                       </button>
-                    </Link>
+                      <Link href={`/orders/${order._id}`}>
+                        <button className="flex items-center gap-1 text-sm bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded-full transition font-medium">
+                          View Details <ChevronRight className="w-4 h-4" />
+                        </button>
+                      </Link>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -179,4 +191,4 @@ export default function OrdersPage() {
       </div>
     </div>
   );
-} 
+}

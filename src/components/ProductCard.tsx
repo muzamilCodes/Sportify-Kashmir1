@@ -1,6 +1,6 @@
 "use client";
 
-import { ShoppingBag, ShoppingCart, Zap, Star, Heart, Loader2 } from "lucide-react";
+import { ShoppingBag, ShoppingCart, Zap, Star, Heart, Loader2, Eye, GitCompare } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -50,6 +50,8 @@ export default function ProductCard({
   const [isAddingToCart, setIsAddingToCart] = useState(false);
   const [isBuyingNow, setIsBuyingNow] = useState(false);
   const [localWishlist, setLocalWishlist] = useState<string[]>(wishlist);
+  const [quickView, setQuickView] = useState(false);
+  const [compareSelected, setCompareSelected] = useState(false);
 
   const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000").replace(/\/$/, "");
 
@@ -73,6 +75,20 @@ export default function ProductCard({
   };
 
   const finalImageUrl = resolveImageUrl(rawImage);
+
+  const toggleCompare = (e: React.MouseEvent) => {
+    e.preventDefault(); e.stopPropagation();
+    const current = JSON.parse(localStorage.getItem("compareProducts") || "[]") as string[];
+    if (current.includes(product._id)) {
+      localStorage.setItem("compareProducts", JSON.stringify(current.filter((id) => id !== product._id)));
+      window.dispatchEvent(new Event("compareUpdated"));
+      setCompareSelected(false); toast.success("Removed from comparison"); return;
+    }
+    if (current.length >= 4) { toast.error("Compare up to 4 products"); return; }
+    localStorage.setItem("compareProducts", JSON.stringify([...current, product._id]));
+    window.dispatchEvent(new Event("compareUpdated"));
+    setCompareSelected(true); toast.success("Added to comparison");
+  };
 
   const isAvailable = product.isAvailable !== false && (product.stock === undefined || product.stock > 0);
   const stockCount = product.stock ?? 10;
@@ -246,6 +262,8 @@ export default function ProductCard({
               className={isWishlisted ? "fill-red-500 text-red-500" : ""}
             />
           </button>
+          <button type="button" onClick={toggleCompare} aria-label="Compare product" className={`absolute top-11 right-2 rounded-full p-1.5 shadow ${compareSelected ? "bg-orange-500 text-white" : "bg-white/90 text-gray-500"}`}><GitCompare size={15} /></button>
+          <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setQuickView(true); }} aria-label="Quick view" className="absolute bottom-2 right-2 rounded-full bg-white/90 p-1.5 text-gray-600 shadow hover:text-orange-600"><Eye size={15} /></button>
 
           {/* Out of Stock Overlay */}
           {!isAvailable && (
@@ -345,6 +363,7 @@ export default function ProductCard({
           </button>
         </div>
       </div>
+      {quickView && <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4" onClick={() => setQuickView(false)}><div className="w-full max-w-lg rounded-2xl bg-white p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}><div className="flex gap-4"><img src={finalImageUrl} alt={product.name} loading="lazy" className="h-36 w-36 rounded-xl bg-gray-50 object-contain" /><div><h3 className="text-lg font-semibold text-gray-900">{product.name}</h3><p className="mt-2 text-xl font-bold text-orange-600">₹{Math.round(resolvedDiscountPrice).toLocaleString("en-IN")}</p><p className="mt-2 line-clamp-3 text-sm text-gray-600">{product.description || "Premium sports gear from Sportify Kashmir."}</p></div></div><div className="mt-5 flex gap-2"><Link href={`/product/${product._id}`} onClick={() => setQuickView(false)} className="flex-1 rounded-lg border px-4 py-2 text-center text-sm font-semibold">View details</Link><button onClick={onAddToCart} disabled={!isAvailable} className="flex-1 rounded-lg bg-orange-500 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">Add to cart</button></div></div></div>}
     </div>
   );
 }
