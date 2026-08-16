@@ -16,6 +16,8 @@ const nextConfig = {
   turbopack: {},
   compress: true,
   images: {
+    formats: ['image/avif', 'image/webp'],
+    minimumCacheTTL: 86400,
     remotePatterns: [
       {
         protocol: 'http',
@@ -27,7 +29,12 @@ const nextConfig = {
         protocol: 'https',
         hostname: 'sportify-kashmir1.onrender.com',
         pathname: '/uploads/**',
-      }
+      },
+      {
+        protocol: 'https',
+        hostname: 'res.cloudinary.com',
+        pathname: '/**',
+      },
     ],
   },
   async headers() {

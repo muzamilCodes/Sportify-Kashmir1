@@ -136,42 +136,41 @@ export default function NewArrivalsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-16">
-      {/* Hero Section */}
-      <div className="bg-gradient-to-br from-blue-900 via-indigo-800 to-purple-900 py-20 relative overflow-hidden">
-        {/* Background Effects */}
-        <div className="absolute top-0 right-0 w-96 h-96 bg-white opacity-10 rounded-full blur-3xl -mr-20 -mt-20"></div>
-        <div className="absolute bottom-0 left-0 w-96 h-96 bg-blue-500 opacity-20 rounded-full blur-3xl -ml-20 -mb-20"></div>
+    <div className="min-h-screen bg-[var(--color-bg-primary)] pb-16">
+      {/* Hero Section: 30–36px Heading */}
+      <div className="bg-gradient-to-r from-orange-600 via-red-600 to-pink-600 py-12 md:py-16 relative overflow-hidden text-white">
+        <div className="absolute top-0 right-0 w-80 h-80 bg-white/10 rounded-full blur-3xl -mr-20 -mt-20"></div>
+        <div className="absolute bottom-0 left-0 w-80 h-80 bg-orange-400/20 rounded-full blur-3xl -ml-20 -mb-20"></div>
         
         <div className="container mx-auto px-4 relative z-10 text-center">
-          <div className="inline-flex items-center justify-center p-3 bg-white/10 rounded-2xl backdrop-blur-md mb-6 border border-white/20 shadow-xl">
-            <Sparkles className="w-8 h-8 text-yellow-400 animate-pulse" />
+          <div className="inline-flex items-center justify-center p-2.5 bg-white/10 rounded-xl backdrop-blur-md mb-4 border border-white/20 shadow-md">
+            <Sparkles className="w-6 h-6 text-yellow-300 animate-pulse" />
           </div>
-          <h1 className="text-4xl md:text-6xl font-extrabold text-white mb-6 tracking-tight">
-            New <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-500">Arrivals</span>
+          <h1 className="text-[28px] sm:text-[32px] md:text-[36px] font-extrabold mb-3 tracking-tight">
+            New Arrivals
           </h1>
-          <p className="text-xl text-blue-100 max-w-2xl mx-auto font-medium">
-            Discover the latest sports gear, fresh off the production line. Elevate your game with our newest premium equipment.
+          <p className="text-[14px] sm:text-[16px] text-orange-100 max-w-xl mx-auto leading-relaxed">
+            Discover the latest sports gear & equipment fresh in stock across Kashmir
           </p>
         </div>
       </div>
 
-      <div className="container mx-auto px-4 -mt-10 relative z-20">
-        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 mb-8 flex flex-col md:flex-row justify-between items-center gap-4">
+      <div className="container mx-auto px-3 sm:px-4 -mt-6 relative z-20">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 p-4 sm:p-5 mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">Fresh Drops</h2>
-            <p className="text-gray-500 mt-1">Showing the latest {products.length} products</p>
+            <h2 className="text-[22px] sm:text-[25px] md:text-[28px] font-bold text-gray-900 dark:text-white">Fresh Drops</h2>
+            <p className="text-[13px] sm:text-[14px] text-gray-500 dark:text-gray-400 mt-0.5">Showing the latest {products.length} products</p>
           </div>
         </div>
 
-        {/* Products Grid */}
+        {/* Products Grid: 2 cols on mobile, 3 sm, 4 md/lg, 5 xl */}
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-20">
-            <div className="animate-spin rounded-full h-12 w-12 border-4 border-orange-200 border-t-orange-600 mb-4"></div>
-            <p className="text-gray-500 font-medium">Loading new arrivals...</p>
+          <div className="flex flex-col items-center justify-center py-16">
+            <div className="animate-spin rounded-full h-10 w-10 border-3 border-orange-200 border-t-orange-600 mb-3"></div>
+            <p className="text-sm text-gray-500 font-medium">Loading new arrivals...</p>
           </div>
         ) : products.length > 0 ? (
-          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4 md:gap-4.5">
             {products.map((product) => {
               const discountedPrice = calculateDiscountedPrice(product.price, product.discount);
               const hasDiscount = !!(product.discount && product.discount > 0);
@@ -191,15 +190,15 @@ export default function NewArrivalsPage() {
             })}
           </div>
         ) : (
-          <div className="text-center py-20 bg-white rounded-3xl shadow-sm border border-gray-100">
-            <div className="w-24 h-24 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-6">
-              <Sparkles className="w-10 h-10 text-gray-400" />
+          <div className="text-center py-16 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700">
+            <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Sparkles className="w-8 h-8 text-gray-400" />
             </div>
-            <h3 className="text-2xl font-bold text-gray-900 mb-3">No New Arrivals Yet</h3>
-            <p className="text-gray-500 max-w-md mx-auto mb-8 text-lg">
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">No New Arrivals Yet</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400 max-w-sm mx-auto mb-6">
               Check back soon for the latest sports equipment and apparel.
             </p>
-            <Link href="/products" className="inline-flex bg-gray-900 text-white px-8 py-3.5 rounded-full font-bold hover:bg-orange-600 transition-all shadow-lg hover:shadow-orange-500/25 hover:-translate-y-1">
+            <Link href="/products" className="inline-flex bg-gray-900 dark:bg-white text-white dark:text-gray-900 px-6 py-2.5 rounded-full text-[14px] font-semibold hover:bg-orange-600 dark:hover:bg-orange-500 transition shadow-xs">
               Browse All Products
             </Link>
           </div>

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import EmptyState from "@/components/shared/EmptyState";
+import ProductCard from "@/components/ProductCard";
 
 interface BrandMeta {
   name: string;
@@ -31,6 +32,7 @@ export default function BrandDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [brand, setBrand] = useState<BrandMeta | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
+  const [wishlist, setWishlist] = useState<string[]>([]);
 
   const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000").replace(/\/$/, "");
 
@@ -54,6 +56,17 @@ export default function BrandDetailPage() {
     if (url.startsWith("http")) return url;
     return `${API_URL}/uploads/${url}`;
   };
+
+  useEffect(() => {
+    const savedWishlist = localStorage.getItem("wishlist");
+    if (savedWishlist) {
+      try {
+        setWishlist(JSON.parse(savedWishlist));
+      } catch {
+        setWishlist([]);
+      }
+    }
+  }, []);
 
   useEffect(() => {
     if (!slug) return;
@@ -102,21 +115,15 @@ export default function BrandDetailPage() {
         });
 
         setProducts(matchedProducts);
-
-        if (!matchedBrand && matchedProducts.length === 0) {
-          setError("This brand page is available, but we could not find any matching product data yet.");
-        }
-      } catch (err) {
-        console.error("Error loading brand page:", err);
-        setError("We couldn't load this brand right now. Please try again.");
-        setProducts([]);
+      } catch (err: any) {
+        setError(err.message || "Failed to load brand details.");
       } finally {
         setLoading(false);
       }
     };
 
     fetchBrandPage();
-  }, [API_URL, slug]);
+  }, [slug]);
 
   const calculateDiscountedPrice = (price: number, discount?: number) => {
     if (discount && discount > 0) {
@@ -127,63 +134,67 @@ export default function BrandDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <Loader2 className="h-12 w-12 animate-spin text-orange-500" />
+      <div className="flex min-h-screen items-center justify-center bg-[var(--color-bg-primary)]">
+        <Loader2 className="h-10 w-10 animate-spin text-orange-500" />
       </div>
     );
   }
 
-  if (error) {
+  if (error || !brand) {
     return (
-      <EmptyState
-        variant="products"
-        title={brand ? `${brand.name} is not fully set up yet` : "Brand not available"}
-        description={error}
-        actionLabel="Back to Brands"
-        actionHref="/brands"
-      />
+      <div className="min-h-screen bg-[var(--color-bg-primary)] py-12">
+        <div className="container mx-auto max-w-4xl px-4">
+          <EmptyState
+            variant="products"
+            title="Brand Not Found"
+            description={error || "We could not find the requested brand page."}
+            actionLabel="View all brands"
+            actionHref="/brands"
+          />
+        </div>
+      </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-10">
-      <div className="container mx-auto max-w-6xl px-4">
-        <div className="mb-8 flex items-center justify-between gap-4">
+    <div className="min-h-screen bg-[var(--color-bg-primary)] py-6 sm:py-8">
+      <div className="container mx-auto max-w-7xl px-3 sm:px-4">
+        <div className="mb-6 flex items-center justify-between gap-3">
           <Link
             href="/brands"
-            className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
+            className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3.5 py-1.5 text-[13px] sm:text-[14px] font-semibold text-gray-700 dark:text-gray-300 transition hover:bg-gray-50"
           >
             <ArrowLeft className="h-4 w-4" />
             Back to Brands
           </Link>
           <Link
             href="/products"
-            className="inline-flex items-center gap-2 rounded-full bg-orange-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-orange-600"
+            className="inline-flex items-center gap-1.5 rounded-full bg-orange-500 px-3.5 py-1.5 text-[13px] sm:text-[14px] font-semibold text-white transition hover:bg-orange-600 shadow-xs"
           >
             <ShoppingBag className="h-4 w-4" />
-            Browse All Products
+            Browse All
           </Link>
         </div>
 
-        <section className="overflow-hidden rounded-[2rem] border border-white/40 bg-gradient-to-br from-orange-500 via-red-500 to-pink-500 p-8 text-white shadow-xl">
-          <div className="max-w-3xl">
-            <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-sm font-semibold backdrop-blur">
-              <Tag className="h-4 w-4" />
-              Official Brand Page
+        <section className="overflow-hidden rounded-2xl border border-white/20 bg-gradient-to-r from-orange-500 via-red-500 to-pink-500 p-6 sm:p-8 text-white shadow-md">
+          <div className="max-w-2xl">
+            <div className="mb-2.5 inline-flex items-center gap-1.5 rounded-full bg-white/20 px-3 py-0.5 text-xs font-bold backdrop-blur-sm">
+              <Tag className="h-3.5 w-3.5" />
+              Official Brand
             </div>
-            <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl">{brand?.name || formatLabel(slug)}</h1>
-            <p className="mt-4 max-w-2xl text-lg text-white/90">{brand?.description}</p>
-            <div className="mt-6 flex flex-wrap items-center gap-4 text-sm font-semibold">
-              <span className="inline-flex items-center gap-1 rounded-full bg-white/15 px-3 py-1 backdrop-blur">
-                <Star className="h-4 w-4 fill-yellow-300 text-yellow-300" />
+            <h1 className="text-[26px] sm:text-[32px] md:text-[36px] font-extrabold tracking-tight">{brand?.name || formatLabel(slug)}</h1>
+            <p className="mt-2 text-[14px] sm:text-[15px] text-white/90 leading-relaxed">{brand?.description}</p>
+            <div className="mt-4 flex flex-wrap items-center gap-3 text-xs sm:text-sm font-semibold">
+              <span className="inline-flex items-center gap-1 rounded-full bg-white/20 px-2.5 py-0.5 backdrop-blur-sm">
+                <Star className="h-3.5 w-3.5 fill-yellow-300 text-yellow-300" />
                 {brand?.rating?.toFixed(1) || "4.5"}
               </span>
-              <span className="inline-flex items-center gap-1 rounded-full bg-white/15 px-3 py-1 backdrop-blur">
-                <ShoppingBag className="h-4 w-4" />
+              <span className="inline-flex items-center gap-1 rounded-full bg-white/20 px-2.5 py-0.5 backdrop-blur-sm">
+                <ShoppingBag className="h-3.5 w-3.5" />
                 {products.length} Products
               </span>
               {brand?.discount ? (
-                <span className="inline-flex items-center gap-1 rounded-full bg-white/15 px-3 py-1 backdrop-blur">
+                <span className="inline-flex items-center gap-1 rounded-full bg-white/20 px-2.5 py-0.5 backdrop-blur-sm">
                   Up to {brand.discount}% OFF
                 </span>
               ) : null}
@@ -191,51 +202,36 @@ export default function BrandDetailPage() {
           </div>
         </section>
 
-        <div className="mt-10">
-          <div className="mb-6 flex items-end justify-between gap-4">
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900">Products from {brand?.name || formatLabel(slug)}</h2>
-              <p className="mt-1 text-gray-600">A focused collection from this brand.</p>
-            </div>
+        <div className="mt-8">
+          <div className="mb-4">
+            <h2 className="text-[22px] sm:text-[25px] md:text-[28px] font-bold text-gray-900 dark:text-white">
+              Products from {brand?.name || formatLabel(slug)}
+            </h2>
+            <p className="text-[13px] sm:text-[14px] text-gray-500 dark:text-gray-400 mt-0.5">Explore gear & equipment from this brand.</p>
           </div>
 
           {products.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-gray-300 bg-white p-10 text-center">
-              <p className="text-gray-600">No products are linked to this brand yet.</p>
-              <Link href="/products" className="mt-4 inline-flex rounded-full bg-orange-500 px-5 py-2.5 font-semibold text-white transition hover:bg-orange-600">
+            <div className="rounded-2xl border border-dashed border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 p-8 text-center">
+              <p className="text-sm text-gray-600 dark:text-gray-400">No products are linked to this brand yet.</p>
+              <Link href="/products" className="mt-3 inline-flex rounded-full bg-orange-500 px-5 py-2 text-[14px] font-semibold text-white transition hover:bg-orange-600">
                 Explore all products
               </Link>
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4 md:gap-4.5">
               {products.map((product) => {
                 const discountedPrice = calculateDiscountedPrice(product.price, product.discount);
                 const hasDiscount = !!(product.discount && product.discount > 0);
 
                 return (
-                  <Link key={product._id} href={`/product/${product._id}`} className="group">
-                    <article className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
-                      <div className="aspect-square bg-gray-100">
-                        <img
-                          src={getImageUrl(product.productImgUrls?.[0] || "")}
-                          alt={product.name}
-                          className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
-                        />
-                      </div>
-                      <div className="p-4">
-                        <h3 className="line-clamp-2 min-h-[44px] font-semibold text-gray-900 group-hover:text-orange-600">
-                          {product.name}
-                        </h3>
-                        <div className="mt-2 flex items-center gap-2">
-                          <span className="text-lg font-bold text-orange-600">₹{discountedPrice.toFixed(2)}</span>
-                          {hasDiscount && (
-                            <span className="text-xs text-gray-400 line-through">₹{product.price.toFixed(2)}</span>
-                          )}
-                        </div>
-                        <p className="mt-2 text-xs text-gray-500">{product.stock > 0 ? `${product.stock} in stock` : "Out of stock"}</p>
-                      </div>
-                    </article>
-                  </Link>
+                  <ProductCard
+                    key={product._id}
+                    product={product as any}
+                    discountedPrice={discountedPrice}
+                    hasDiscount={hasDiscount}
+                    wishlist={wishlist}
+                    getImageUrl={getImageUrl}
+                  />
                 );
               })}
             </div>

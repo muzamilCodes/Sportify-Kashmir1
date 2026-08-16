@@ -19,37 +19,49 @@ function SkeletonBlock({ className = "" }: { className?: string }) {
 /** Skeleton matching the ProductCard layout */
 export function ProductCardSkeleton() {
   return (
-    <div className="surface-card rounded-2xl overflow-hidden animate-pulse">
+    <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden animate-pulse flex flex-col justify-between h-full">
       {/* Image placeholder */}
       <SkeletonBlock className="aspect-square w-full !rounded-none" />
 
       {/* Content */}
-      <div className="p-4 space-y-3">
-        {/* Title */}
-        <SkeletonBlock className="h-4 w-3/4" />
-        <SkeletonBlock className="h-4 w-1/2" />
+      <div className="p-3 sm:p-3.5 space-y-2.5 flex-1 flex flex-col justify-between">
+        <div className="space-y-2">
+          {/* Title */}
+          <SkeletonBlock className="h-4 w-5/6 !rounded" />
+          <SkeletonBlock className="h-3.5 w-3/5 !rounded" />
 
-        {/* Stars */}
-        <div className="flex gap-1">
-          {[...Array(5)].map((_, i) => (
-            <SkeletonBlock key={i} className="w-3 h-3 !rounded-full" />
-          ))}
+          {/* Stars & Reviews */}
+          <div className="flex items-center gap-1.5 pt-0.5">
+            <div className="flex gap-0.5">
+              {[...Array(5)].map((_, i) => (
+                <SkeletonBlock key={i} className="w-3 h-3 !rounded-full" />
+              ))}
+            </div>
+            <SkeletonBlock className="h-3 w-8 !rounded" />
+          </div>
         </div>
 
         {/* Price */}
-        <SkeletonBlock className="h-6 w-1/3" />
+        <div className="pt-1">
+          <SkeletonBlock className="h-5 w-24 !rounded" />
+        </div>
+      </div>
 
-        {/* Button */}
-        <SkeletonBlock className="h-9 w-full !rounded-lg" />
+      {/* Action Buttons Skeleton */}
+      <div className="px-3 pb-3 sm:px-3.5 sm:pb-3.5 pt-0">
+        <div className="grid grid-cols-2 gap-1.5">
+          <SkeletonBlock className="h-8 w-full !rounded-lg" />
+          <SkeletonBlock className="h-8 w-full !rounded-lg" />
+        </div>
       </div>
     </div>
   );
 }
 
-/** Grid of product card skeletons */
-export function ProductGridSkeleton({ count = 8 }: { count?: number }) {
+/** Grid of product card skeletons: 2 cols on mobile, 3 on sm, 4 on md/lg, 5 on xl */
+export function ProductGridSkeleton({ count = 10 }: { count?: number }) {
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4 md:gap-4.5">
       {[...Array(count)].map((_, i) => (
         <ProductCardSkeleton key={i} />
       ))}
@@ -96,3 +108,4 @@ export function CategoryCardSkeleton() {
 }
 
 export default SkeletonBlock;
+

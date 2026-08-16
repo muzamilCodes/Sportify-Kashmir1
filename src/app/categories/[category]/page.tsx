@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
+import ProductCard from "@/components/ProductCard";
 
 interface Product {
   _id: string;
@@ -442,69 +443,23 @@ export default function CategoryPage() {
             </button>
           </div>
         ) : viewMode === "grid" ? (
-          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+          /* 2 cols on mobile, 3 on sm, 4 on md/lg, 5 on xl */
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4 md:gap-4.5">
             {filteredProducts.map((product) => {
               const discountedPrice = calculateDiscountedPrice(product.price, product.discount);
-              const hasDiscount = product.discount && product.discount > 0;
+              const hasDiscount = !!(product.discount && product.discount > 0);
               
               return (
-                <Link key={product._id} href={`/product/${product._id}`} className="group">
-                  <div className="bg-white rounded-lg sm:rounded-xl shadow-sm border hover:shadow-lg transition-all duration-300 overflow-hidden group-hover:-translate-y-1 h-full flex flex-col">
-                    <div className="relative aspect-square bg-gray-100 overflow-hidden">
-                      {product.productImgUrls?.[0] ? (
-                        <img
-                          src={getImageUrl(product.productImgUrls[0])}
-                          alt={product.name}
-                          className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">No image</div>
-                      )}
-                      
-                      {hasDiscount && (
-                        <div className="absolute top-2 left-2 bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full">
-                          {product.discount}%
-                        </div>
-                      )}
-
-                      <button
-                        onClick={(e) => toggleWishlist(product._id, e)}
-                        className="absolute top-2 right-2 p-1.5 bg-white rounded-full shadow-md"
-                      >
-                        <Heart size={14} className={wishlist.includes(product._id) ? "fill-red-500 text-red-500" : "text-gray-500"} />
-                      </button>
-
-                      {product.stock < 5 && product.stock > 0 && (
-                        <div className="absolute bottom-2 left-2 bg-yellow-500 text-white text-xs px-1.5 py-0.5 rounded-full">
-                          Only {product.stock}
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="p-2.5 sm:p-3 flex-1 flex flex-col">
-                      <h3 className="font-semibold text-gray-900 text-xs sm:text-sm mb-1 line-clamp-2 min-h-[32px] group-hover:text-orange-600">
-                        {product.name}
-                      </h3>
-                      
-                      <div className="flex items-center gap-1.5 mb-2 flex-wrap">
-                        <span className="text-sm sm:text-base font-bold text-orange-600">₹{discountedPrice.toFixed(2)}</span>
-                        {hasDiscount && (
-                          <span className="text-xs text-gray-400 line-through">₹{product.price.toFixed(2)}</span>
-                        )}
-                      </div>
-
-                      <button
-                        onClick={(e) => handleAddToCart(product._id, e)}
-                        disabled={!product.isAvailable || product.stock === 0}
-                        className="w-full bg-gray-900 text-white py-1.5 text-xs sm:text-sm rounded-lg font-medium hover:bg-orange-600 transition disabled:opacity-50 flex items-center justify-center gap-1 mt-auto"
-                      >
-                        <ShoppingCart size={14} />
-                        <span className="hidden xs:inline">Add to Cart</span>
-                        <span className="xs:hidden">Cart</span>
-                      </button>
-                    </div>
-                  </div>
-                </Link>
+                <ProductCard
+                  key={product._id}
+                  product={product as any}
+                  discountedPrice={discountedPrice}
+                  hasDiscount={hasDiscount}
+                  wishlist={wishlist}
+                  getImageUrl={getImageUrl}
+                  handleAddToCart={handleAddToCart}
+                  toggleWishlist={toggleWishlist}
+                />
               );
             })}
           </div>

@@ -169,6 +169,50 @@
     transition: background-color var(--transition-base), box-shadow var(--transition-base);
   }
 
+  /* ─── Typography Design Scale ────────────────────────────────── */
+  /* Main Page Headings: 30–36px */
+  .heading-page {
+    font-size: clamp(1.875rem, 4vw, 2.25rem); /* 30px to 36px */
+    line-height: 1.2;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+  }
+
+  /* Section Headings: 24–28px */
+  .heading-section {
+    font-size: clamp(1.5rem, 3vw, 1.75rem); /* 24px to 28px */
+    line-height: 1.25;
+    font-weight: 700;
+    letter-spacing: -0.015em;
+  }
+
+  /* Product Title: 15–16px */
+  .product-title {
+    font-size: clamp(0.9375rem, 2vw, 1rem); /* 15px to 16px */
+    line-height: 1.35;
+    font-weight: 600;
+  }
+
+  /* Product Price: 18–22px */
+  .product-price {
+    font-size: clamp(1.125rem, 2.5vw, 1.375rem); /* 18px to 22px */
+    line-height: 1.2;
+    font-weight: 700;
+  }
+
+  /* Body Text: 14–16px */
+  .body-text {
+    font-size: clamp(0.875rem, 1.5vw, 1rem); /* 14px to 16px */
+    line-height: 1.5;
+  }
+
+  /* Compact Button & Navbar Text: 14–15px */
+  .btn-text, .nav-text {
+    font-size: clamp(0.875rem, 1.2vw, 0.9375rem); /* 14px to 15px */
+    line-height: 1.4;
+    font-weight: 500;
+  }
+
   /* Hide scrollbar but keep functionality */
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
