@@ -315,10 +315,26 @@ exports.isAvailOrNot = async (req, res) => {
 
 exports.getAllProducts = async (req, res) => {
   try {
-    const products = await Product.find().populate('category', 'name').populate('brand', 'name');
+    const hasPagination = req.query.page !== undefined || req.query.limit !== undefined;
+    const page = Math.max(Number.parseInt(req.query.page, 10) || 1, 1);
+    const limit = Math.min(Math.max(Number.parseInt(req.query.limit, 10) || 24, 1), 100);
+    const skip = (page - 1) * limit;
+    const search = String(req.query.search || "").trim();
+    const query = {};
+    if (search) query.$text = { $search: search };
+    if (req.query.category) query.category = req.query.category;
+    if (req.query.brand) query.brand = req.query.brand;
+    if (req.query.available === "true") query.isAvailable = true;
+    if (req.query.inStock === "true") query.stock = { $gt: 0 };
+
+    let productsQuery = Product.find(query).populate('category', 'name').populate('brand', 'name').sort({ createdAt: -1 });
+    if (hasPagination) productsQuery = productsQuery.skip(skip).limit(limit);
+    const products = await productsQuery.lean();
+    const total = hasPagination ? await Product.countDocuments(query) : products.length;
 
     if (products.length > 0) {
-      resHandler(res, 200, "Products Found", products);
+      res.set("Cache-Control", "public, max-age=60, stale-while-revalidate=300");
+      resHandler(res, 200, "Products Found", hasPagination ? { items: products, page, limit, total, pages: Math.ceil(total / limit) } : products);
     } else {
       resHandler(res, 200, "No products found", []);
     }

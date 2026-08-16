@@ -23,6 +23,12 @@ const productSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+// Keep the most common storefront/admin queries fast as the catalog grows.
+productSchema.index({ isArchived: 1, isAvailable: 1, createdAt: -1 });
+productSchema.index({ category: 1, brand: 1, price: 1 });
+productSchema.index({ stock: 1, isAvailable: 1 });
+productSchema.index({ name: "text", description: "text", tags: "text" });
+
 const Product = mongoose.model("Product", productSchema);
 
 module.exports = { Product };
