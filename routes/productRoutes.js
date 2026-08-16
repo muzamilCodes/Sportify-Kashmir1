@@ -2,15 +2,12 @@ const express = require("express");
 const controller = require("../controllers/productController");
 const authorize = require("../middlewares/authorize");
 const admin = require("../middlewares/admin");
-const upload = require("../middlewares/multer"); // ✅ Change 'multmid' to 'upload'
+const upload = require("../middlewares/multer");
 
 const router = express.Router();
 
-// Accept multipart files without dropping repeated `images` entries. The
-// controller validates that every uploaded file is an image and that there are
-// at least three files before uploading them to Cloudinary.
 router.post("/add", authorize, admin, upload.any(), controller.addProduct);
-router.put("/edit/:productId", authorize, admin, upload.single("image"), controller.editProduct);  // ✅ Change multmid to upload.single("image")
+router.put("/edit/:productId", authorize, admin, upload.any(), controller.editProduct);
 router.delete("/delete/:productId", authorize, admin, controller.deleteProduct);
 router.put("/archive/:productId", controller.archive_UnArchiveProduct);
 router.put("/isAvialable/:productId", controller.isAvailOrNot);

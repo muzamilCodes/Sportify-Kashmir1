@@ -1,102 +1,96 @@
+const fs = require("fs");
+const path = require("path");
 const { Product } = require("../models/productModel");
 const cloudinary = require("../utilities/cloudinary");
 const { resHandler } = require("../utilities/resHandler");
 
-// exports.addProduct = async (req, res) => {
-//   try {
-    
-//     const { name, description, price, discount, colors, sizes, tags, category, brand, stock, onSale } = req.body;
+const uploadProductImage = async (file) => {
+  if (!file) return null;
 
-//     let colorsARR = colors ? colors.split(",") : [];
-//     let sizesARR = sizes ? sizes.split(",") : [];
-//     let tagsARR = tags ? tags.split(",") : [];
+  // 1. Attempt Cloudinary upload if credentials are provided
+  if (process.env.CLOUD_NAME && process.env.CLOUD_API_KEY && process.env.CLOUD_API_SECRET) {
+    try {
+      if (file.path) {
+        const uploadPromise = cloudinary.uploader.upload(file.path, {
+          folder: "sportify/products",
+          resource_type: "image",
+        });
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error("Cloudinary upload timeout (10s)")), 10000)
+        );
+        const uploadRes = await Promise.race([uploadPromise, timeoutPromise]);
+        if (uploadRes && uploadRes.secure_url) {
+          return uploadRes.secure_url;
+        }
+      } else if (file.buffer) {
+        const uploadRes = await new Promise((resolve, reject) => {
+          const timeout = setTimeout(
+            () => reject(new Error("Cloudinary stream timeout (10s)")),
+            10000
+          );
+          const stream = cloudinary.uploader.upload_stream(
+            { folder: "sportify/products", resource_type: "image" },
+            (error, result) => {
+              clearTimeout(timeout);
+              if (error) return reject(error);
+              resolve(result);
+            }
+          );
+          stream.end(file.buffer);
+        });
+        if (uploadRes && uploadRes.secure_url) {
+          return uploadRes.secure_url;
+        }
+      }
+    } catch (err) {
+      const errMsg = err?.message || err?.error?.message || String(err);
+      console.warn("⚠️ Cloudinary upload issue, falling back to local file storage:", errMsg);
+    }
+  }
 
+  // 2. Fallback to local static upload storage (/uploads/filename)
+  if (file.filename) {
+    return `/uploads/${file.filename}`;
+  }
 
-//    // Backend mein category validation ke baad yeh change karo (line 10-12 ke aas paas)
-// if (!name || !description || !price || !category) {
-//   console.log("Missing fields:", { name, description, price, category }); // Debug
-//   return resHandler(res, 400, "All required fields must be provided");
-// }
+  if (file.buffer) {
+    try {
+      const uploadDir = path.join(__dirname, "../uploads");
+      if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir, { recursive: true });
+      }
+      const ext = path.extname(file.originalname || ".jpg") || ".jpg";
+      const filename = `${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`;
+      const filePath = path.join(uploadDir, filename);
+      fs.writeFileSync(filePath, file.buffer);
+      return `/uploads/${filename}`;
+    } catch (fsErr) {
+      console.error("Local disk storage error:", fsErr);
+    }
+  }
 
-//     // Find category by name
-//     const { Category } = require("../models/categoryModel");
-//     const categoryDoc = await Category.findOne({ name: { $regex: new RegExp(`^${category}$`, 'i') } });
-//     if (!categoryDoc) {
-//       return resHandler(res, 400, "Invalid category");
-//     }
-
-//     // Find brand by name if provided
-//     let brandId = null;
-//     if (brand) {
-//       const { Brand } = require("../models/brandModel");
-//       const brandDoc = await Brand.findOne({ name: { $regex: new RegExp(`^${brand}$`, 'i') } });
-//       if (!brandDoc) {
-//         return resHandler(res, 400, "Invalid brand");
-//       }
-//       brandId = brandDoc._id;
-//     }
-
-//     let upload;
-//     let imageUrl = "";
-
-//     if (req.file?.path) {
-//       upload = await cloudinary.uploader.upload(req.file.path);
-//       imageUrl = upload.secure_url;
-//       if (!upload) {
-//         return resHandler(res, 500, "Image upload failed!");
-//       }
-//     } else {
-//       return resHandler(res, 400, "Image is required");
-//     }
-
-//     let product = await Product.create({
-//       name,
-//       description,
-//       price,
-//       discount: discount || 0,
-//       colors: colorsARR,
-//       sizes: sizesARR,
-//       tags: tagsARR,
-//       productImgUrls: [imageUrl],
-//       category: categoryDoc._id,
-//       brand: brandId,
-//       isAvailable: true,
-//       isArchived: false,
-//       stock: stock || 0,
-//       onSale: onSale || false,
-//     });
-
-//     return resHandler(res, 201, "Product created successfully", product);
-//   } catch (error) {
-//     console.error(error);
-//     return resHandler(res, 500, "Server Error!");
-//   }
-// };
+  throw new Error("Failed to process uploaded image file");
+};
 
 exports.addProduct = async (req, res) => {
   try {
     const { name, description, price, discount, colors, sizes, tags, category, brand, stock, onSale } = req.body;
 
-    let colorsARR = colors ? colors.split(",") : [];
-    let sizesARR = sizes ? sizes.split(",") : [];
-    let tagsARR = tags ? tags.split(",") : [];
+    let colorsARR = colors ? (Array.isArray(colors) ? colors : colors.split(",").map(s => s.trim()).filter(Boolean)) : [];
+    let sizesARR = sizes ? (Array.isArray(sizes) ? sizes : sizes.split(",").map(s => s.trim()).filter(Boolean)) : [];
+    let tagsARR = tags ? (Array.isArray(tags) ? tags : tags.split(",").map(s => s.trim()).filter(Boolean)) : [];
 
     if (!name || !price || !category) {
       return resHandler(res, 400, "All required fields must be provided");
     }
 
-    // ✅ FIX: Handle both category ID and category name
     const { Category } = require("../models/categoryModel");
     let categoryDoc;
-    
-    // Check if category is a valid MongoDB ObjectId (24 characters hex)
-    const isValidObjectId = (id) => /^[0-9a-fA-F]{24}$/.test(id);
+    const isValidObjectId = (id) => typeof id === "string" && /^[0-9a-fA-F]{24}$/.test(id);
     
     if (isValidObjectId(category)) {
-      // If category is an ID, find by _id
       categoryDoc = await Category.findById(category);
     } else {
-      // If category is a name, find by name (case insensitive)
       categoryDoc = await Category.findOne({ name: { $regex: new RegExp(`^${category}$`, 'i') } });
     }
     
@@ -104,22 +98,18 @@ exports.addProduct = async (req, res) => {
       return resHandler(res, 400, "Invalid category");
     }
 
-    // Handle brand similarly (if provided)
     let brandId = null;
     if (brand) {
       const { Brand } = require("../models/brandModel");
       let brandDoc;
-      
       if (isValidObjectId(brand)) {
         brandDoc = await Brand.findById(brand);
       } else {
         brandDoc = await Brand.findOne({ name: { $regex: new RegExp(`^${brand}$`, 'i') } });
       }
-      
-      if (!brandDoc) {
-        return resHandler(res, 400, "Invalid brand");
+      if (brandDoc) {
+        brandId = brandDoc._id;
       }
-      brandId = brandDoc._id;
     }
 
     let files = [];
@@ -134,117 +124,146 @@ exports.addProduct = async (req, res) => {
     files = files.filter(
       (file) => file && (file.mimetype ? file.mimetype.startsWith("image/") : true)
     );
-    console.log(`[product/add] received ${files.length} image file(s):`, files.map((file) => file.fieldname));
-    if (files.length < 3) return resHandler(res, 400, `At least 3 product images are required (received ${files.length})`);
+    
+    if (files.length < 3) {
+      return resHandler(res, 400, `At least 3 product images are required (received ${files.length})`);
+    }
 
-    const imageUrls = await Promise.all(files.map(async (file) => {
-      if (file.path) return (await cloudinary.uploader.upload(file.path)).secure_url;
-      if (!file.buffer) throw new Error("Uploaded image has no file data");
-      return new Promise((resolve, reject) => {
-        const stream = cloudinary.uploader.upload_stream({ resource_type: "image" }, (error, result) => {
-          if (error) return reject(error);
-          resolve(result.secure_url);
-        });
-        stream.end(file.buffer);
-      });
-    }));
+    const imageUrls = [];
+    for (const file of files) {
+      const url = await uploadProductImage(file);
+      if (url) imageUrls.push(url);
+    }
 
-    // Create product
+    if (imageUrls.length === 0) {
+      return resHandler(res, 400, "At least 3 product images are required");
+    }
+
     let product = await Product.create({
-      name,
-      description,
-      price,
-      discount: discount || 0,
+      name: name.trim(),
+      description: description || "",
+      price: Number(price),
+      discount: discount ? Number(discount) : 0,
       colors: colorsARR,
       sizes: sizesARR,
       tags: tagsARR,
       productImgUrls: imageUrls,
       category: categoryDoc._id,
       brand: brandId,
-      isAvailable: true,
-      isArchived: false,
-      stock: stock || 0,
-      onSale: onSale || false,
+      isAvailable: req.body.isAvailable !== undefined ? (req.body.isAvailable === "true" || req.body.isAvailable === true) : true,
+      isArchived: req.body.isArchived !== undefined ? (req.body.isArchived === "true" || req.body.isArchived === true) : false,
+      stock: stock ? Number(stock) : 0,
+      onSale: req.body.onSale !== undefined ? (req.body.onSale === "true" || req.body.onSale === true) : false,
     });
 
     return resHandler(res, 201, "Product created successfully", product);
   } catch (error) {
-    console.error(error);
-    return resHandler(res, 500, `Product image upload failed: ${error.message}`);
+    console.error("Error in addProduct:", error);
+    const msg = error?.message || error?.error?.message || "Server Error";
+    return resHandler(res, 500, `Product creation failed: ${msg}`);
   }
 };
 
 exports.editProduct = async (req, res) => {
   try {
-    const { name, description, price, discount, colors, sizes, tags, category, brand, stock, onSale } = req.body;
-
-    // here i kept colors and sizes as comma seperated string which will gets seperated and converted to array
-    let upload;
-    let imageUrl = "";
-    let colorsARR =
-      colors !== undefined && colors !== "" ? colors.split(",") : [];
-    let sizesARR = sizes !== undefined && sizes !== "" ? sizes.split(",") : [];
-    let tagsARR = tags !== undefined && tags !== "" ? tags.split(",") : [];
-
-    if (!name || !description || !price) {
-      return resHandler(res, 400, "Missing required product fields");
-    }
+    const { name, description, price, discount, colors, sizes, tags, category, brand, stock, onSale, existingImages } = req.body;
     const { productId } = req.params;
-    let product = await Product.findById(productId);
 
-    // Find category by name if provided
+    let product = await Product.findById(productId);
+    if (!product) {
+      return resHandler(res, 404, "Product not found!");
+    }
+
+    let colorsARR = colors !== undefined ? (Array.isArray(colors) ? colors : colors ? colors.split(",").map(s => s.trim()).filter(Boolean) : []) : product.colors;
+    let sizesARR = sizes !== undefined ? (Array.isArray(sizes) ? sizes : sizes ? sizes.split(",").map(s => s.trim()).filter(Boolean) : []) : product.sizes;
+    let tagsARR = tags !== undefined ? (Array.isArray(tags) ? tags : tags ? tags.split(",").map(s => s.trim()).filter(Boolean) : []) : product.tags;
+
+    const isValidObjectId = (id) => typeof id === "string" && /^[0-9a-fA-F]{24}$/.test(id);
+
     let categoryId = product.category;
     if (category) {
       const { Category } = require("../models/categoryModel");
-      const categoryDoc = await Category.findOne({ name: { $regex: new RegExp(`^${category}$`, 'i') } });
-      if (!categoryDoc) {
-        return resHandler(res, 400, "Invalid category");
+      let categoryDoc;
+      if (isValidObjectId(category)) {
+        categoryDoc = await Category.findById(category);
+      } else {
+        categoryDoc = await Category.findOne({ name: { $regex: new RegExp(`^${category}$`, 'i') } });
       }
-      categoryId = categoryDoc._id;
+      if (categoryDoc) {
+        categoryId = categoryDoc._id;
+      }
     }
 
-    // Find brand by name if provided
     let brandId = product.brand;
-    if (brand) {
-      const { Brand } = require("../models/brandModel");
-      const brandDoc = await Brand.findOne({ name: { $regex: new RegExp(`^${brand}$`, 'i') } });
-      if (!brandDoc) {
-        return resHandler(res, 400, "Invalid brand");
+    if (brand !== undefined) {
+      if (!brand || brand === "null" || brand === "") {
+        brandId = null;
+      } else {
+        const { Brand } = require("../models/brandModel");
+        let brandDoc;
+        if (isValidObjectId(brand)) {
+          brandDoc = await Brand.findById(brand);
+        } else {
+          brandDoc = await Brand.findOne({ name: { $regex: new RegExp(`^${brand}$`, 'i') } });
+        }
+        if (brandDoc) {
+          brandId = brandDoc._id;
+        }
       }
-      brandId = brandDoc._id;
     }
 
-    if (req.file?.path) {
-      const image = req.file.path;
-      upload = await cloudinary.uploader.upload(image);
-      imageUrl = upload.secure_url;
-      if (!upload) {
-        return resHandler(res, 500, "image Upload Failed!");
+    // Process retained existing images
+    let finalImages = [];
+    if (existingImages !== undefined) {
+      if (Array.isArray(existingImages)) {
+        finalImages = existingImages.filter(Boolean);
+      } else if (typeof existingImages === "string" && existingImages.trim()) {
+        finalImages = existingImages.split(",").map(s => s.trim()).filter(Boolean);
       }
-    }
-
-    if (product) {
-      (product.name = name),
-        (product.description = description),
-        (product.price = price),
-        (product.discount = discount),
-        (product.colors = colorsARR),
-        (product.sizes = sizesARR),
-        (product.tags = tagsARR),
-        (product.category = categoryId),
-        (product.brand = brandId),
-        (product.productImgUrls =
-          imageUrl !== "" ? [imageUrl] : product.productImgUrls),
-        (product.stock = stock !== undefined ? stock : product.stock),
-        (product.onSale = onSale !== undefined ? onSale : product.onSale);
-      await product.save();
-      return resHandler(res, 200, "Product updated!", product);
     } else {
-      return resHandler(res, 404, "Product not Found!");
+      finalImages = [...(product.productImgUrls || [])];
     }
+
+    // Process new image files
+    let files = [];
+    if (Array.isArray(req.files)) {
+      files = req.files;
+    } else if (req.files && typeof req.files === "object") {
+      files = Object.values(req.files).flat();
+    } else if (req.file) {
+      files = [req.file];
+    }
+
+    files = files.filter(
+      (file) => file && (file.mimetype ? file.mimetype.startsWith("image/") : true)
+    );
+
+    for (const file of files) {
+      const url = await uploadProductImage(file);
+      if (url) finalImages.push(url);
+    }
+
+    if (name) product.name = name.trim();
+    if (description !== undefined) product.description = description;
+    if (price !== undefined) product.price = Number(price);
+    if (discount !== undefined) product.discount = Number(discount);
+    if (colorsARR !== undefined) product.colors = colorsARR;
+    if (sizesARR !== undefined) product.sizes = sizesARR;
+    if (tagsARR !== undefined) product.tags = tagsARR;
+    if (categoryId) product.category = categoryId;
+    product.brand = brandId;
+    if (finalImages.length > 0) product.productImgUrls = finalImages;
+    if (stock !== undefined) product.stock = Number(stock);
+    if (onSale !== undefined) product.onSale = (onSale === "true" || onSale === true);
+    if (req.body.isAvailable !== undefined) product.isAvailable = (req.body.isAvailable === "true" || req.body.isAvailable === true);
+    if (req.body.isArchived !== undefined) product.isArchived = (req.body.isArchived === "true" || req.body.isArchived === true);
+
+    await product.save();
+    return resHandler(res, 200, "Product updated successfully!", product);
   } catch (error) {
-    console.error(error);
-    return resHandler(res, 500, "Server Error!");
+    console.error("Error in editProduct:", error);
+    const msg = error?.message || error?.error?.message || "Server Error";
+    return resHandler(res, 500, `Product update failed: ${msg}`);
   }
 };
 
@@ -330,7 +349,6 @@ exports.getProductsByCategory = async (req, res) => {
   try {
     const { category } = req.params;
 
-    // Find category by name (case insensitive)
     const { Category } = require("../models/categoryModel");
     const categoryDoc = await Category.findOne({ name: { $regex: new RegExp(`^${category}$`, 'i') } });
 
@@ -390,7 +408,7 @@ exports.deleteProduct = async (req, res) => {
     return resHandler(res, 500, "Server Error!");
   }
 };
-// Temporary debug route
+
 exports.debugProducts = async (req, res) => {
   try {
     const products = await Product.find().populate('category', 'name');
