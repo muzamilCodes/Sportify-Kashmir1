@@ -15,6 +15,15 @@ const nextConfig = {
   reactStrictMode: true,
   turbopack: {},
   compress: true,
+  // Keep local development pointed at localhost, but never let a production
+  // build silently call the browser's localhost when the env var is missing.
+  env: {
+    NEXT_PUBLIC_API_URL:
+      process.env.NEXT_PUBLIC_API_URL ||
+      (process.env.NODE_ENV === 'production'
+        ? 'https://sportify-kashmir1.onrender.com'
+        : 'http://localhost:4000'),
+  },
   images: {
     formats: ['image/avif', 'image/webp'],
     minimumCacheTTL: 86400,
