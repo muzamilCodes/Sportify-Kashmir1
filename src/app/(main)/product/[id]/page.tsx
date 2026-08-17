@@ -1,8 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
+import dynamic from "next/dynamic";
 import {
   ShoppingCart,
   Heart,
@@ -29,7 +31,9 @@ import {
   MapPin,
 } from "lucide-react";
 import toast from "react-hot-toast";
-import ProductCard from "@/components/ProductCard";
+const ProductCard = dynamic(() => import("@/components/ProductCard"), {
+  loading: () => <div className="h-80 rounded-xl bg-gray-100 animate-pulse" />,
+});
 
 interface Product {
   _id: string;
@@ -83,12 +87,12 @@ export default function ProductDetailPage() {
   const [deliveryMessage, setDeliveryMessage] = useState("");
   const [notifyEmail, setNotifyEmail] = useState("");
   const [notifying, setNotifying] = useState(false);
+  const relatedSectionRef = useRef<HTMLDivElement>(null);
+  const relatedRequestedRef = useRef(false);
 
   useEffect(() => {
     if (productId) {
       fetchProduct();
-      fetchRelatedProducts();
-      fetchReviews();
       const recent = JSON.parse(localStorage.getItem("recentlyViewed") || "[]") as string[];
       localStorage.setItem("recentlyViewed", JSON.stringify([productId, ...recent.filter((id) => id !== productId)].slice(0, 10)));
     }
@@ -96,6 +100,23 @@ export default function ProductDetailPage() {
     if (savedWishlist) {
       setWishlist(JSON.parse(savedWishlist));
     }
+  }, [productId]);
+
+  useEffect(() => {
+    if (productId && activeTab === "reviews") fetchReviews();
+  }, [activeTab, productId]);
+
+  useEffect(() => {
+    const section = relatedSectionRef.current;
+    if (!section || relatedRequestedRef.current) return;
+    const observer = new IntersectionObserver(([entry]) => {
+      if (!entry.isIntersecting || relatedRequestedRef.current) return;
+      relatedRequestedRef.current = true;
+      fetchRelatedProducts();
+      observer.disconnect();
+    }, { rootMargin: "500px 0px" });
+    observer.observe(section);
+    return () => observer.disconnect();
   }, [productId]);
 
   const fetchReviews = async () => {
@@ -184,14 +205,17 @@ export default function ProductDetailPage() {
 
   const fetchRelatedProducts = async () => {
     try {
-      const response = await fetch(`${API_URL}/product/getAll`);
+      const response = await fetch(`${API_URL}/product/getAll?limit=8&available=true&inStock=true&includeTotal=false`, {
+        cache: "force-cache",
+      });
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       const result = await response.json();
-      if (result.success && result.data) {
+      const products = Array.isArray(result.data) ? result.data : result.data?.items || [];
+      if (result.success && products.length) {
         // Get products from same category, excluding current product
-        const related = result.data
+        const related = products
           .filter((p: any) => p._id !== productId && p.isAvailable && !p.isArchived)
           .slice(0, 4);
         setRelatedProducts(related);
@@ -429,10 +453,13 @@ export default function ProductDetailPage() {
             <div>
               <div className="relative bg-gray-100 rounded-2xl overflow-hidden aspect-square mb-4">
                 {product.productImgUrls && product.productImgUrls.length > 0 ? (
-                  <img
+                  <Image
                     src={getImageUrl(product.productImgUrls[selectedImage])}
                     alt={product.name}
-                    className="w-full h-full object-cover"
+                    fill
+                    priority
+                    sizes="(max-width: 1024px) 100vw, 50vw"
+                    className="object-cover"
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-gray-400">
@@ -458,15 +485,18 @@ export default function ProductDetailPage() {
                     <button
                       key={index}
                       onClick={() => setSelectedImage(index)}
-                      className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition ${selectedImage === index
+                      className={`relative flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition ${selectedImage === index
                         ? "border-orange-500 shadow-md"
                         : "border-gray-200 hover:border-gray-400"
                         }`}
                     >
-                      <img
+                      <Image
                         src={getImageUrl(image)}
                         alt={`${product.name} ${index + 1}`}
-                        className="w-full h-full object-cover"
+                        fill
+                        loading="lazy"
+                        sizes="80px"
+                        className="object-cover"
                       />
                     </button>
                   ))}
@@ -784,6 +814,7 @@ export default function ProductDetailPage() {
           </div>
         </div>
 
+        <div ref={relatedSectionRef} aria-hidden="true" className="h-px" />
         {/* Related Products: Section Heading 24–28px */}
         {relatedProducts.length > 0 && (
           <div>

@@ -104,7 +104,7 @@ export default function RootLayout({
         {/* Service Worker Registration via Next.js Script */}
         <Script
           id="register-sw"
-          strategy="afterInteractive"
+          strategy="lazyOnload"
           dangerouslySetInnerHTML={{
             __html: `
               if ('serviceWorker' in navigator) {
