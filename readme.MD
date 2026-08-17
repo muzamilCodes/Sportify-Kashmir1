@@ -50,6 +50,10 @@ SMTP_USER=verified-sender@example.com
 SMTP_PASS=provider-app-password
 EMAIL_FROM=verified-sender@example.com
 
+# Gmail production connectivity
+# Use port 587 with STARTTLS. Port 465/SMTPS is commonly blocked by hosted
+# deployments and can result in `Connection timeout`.
+
 # Either Twilio WhatsApp or the configured WhatsApp gateway
 TWILIO_ACCOUNT_SID=AC...
 TWILIO_AUTH_TOKEN=...

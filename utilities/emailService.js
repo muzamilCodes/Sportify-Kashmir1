@@ -15,7 +15,31 @@ function getEmailConfig() {
 
 function smtpTransport(config) {
   if (!config.host || !config.user || !config.password) return null;
-  return nodemailer.createTransport({ host: config.host, port: config.port, secure: config.secure, auth: { user: config.user, pass: config.password }, connectionTimeout: 10000, greetingTimeout: 10000, socketTimeout: 15000 });
+  return nodemailer.createTransport({
+    host: config.host,
+    port: config.port,
+    secure: config.secure,
+    auth: { user: config.user, pass: config.password },
+    // Hosted platforms commonly restrict direct SMTPS (465). Keep connection
+    // failures bounded and let Gmail fall back to STARTTLS on port 587.
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 15000,
+  });
+}
+
+function gmailStartTlsTransport(config) {
+  if (config.host !== "smtp.gmail.com" || config.port === 587) return null;
+  return nodemailer.createTransport({
+    host: "smtp.gmail.com",
+    port: 587,
+    secure: false,
+    requireTLS: true,
+    auth: { user: config.user, pass: config.password },
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 15000,
+  });
 }
 
 async function sendViaHttp(url, options, provider) {
@@ -59,6 +83,19 @@ async function sendEmail(to, subject, html) {
       return true;
     } catch (error) {
       failures.push(`SMTP ${config.host}:${config.port}: ${error.message}`);
+
+      // Gmail SMTPS on 465 is frequently blocked by hosted deployments. Retry
+      // with Gmail's STARTTLS endpoint, which is the supported production path.
+      const fallback = gmailStartTlsTransport(config);
+      if (fallback) {
+        try {
+          const info = await fallback.sendMail({ from: `Sportify Kashmir <${from}>`, to, subject, html });
+          console.log(`[email] accepted by Gmail STARTTLS fallback: ${info.messageId || "no-message-id"}`);
+          return true;
+        } catch (fallbackError) {
+          failures.push(`SMTP smtp.gmail.com:587: ${fallbackError.message}`);
+        }
+      }
     }
   } else if (!transporter) {
     failures.push("SMTP is not configured: set SMTP_HOST, SMTP_PORT, SMTP_USER/SMTP_USERNAME, SMTP_PASS/SMTP_PASSWORD and EMAIL_FROM");
