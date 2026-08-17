@@ -6,6 +6,7 @@ exports.list = async (req, res) => {
     const reviews = await Review.find({ product: req.params.productId, isApproved: true })
       .populate("user", "username profilePic").sort({ createdAt: -1 }).lean();
     const summary = reviews.reduce((acc, review) => { acc.count += 1; acc.total += review.rating; return acc; }, { count: 0, total: 0 });
+    res.set("Cache-Control", "public, max-age=30, stale-while-revalidate=120");
     res.json({ success: true, data: reviews, summary: { count: summary.count, average: summary.count ? Number((summary.total / summary.count).toFixed(1)) : 0 } });
   } catch (error) { res.status(500).json({ success: false, message: error.message }); }
 };

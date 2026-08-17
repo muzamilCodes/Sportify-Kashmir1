@@ -326,11 +326,12 @@ exports.getAllProducts = async (req, res) => {
     if (req.query.brand) query.brand = req.query.brand;
     if (req.query.available === "true") query.isAvailable = true;
     if (req.query.inStock === "true") query.stock = { $gt: 0 };
+    if (req.query.available === "true" || req.query.inStock === "true") query.isArchived = false;
 
     let productsQuery = Product.find(query).populate('category', 'name').populate('brand', 'name').sort({ createdAt: -1 });
     if (hasPagination) productsQuery = productsQuery.skip(skip).limit(limit);
     const products = await productsQuery.lean();
-    const total = hasPagination ? await Product.countDocuments(query) : products.length;
+    const total = hasPagination && req.query.includeTotal !== "false" ? await Product.countDocuments(query) : products.length;
 
     if (products.length > 0) {
       res.set("Cache-Control", "public, max-age=60, stale-while-revalidate=300");
@@ -348,9 +349,13 @@ exports.getProductById = async (req, res) => {
   try {
     const { productId } = req.params;
 
-    const product = await Product.findById(productId);
+    const product = await Product.findById(productId)
+      .populate("category", "name")
+      .populate("brand", "name")
+      .lean();
 
     if (product) {
+      res.set("Cache-Control", "public, max-age=60, stale-while-revalidate=300");
       return resHandler(res, 200, "Product Found!", product);
     } else {
       return resHandler(res, 404, "Product not Found!");

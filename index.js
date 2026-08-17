@@ -64,7 +64,11 @@ app.use(cors({
 }));
 
 // Static uploads
-app.use("/uploads", express.static(require("path").join(__dirname, "uploads")));
+// Upload filenames are immutable, so let browsers/CDNs reuse optimized image sources.
+app.use("/uploads", express.static(require("path").join(__dirname, "uploads"), {
+  maxAge: "7d",
+  immutable: true,
+}));
 
 // Routes
 app.use("/user", require("./routes/userRoutes"));
