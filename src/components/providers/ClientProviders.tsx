@@ -5,6 +5,7 @@ import SplashScreen from "@/components/shared/SplashScreen";
 import InstallPrompt from "@/components/shared/InstallPrompt";
 import MobileBottomNav from "@/components/shared/MobileBottomNav";
 import ScrollToTop from "@/components/shared/ScrollToTop";
+import { CartCountProvider } from "@/components/providers/CartCountProvider";
 
 /**
  * ClientProviders
@@ -18,11 +19,13 @@ export default function ClientProviders({
 }) {
   return (
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-      <SplashScreen />
-      {children}
-      <MobileBottomNav />
-      <ScrollToTop />
-      <InstallPrompt />
+      <CartCountProvider>
+        <SplashScreen />
+        {children}
+        <MobileBottomNav />
+        <ScrollToTop />
+        <InstallPrompt />
+      </CartCountProvider>
     </ThemeProvider>
   );
 }

@@ -11,6 +11,7 @@ import {
   Truck,
   Shield,
 } from "lucide-react";
+import { cachedJson } from "@/lib/clientCache";
 
 // Custom icons for sports (not available in lucide-react)
 const CricketIcon = ({ className }: { className?: string }) => (
@@ -93,8 +94,7 @@ export default function CategoriesPage() {
   const fetchCategories = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/category/all`);
-      const result = await response.json();
+      const result = await cachedJson<{ success: boolean; data: Category[] }>(`${process.env.NEXT_PUBLIC_API_URL}/category/all`);
       if (result.success && result.data) {
         setCategories(result.data);
       }

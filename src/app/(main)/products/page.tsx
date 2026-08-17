@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import toast from "react-hot-toast";
 import ProductCard from "@/components/ProductCard";
+import { cachedJson } from "@/lib/clientCache";
 
 interface Product {
   _id: string;
@@ -89,11 +90,7 @@ function ProductsContent() {
   const fetchProducts = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_URL}/product/getAll`);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const result = await response.json();
+      const result = await cachedJson<{ success: boolean; data: Product[] }>(`${API_URL}/product/getAll`);
 
       if (result.success && result.data) {
         const availableProducts = result.data.filter(
@@ -111,11 +108,7 @@ function ProductsContent() {
 
   const fetchCategories = async () => {
     try {
-      const response = await fetch(`${API_URL}/category/all`);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const result = await response.json();
+      const result = await cachedJson<{ success: boolean; data: Category[] }>(`${API_URL}/category/all`);
       if (result.success && result.data) {
         setCategories(result.data);
       }
@@ -126,8 +119,7 @@ function ProductsContent() {
 
   const fetchBrands = async () => {
     try {
-      const response = await fetch(`${API_URL}/brand/all`);
-      const result = await response.json();
+      const result = await cachedJson<{ success: boolean; data: Brand[] }>(`${API_URL}/brand/all`);
       if (result.success && result.data) setBrands(result.data);
     } catch (error) { console.error("Error fetching brands:", error); }
   };

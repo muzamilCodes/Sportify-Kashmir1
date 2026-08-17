@@ -14,7 +14,12 @@ import {
   Clock,
   Award,
 } from "lucide-react";
-import Link from "next/link";
+import NextLink from "next/link";
+
+// Footer links are present on every page; let navigation happen on demand.
+function Link(props: React.ComponentProps<typeof NextLink>) {
+  return <NextLink prefetch={false} {...props} />;
+}
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();

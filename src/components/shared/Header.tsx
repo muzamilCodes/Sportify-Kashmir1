@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import Link from "next/link";
+import NextLink from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   Menu,
@@ -36,6 +36,13 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 import ThemeToggle from "@/components/shared/ThemeToggle";
+import { useCartCount } from "@/components/providers/CartCountProvider";
+
+// The header is mounted on every route. Prefetching every menu destination
+// from here creates a burst of RSC requests on initial load.
+function Link(props: React.ComponentProps<typeof NextLink>) {
+  return <NextLink prefetch={false} {...props} />;
+}
 
 const Cricket = ({ size = 24 }: { size?: number }) => (
   <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -90,7 +97,7 @@ export default function Header() {
   const pathname = usePathname();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
-  const [cartCount, setCartCount] = useState(0);
+  const { cartCount } = useCartCount();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -229,41 +236,6 @@ export default function Header() {
     if (localStorage.getItem("token")) {
       verifyToken();
     }
-  }, []);
-
-  const fetchCartCount = async () => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      setCartCount(0);
-      return;
-    }
-    try {
-      const response = await fetch(`${API_URL}/cart/getCart`, {
-        headers: { Authorization: `Bearer ${token}` },
-        cache: "no-store",
-      });
-      const result = await response.json();
-      if (result.success && result.data) {
-        const products = result.data.products || [];
-        const totalItems = products.reduce((sum: number, item: any) => sum + (item.quantity || 1), 0);
-        setCartCount(totalItems);
-      } else {
-        setCartCount(0);
-      }
-    } catch (error) {
-      console.error("Error fetching cart:", error);
-    }
-  };
-
-  useEffect(() => {
-    fetchCartCount();
-    const handleCartUpdate = () => {
-      fetchCartCount();
-    };
-    window.addEventListener("cartUpdated", handleCartUpdate);
-    return () => {
-      window.removeEventListener("cartUpdated", handleCartUpdate);
-    };
   }, []);
 
   const handleSearch = (e: React.FormEvent) => {

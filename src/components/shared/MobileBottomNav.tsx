@@ -1,9 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import Link from "next/link";
+import NextLink from "next/link";
 import { usePathname } from "next/navigation";
 import { Home, Grid3X3, ShoppingCart, Heart, User } from "lucide-react";
+import { useCartCount } from "@/components/providers/CartCountProvider";
+
+function Link(props: React.ComponentProps<typeof NextLink>) {
+  return <NextLink prefetch={false} {...props} />;
+}
 
 /**
  * MobileBottomNav
@@ -14,47 +18,10 @@ import { Home, Grid3X3, ShoppingCart, Heart, User } from "lucide-react";
  */
 export default function MobileBottomNav() {
   const pathname = usePathname();
-  const [cartCount, setCartCount] = useState(0);
+  const { cartCount } = useCartCount();
 
   // Hide on admin pages
   const isAdminPage = pathname.startsWith("/admin");
-
-  // Cart count sync
-  useEffect(() => {
-    const updateCartCount = async () => {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        setCartCount(0);
-        return;
-      }
-      try {
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/cart/getCart`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-            cache: "no-store",
-          }
-        );
-        const result = await response.json();
-        if (result.success && result.data) {
-          const products = result.data.products || [];
-          const total = products.reduce(
-            (sum: number, item: any) => sum + (item.quantity || 1),
-            0
-          );
-          setCartCount(total);
-        }
-      } catch {
-        // Silently fail — not critical for nav
-      }
-    };
-
-    updateCartCount();
-
-    const handleCartUpdate = () => updateCartCount();
-    window.addEventListener("cartUpdated", handleCartUpdate);
-    return () => window.removeEventListener("cartUpdated", handleCartUpdate);
-  }, []);
 
   if (isAdminPage) return null;
 

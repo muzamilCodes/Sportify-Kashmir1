@@ -6,6 +6,7 @@ import { useParams, useSearchParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import ProductCard from "@/components/ProductCard";
+import { cachedJson } from "@/lib/clientCache";
 
 interface Product {
   _id: string;
@@ -84,8 +85,7 @@ export default function CategoryPage() {
 
   const fetchCategoryData = async () => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/category/all`);
-      const result = await response.json();
+      const result = await cachedJson<{ success: boolean; data: any[] }>(`${process.env.NEXT_PUBLIC_API_URL}/category/all`);
       if (result.success && result.data) {
         // match category by name roughly matching the slug
         const category = result.data.find((c: any) => c.name.toLowerCase() === categorySlug.toLowerCase());
@@ -101,8 +101,7 @@ export default function CategoryPage() {
   const fetchProductsByCategory = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/product/category/${categorySlug}`);
-      const result = await response.json();
+      const result = await cachedJson<{ success: boolean; data: Product[] }>(`${process.env.NEXT_PUBLIC_API_URL}/product/category/${categorySlug}`);
 
       if (result.success && result.data) {
         setProducts(result.data);
