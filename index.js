@@ -27,12 +27,18 @@ app.use(async (req, res, next) => {
 });
 
 // ✅ CORS configuration
+const configuredFrontendOrigins = [
+  process.env.FRONTEND_URL,
+  ...(process.env.FRONTEND_URLS || '').split(','),
+  process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null,
+].filter(Boolean);
+
 const allowedOrigins = [
   'http://localhost:3000',
   'http://localhost:3001',
   'http://localhost:4000',
   'https://sportify-kashmir1.vercel.app',
-  process.env.FRONTEND_URL
+  ...configuredFrontendOrigins,
 ].filter(Boolean);
 
 app.use(cors({

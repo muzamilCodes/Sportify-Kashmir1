@@ -247,13 +247,21 @@ exports.sendOTP = async (req, res) => {
 
     await user.save();
 
-    await sendEmail(
+    const emailSent = await sendEmail(
       email,
       "Your OTP for Login",
       `<p>Your OTP is: <strong>${otp}</strong></p><p>Valid for 10 minutes.</p>`
     );
 
-    return res.status(200).json({ message: "OTP sent to your email" });
+    if (!emailSent) {
+      return res.status(502).json({
+        success: false,
+        message: "OTP could not be delivered. Please try again later.",
+        emailError: sendEmail.getLastError(),
+      });
+    }
+
+    return res.status(200).json({ success: true, message: "OTP sent to your email" });
 
   } catch (error) {
     console.error(error);
@@ -423,7 +431,10 @@ exports.forgotPass = async (req, res) => {
     user.otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
     await user.save();
     try {
-      await sendEmail(email, "Reset Password OTP", `<h2>Your OTP is ${otp}</h2><p>Valid for 10 minutes.</p>`);
+      const emailSent = await sendEmail(email, "Reset Password OTP", `<h2>Your OTP is ${otp}</h2><p>Valid for 10 minutes.</p>`);
+      if (!emailSent) {
+        return res.status(502).json({ success: false, message: "OTP could not be delivered. Please try again later.", emailError: sendEmail.getLastError() });
+      }
       console.log(`OTP sent to ${email}: ${otp}`);
       res.json({ success: true, message: "OTP sent" });
     } catch (emailErr) {
