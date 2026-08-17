@@ -155,6 +155,7 @@ export default function RegisterPage() {
               <input
                 type={showPassword ? "text" : "password"}
                 name="password"
+                autoComplete="new-password"
                 placeholder="Password * (min 6 characters)"
                 value={formData.password}
                 onChange={handleChange}

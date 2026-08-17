@@ -209,6 +209,7 @@ export default function RegisterPage() {
                 <input
                   type={showPassword ? "text" : "password"}
                   name="password"
+                  autoComplete="new-password"
                   value={formData.password}
                   onChange={handleChange}
                   className="w-full pl-10 pr-10 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500"

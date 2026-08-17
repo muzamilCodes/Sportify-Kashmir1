@@ -13,6 +13,7 @@ const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000").rep
 
 export function CartCountProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const shouldLoadCart = !pathname.startsWith("/admin");
   const [cartCount, setCartCount] = useState(0);
 
   const refreshCartCount = useCallback(async () => {
@@ -36,7 +37,7 @@ export function CartCountProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     // Admin pages do not render the public navigation and should not fetch a cart.
-    if (pathname.startsWith("/admin")) return;
+    if (!shouldLoadCart) return;
 
     void refreshCartCount();
     const handleCartUpdate = () => void refreshCartCount();
@@ -48,10 +49,9 @@ export function CartCountProvider({ children }: { children: React.ReactNode }) {
       window.removeEventListener("cartUpdated", handleCartUpdate);
       window.removeEventListener("authUpdated", handleAuthUpdate);
     };
-  // The provider is persistent across client-side navigation. Do not include
-  // pathname here: every route change must not become a cart request.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [refreshCartCount]);
+    // `shouldLoadCart` only changes when crossing the public/admin boundary,
+    // so ordinary public-page navigation does not refetch the cart.
+  }, [refreshCartCount, shouldLoadCart]);
 
   const value = useMemo(() => ({ cartCount, refreshCartCount }), [cartCount, refreshCartCount]);
   return <CartCountContext.Provider value={value}>{children}</CartCountContext.Provider>;

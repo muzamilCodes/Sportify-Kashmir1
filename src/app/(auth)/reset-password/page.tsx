@@ -113,8 +113,9 @@ export default function ResetPasswordPage() {
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                   <input
-                    type={showPassword ? "text" : "password"}
-                    value={newPassword}
+                  type={showPassword ? "text" : "password"}
+                  autoComplete="new-password"
+                  value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     placeholder="•••••• (min 6 characters)"
                     className="w-full pl-10 pr-10 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500"
@@ -133,6 +134,7 @@ export default function ResetPasswordPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Confirm Password</label>
                 <input
                   type={showPassword ? "text" : "password"}
+                  autoComplete="new-password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   placeholder="••••••"

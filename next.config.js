@@ -15,6 +15,14 @@ const nextConfig = {
   reactStrictMode: true,
   turbopack: {},
   compress: true,
+  experimental: {
+    // Keep already-rendered App Router segments reusable during normal
+    // navigation without causing a fresh RSC request for every revisit.
+    staleTimes: {
+      dynamic: 30,
+      static: 300,
+    },
+  },
   // Keep local development pointed at localhost, but never let a production
   // build silently call the browser's localhost when the env var is missing.
   env: {

@@ -6,6 +6,7 @@ import InstallPrompt from "@/components/shared/InstallPrompt";
 import MobileBottomNav from "@/components/shared/MobileBottomNav";
 import ScrollToTop from "@/components/shared/ScrollToTop";
 import { CartCountProvider } from "@/components/providers/CartCountProvider";
+import { installRequestDedupe } from "@/lib/requestDedupe";
 
 /**
  * ClientProviders
@@ -17,6 +18,9 @@ export default function ClientProviders({
 }: {
   children: React.ReactNode;
 }) {
+  // Install before any child page effects can issue browser requests.
+  installRequestDedupe();
+
   return (
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
       <CartCountProvider>

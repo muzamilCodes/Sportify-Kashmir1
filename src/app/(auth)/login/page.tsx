@@ -116,6 +116,7 @@ export default function LoginPage() {
                 <input
                   type={showPassword ? "text" : "password"}
                   name="password"
+                  autoComplete="current-password"
                   value={formData.password}
                   onChange={handleChange}
                   className="block w-full pl-11 pr-12 py-3.5 border border-gray-200 dark:border-gray-600 rounded-2xl bg-white/50 dark:bg-gray-700/50 focus:bg-white dark:focus:bg-gray-700 focus:ring-4 focus:ring-orange-500/10 focus:border-orange-500 transition-all duration-300 outline-none placeholder-gray-400 dark:placeholder-gray-500 font-medium text-[var(--color-text-primary)]"
