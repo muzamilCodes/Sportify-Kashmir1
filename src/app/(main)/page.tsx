@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { 
   Truck, 
   Shield, 
@@ -224,11 +225,13 @@ export default function HomePage() {
             <div className="relative animate-fade-in-up flex justify-center" style={{ animationDelay: '0.3s' }}>
               <div className="relative w-full max-w-md aspect-square">
                 <div className="absolute inset-0 bg-gradient-to-tr from-orange-200 to-pink-200 dark:from-orange-500/20 dark:to-pink-500/20 rounded-[60%_40%_30%_70%/60%_30%_70%_40%] animate-spin-slow opacity-60"></div>
-                <img 
+                <Image 
                   src="/hero-sports.png" 
                   alt="Premium Sports Equipment" 
-                  className="absolute inset-0 w-full h-full object-contain drop-shadow-xl hover:scale-105 transition-transform duration-500"
-                  loading="eager"
+                  fill
+                  priority
+                  sizes="(max-width: 1024px) 90vw, 40vw"
+                  className="object-contain drop-shadow-xl hover:scale-105 transition-transform duration-500"
                 />
               </div>
             </div>

@@ -2,6 +2,7 @@
 
 import { ShoppingBag, ShoppingCart, Zap, Star, Heart, Loader2, Eye, GitCompare } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import toast from "react-hot-toast";
@@ -228,10 +229,12 @@ export default function ProductCard({
         {/* Product Image Area */}
         <div className="relative aspect-square w-full bg-gray-50 dark:bg-gray-850 p-2.5 sm:p-3.5 flex items-center justify-center overflow-hidden">
           {rawImage && !imageError ? (
-            <img
+            <Image
               src={finalImageUrl}
               alt={product.name}
-              className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300 ease-out"
+              fill
+              sizes="(max-width: 640px) 50vw, (max-width: 1280px) 25vw, 20vw"
+              className="object-contain group-hover:scale-105 transition-transform duration-300 ease-out"
               onError={() => setImageError(true)}
               loading="lazy"
               decoding="async"
@@ -363,7 +366,7 @@ export default function ProductCard({
           </button>
         </div>
       </div>
-      {quickView && <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4" onClick={() => setQuickView(false)}><div className="w-full max-w-lg rounded-2xl bg-white p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}><div className="flex gap-4"><img src={finalImageUrl} alt={product.name} loading="lazy" className="h-36 w-36 rounded-xl bg-gray-50 object-contain" /><div><h3 className="text-lg font-semibold text-gray-900">{product.name}</h3><p className="mt-2 text-xl font-bold text-orange-600">₹{Math.round(resolvedDiscountPrice).toLocaleString("en-IN")}</p><p className="mt-2 line-clamp-3 text-sm text-gray-600">{product.description || "Premium sports gear from Sportify Kashmir."}</p></div></div><div className="mt-5 flex gap-2"><Link href={`/product/${product._id}`} onClick={() => setQuickView(false)} className="flex-1 rounded-lg border px-4 py-2 text-center text-sm font-semibold">View details</Link><button onClick={onAddToCart} disabled={!isAvailable} className="flex-1 rounded-lg bg-orange-500 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">Add to cart</button></div></div></div>}
+      {quickView && <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4" onClick={() => setQuickView(false)}><div className="w-full max-w-lg rounded-2xl bg-white p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}><div className="flex gap-4"><div className="relative h-36 w-36 shrink-0"><Image src={finalImageUrl} alt={product.name} fill sizes="144px" className="rounded-xl bg-gray-50 object-contain" /></div><div><h3 className="text-lg font-semibold text-gray-900">{product.name}</h3><p className="mt-2 text-xl font-bold text-orange-600">₹{Math.round(resolvedDiscountPrice).toLocaleString("en-IN")}</p><p className="mt-2 line-clamp-3 text-sm text-gray-600">{product.description || "Premium sports gear from Sportify Kashmir."}</p></div></div><div className="mt-5 flex gap-2"><Link href={`/product/${product._id}`} onClick={() => setQuickView(false)} className="flex-1 rounded-lg border px-4 py-2 text-center text-sm font-semibold">View details</Link><button onClick={onAddToCart} disabled={!isAvailable} className="flex-1 rounded-lg bg-orange-500 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">Add to cart</button></div></div></div>}
     </div>
   );
 }
