@@ -458,7 +458,7 @@ export default function AdminDashboard() {
                       </td>
                       <td className="px-6 py-3 text-right">
                         <Link
-                          href={`/admin/orders/${order._id}`}
+                          href={`/admin/orders?orderId=${encodeURIComponent(order._id)}`}
                           className="inline-flex items-center justify-center w-8 h-8 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-gray-500 dark:text-gray-400 hover:text-orange-600 dark:hover:text-orange-400 hover:border-orange-200 dark:hover:border-orange-500/30 hover:shadow-sm transition-all group-hover:bg-orange-50 dark:group-hover:bg-orange-500/10"
                         >
                           <Eye className="w-4 h-4" />

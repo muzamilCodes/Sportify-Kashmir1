@@ -5,6 +5,7 @@ import SplashScreen from "@/components/shared/SplashScreen";
 import InstallPrompt from "@/components/shared/InstallPrompt";
 import MobileBottomNav from "@/components/shared/MobileBottomNav";
 import ScrollToTop from "@/components/shared/ScrollToTop";
+import RouteChangeHandler from "@/components/shared/RouteChangeHandler";
 import { CartCountProvider } from "@/components/providers/CartCountProvider";
 import { installRequestDedupe } from "@/lib/requestDedupe";
 
@@ -28,6 +29,7 @@ export default function ClientProviders({
         {children}
         <MobileBottomNav />
         <ScrollToTop />
+        <RouteChangeHandler />
         <InstallPrompt />
       </CartCountProvider>
     </ThemeProvider>

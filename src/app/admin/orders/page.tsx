@@ -77,6 +77,7 @@ interface Order {
 }
 
 export default function AdminOrdersPage() {
+  const [requestedOrderId, setRequestedOrderId] = useState<string | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
   const [filteredOrders, setFilteredOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -87,6 +88,7 @@ export default function AdminOrdersPage() {
   const [updatingStatus, setUpdatingStatus] = useState<string | null>(null);
 
   useEffect(() => {
+    setRequestedOrderId(new URLSearchParams(window.location.search).get("orderId"));
     fetchOrders();
   }, []);
 
@@ -140,6 +142,18 @@ export default function AdminOrdersPage() {
       setUpdatingStatus(null);
     }
   };
+
+  useEffect(() => {
+    if (!requestedOrderId || loading) return;
+
+    const order = orders.find((item) => item._id === requestedOrderId);
+    if (order) {
+      setSelectedOrder(order);
+      setShowDetailModal(true);
+    } else {
+      toast.error("Order not found");
+    }
+  }, [requestedOrderId, loading, orders]);
 
   const normalizeStatus = (status: string) => {
     if (!status) return "pending";

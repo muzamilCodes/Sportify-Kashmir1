@@ -9,7 +9,9 @@
  *   - Navigation     → Network-First with offline fallback page
  */
 
-const CACHE_VERSION = 'sportify-v1';
+// Bump this whenever the navigation/cache strategy changes so existing users
+// do not keep an old shell that requires a manual refresh.
+const CACHE_VERSION = 'sportify-v2';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const DYNAMIC_CACHE = `${CACHE_VERSION}-dynamic`;
 const API_CACHE = `${CACHE_VERSION}-api`;
