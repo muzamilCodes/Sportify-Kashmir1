@@ -4,12 +4,6 @@ const { User } = require("../models/userModel");
 const { resHandler } = require("../utilities/resHandler");
 
 exports.addToCart = async (req, res) => {
-  console.log("========== ADD TO CART DEBUG ==========");
-  console.log("1. req.userId:", req.userId);
-  console.log("2. req.params.productId:", req.params.productId);
-  console.log("3. req.body:", req.body);
-  console.log("=======================================");
-  
   try {
     const userId = req.userId;
     const { productId } = req.params;
@@ -33,7 +27,6 @@ exports.addToCart = async (req, res) => {
         products: [],
         cartValue: 0
       });
-      console.log("Created new cart for user:", userId);
     }
 
     // Check if product already in cart
@@ -44,35 +37,22 @@ exports.addToCart = async (req, res) => {
     if (existingIndex !== -1) {
       // Update quantity
       cart.products[existingIndex].quantity += quantity;
-      console.log("Updated existing product, new quantity:", cart.products[existingIndex].quantity);
     } else {
       // Add new product
       cart.products.push({
         productId: productId,
         quantity: quantity
       });
-      console.log("Added new product to cart");
     }
 
     // Calculate cart value
-    let newCartValue = 0;
-    for (let item of cart.products) {
-      const prod = await Product.findById(item.productId);
-      if (prod) {
-        let prodPrice = prod.price || 0;
-        if (prod.discount && prod.discount > 0) {
-          prodPrice = prodPrice - (prodPrice * prod.discount) / 100;
-        }
-        newCartValue += prodPrice * item.quantity;
-      }
-    }
-    
-    cart.cartValue = Math.round(newCartValue * 100) / 100;
+    const productIds = cart.products.map((item) => item.productId);
+    const cartProducts = await Product.find({ _id: { $in: productIds } }).select("price discount").lean();
+    const prices = new Map(cartProducts.map((item) => [String(item._id), item.price * (1 - (item.discount || 0) / 100)]));
+    cart.cartValue = Math.round(cart.products.reduce((total, item) => total + (prices.get(String(item.productId)) || 0) * item.quantity, 0) * 100) / 100;
     if (isNaN(cart.cartValue)) cart.cartValue = 0;
     
     await cart.save();
-    console.log("Cart saved. Products count:", cart.products.length);
-    console.log("CartValue:", cart.cartValue);
 
     const populatedCart = await Cart.findById(cart._id).populate('products.productId');
     return resHandler(res, 200, "Product added!", populatedCart);
@@ -89,9 +69,6 @@ exports.removeFromCart = async (req, res) => {
     const userId = req.userId;
     const { productId } = req.params;
     
-    console.log("=== REMOVE FROM CART DEBUG ===");
-    console.log("userId:", userId);
-    console.log("productId:", productId);
     
     if (!userId) {
       return resHandler(res, 401, "User not authenticated!");
@@ -108,7 +85,6 @@ exports.removeFromCart = async (req, res) => {
       return resHandler(res, 404, "Cart not found!");
     }
     
-    console.log("Cart found with products:", cart.products.length);
     
     // Find and remove product
     const initialLength = cart.products.length;
@@ -122,25 +98,13 @@ exports.removeFromCart = async (req, res) => {
       return resHandler(res, 404, "Product not found in cart!");
     }
     
-    console.log("Product removed. Remaining products:", cart.products.length);
     
     // Recalculate cart value
-    let newCartValue = 0;
-    for (let item of cart.products) {
-      const prod = await Product.findById(item.productId);
-      if (prod) {
-        let prodPrice = prod.price || 0;
-        if (prod.discount && prod.discount > 0) {
-          prodPrice = prodPrice - (prodPrice * prod.discount) / 100;
-        }
-        newCartValue += prodPrice * item.quantity;
-      }
-    }
-    
-    cart.cartValue = newCartValue;
+    const cartProducts = await Product.find({ _id: { $in: cart.products.map((item) => item.productId) } }).select("price discount").lean();
+    const prices = new Map(cartProducts.map((item) => [String(item._id), item.price * (1 - (item.discount || 0) / 100)]));
+    cart.cartValue = Math.round(cart.products.reduce((total, item) => total + (prices.get(String(item.productId)) || 0) * item.quantity, 0) * 100) / 100;
     await cart.save();
     
-    console.log("Cart saved. New cartValue:", cart.cartValue);
     
     const populatedCart = await Cart.findById(cart._id).populate('products.productId');
     return resHandler(res, 200, "Product removed successfully!", populatedCart);
@@ -157,10 +121,6 @@ exports.updateQuantity = async (req, res) => {
     const { productId } = req.params;
     const { quantity } = req.body;
     
-    console.log("=== UPDATE QUANTITY DEBUG ===");
-    console.log("userId:", userId);
-    console.log("productId:", productId);
-    console.log("quantity:", quantity);
     
     if (!userId) {
       return resHandler(res, 401, "User not authenticated!");
@@ -186,22 +146,11 @@ exports.updateQuantity = async (req, res) => {
     cart.products[productIndex].quantity = quantity;
     
     // Recalculate cart value
-    let newCartValue = 0;
-    for (let item of cart.products) {
-      const prod = await Product.findById(item.productId);
-      if (prod) {
-        let prodPrice = prod.price || 0;
-        if (prod.discount && prod.discount > 0) {
-          prodPrice = prodPrice - (prodPrice * prod.discount) / 100;
-        }
-        newCartValue += prodPrice * item.quantity;
-      }
-    }
-    
-    cart.cartValue = newCartValue;
+    const cartProducts = await Product.find({ _id: { $in: cart.products.map((item) => item.productId) } }).select("price discount").lean();
+    const prices = new Map(cartProducts.map((item) => [String(item._id), item.price * (1 - (item.discount || 0) / 100)]));
+    cart.cartValue = Math.round(cart.products.reduce((total, item) => total + (prices.get(String(item.productId)) || 0) * item.quantity, 0) * 100) / 100;
     await cart.save();
     
-    console.log("Quantity updated. New cartValue:", cart.cartValue);
     
     const populatedCart = await Cart.findById(cart._id).populate('products.productId');
     return resHandler(res, 200, "Quantity updated!", populatedCart);
@@ -214,22 +163,14 @@ exports.updateQuantity = async (req, res) => {
 exports.getCart = async (req, res) => {
   try {
     const userId = req.userId;
-    console.log("=== GET CART CALLED ===");
-    console.log("UserId:", userId);
 
     if (!userId) {
-      console.log("No userId found");
       return resHandler(res, 401, "Authentication required");
     }
 
     // ✅ Directly find cart by userId
     const cart = await Cart.findOne({ userId: userId }).populate("products.productId");
     
-    console.log("Cart found:", cart ? "Yes" : "No");
-    if (cart) {
-      console.log("Products count:", cart.products?.length || 0);
-      console.log("CartValue:", cart.cartValue);
-    }
 
     if (cart && cart.products && cart.products.length > 0) {
       return resHandler(res, 200, "Cart found", cart);

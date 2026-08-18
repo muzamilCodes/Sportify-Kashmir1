@@ -27,6 +27,6 @@ router.get("/fetchAllOrders", admin, controller.fetchAllOrders);
 router.get("/fetchOrderById/:orderId", authorize, controller.fetchOrderById);
 
 // ✅ Admin only - update order value (make sure this controller exists)
-router.put("/update-value/:orderId", authorize, controller.updateOrderValue);
+router.put("/update-value/:orderId", admin, controller.updateOrderValue);
 
 module.exports = router;

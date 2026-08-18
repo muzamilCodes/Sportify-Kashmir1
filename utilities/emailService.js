@@ -1,4 +1,4 @@
-const nodemailer = require("nodemailer");
+  const nodemailer = require("nodemailer");
 require("dotenv").config();
 
 const value = (...names) => names.map((name) => process.env[name]).find((v) => v != null && String(v).trim() !== "");

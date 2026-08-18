@@ -6,6 +6,7 @@ const Cart = require("../models/cartModel");
 const { resHandler } = require("../utilities/resHandler");
 const { notifyOrderEvent } = require("../utilities/orderNotificationService");
 const { createOrderWithInventory } = require("../utilities/inventoryService");
+const { getPricedCart } = require("../utilities/cartPricing");
 
 // ✅ Initialize Razorpay with error handling
 let razorpay;
@@ -21,20 +22,9 @@ try {
 
 exports.createPaymentOrder = async (req, res) => {
   try {
-    console.log("=== CREATE PAYMENT ORDER ===");
-    console.log("Request body:", req.body);
-    console.log("User ID:", req.userId);
-    
-    const { amount, currency = "INR" } = req.body;
-    
-    // ✅ Validate amount
-    if (!amount || amount <= 0) {
-      console.log("❌ Invalid amount:", amount);
-      return res.status(400).json({
-        success: false,
-        message: "Invalid amount. Please check your cart.",
-      });
-    }
+    const { currency = "INR" } = req.body;
+    if (currency !== "INR") return res.status(400).json({ success: false, message: "Unsupported currency" });
+    const { total } = await getPricedCart(req.userId);
 
     // ✅ Check if Razorpay is initialized
     if (!razorpay) {
@@ -46,8 +36,7 @@ exports.createPaymentOrder = async (req, res) => {
     }
 
     // ✅ Convert to paise (Razorpay expects amount in paise)
-    const amountInPaise = Math.round(amount * 100);
-    console.log(`Amount: ₹${amount} (${amountInPaise} paise)`);
+    const amountInPaise = Math.round(total * 100);
 
     const options = {
       amount: amountInPaise,
@@ -57,7 +46,6 @@ exports.createPaymentOrder = async (req, res) => {
     };
 
     const order = await razorpay.orders.create(options);
-    console.log("✅ Razorpay order created:", order.id);
 
     return res.status(200).json({
       success: true,
@@ -72,20 +60,17 @@ exports.createPaymentOrder = async (req, res) => {
     console.error("Error details:", error.error);
     return res.status(500).json({
       success: false,
-      message: error.error?.description || error.message || "Failed to create payment order",
+      message: "Failed to create payment order",
     });
   }
 };
 
 exports.verifyPaymentAndCreateOrder = async (req, res) => {
   try {
-    console.log("=== VERIFY PAYMENT ===");
     const {
       razorpay_order_id,
       razorpay_payment_id,
       razorpay_signature,
-      products,
-      totalAmount,
       shippingAddressId,
     } = req.body;
 
@@ -97,21 +82,24 @@ exports.verifyPaymentAndCreateOrder = async (req, res) => {
     const generatedSignature = hmac.digest("hex");
 
     if (generatedSignature !== razorpay_signature) {
-      console.log("❌ Invalid signature");
       return res.status(400).json({
         success: false,
         message: "Invalid payment signature",
       });
     }
 
-    console.log("✅ Signature verified");
 
     // Create order
+    const { products, total } = await getPricedCart(userId);
+    const paymentOrder = await razorpay.orders.fetch(razorpay_order_id);
+    if (paymentOrder.amount !== Math.round(total * 100) || paymentOrder.currency !== "INR") {
+      return res.status(400).json({ success: false, message: "Payment amount does not match the current cart" });
+    }
     const order = await createOrderWithInventory(Order, {
       userId: userId,
       shippingAddress: shippingAddressId,
-      products: products,
-      orderValue: totalAmount,
+      products,
+      orderValue: total,
       paymentMethod: "razorpay",
       paymentStatus: "paid",
       razorpayOrderId: razorpay_order_id,
@@ -127,7 +115,6 @@ exports.verifyPaymentAndCreateOrder = async (req, res) => {
       ],
     });
 
-    console.log("✅ Order created:", order._id);
     await notifyOrderEvent(order._id, { type: "created", status: "pending" });
 
     // Clear cart

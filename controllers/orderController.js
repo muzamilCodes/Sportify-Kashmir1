@@ -6,6 +6,7 @@ const { User } = require("../models/userModel");
 const { resHandler } = require("../utilities/resHandler");
 const { notifyOrderEvent, normalizeOrderStatus } = require("../utilities/orderNotificationService");
 const { createOrderWithInventory, releaseOrderInventory } = require("../utilities/inventoryService");
+const { getPricedCart } = require("../utilities/cartPricing");
 
 async function getActingUser(req) {
   if (!req.userId) return null;
@@ -168,6 +169,9 @@ exports.updateOrderStatus = async (req, res, orderStatus) => {
     if (normalizedStatus === "cancelled" && !actingUser) {
       return res.status(401).json({ success: false, message: "Authentication required" });
     }
+    if (normalizedStatus === "cancelled" && !actingUser.isAdmin && String(order.userId) !== String(req.userId)) {
+      return res.status(403).json({ success: false, message: "You can only cancel your own orders" });
+    }
 
     if (normalizedStatus === "cancelled" && !actingUser?.isAdmin) {
       const ownerId = order.userId ? order.userId.toString() : "";
@@ -264,6 +268,10 @@ exports.fetchOrderById = async (req, res) => {
       .populate('products.productId', 'name price productImgUrls');
     if (!order) {
       return res.status(404).json({ success: false, message: "Order not found" });
+    }
+    const actingUser = await getActingUser(req);
+    if (!actingUser?.isAdmin && String(order.userId?._id || order.userId) !== String(req.userId)) {
+      return res.status(403).json({ success: false, message: "You can only view your own orders" });
     }
     return res.status(200).json({ success: true, data: order });
   } catch (error) {
@@ -488,8 +496,6 @@ exports.verifyAndCreateOrder = async (req, res) => {
       razorpay_order_id,
       razorpay_payment_id,
       razorpay_signature,
-      products,
-      totalAmount,
       shippingAddressId,
       guestAddress,
     } = req.body;
@@ -509,10 +515,18 @@ exports.verifyAndCreateOrder = async (req, res) => {
       });
     }
 
-    // Create order
+    const { products, total } = await getPricedCart(userId);
+    const Razorpay = require("razorpay");
+    const razorpay = new Razorpay({ key_id: process.env.RAZORPAY_KEY_ID, key_secret: process.env.RAZORPAY_KEY_SECRET });
+    const paymentOrder = await razorpay.orders.fetch(razorpay_order_id);
+    if (paymentOrder.amount !== Math.round(total * 100) || paymentOrder.currency !== "INR") {
+      return res.status(400).json({ success: false, message: "Payment amount does not match the current cart" });
+    }
+
+    // Only server-derived cart data is persisted; the browser never controls prices or line items.
     let orderData = {
-      products: products,
-      orderValue: totalAmount,
+      products,
+      orderValue: total,
       paymentMethod: "razorpay",
       paymentStatus: "paid",
       razorpayOrderId: razorpay_order_id,
@@ -594,15 +608,14 @@ exports.getUserOrders = async (req, res) => {
 exports.createCODOrder = async (req, res) => {
   try {
     const userId = req.userId;
-    const { shippingAddress, products, totalAmount, paymentMethod } = req.body;
-
-    console.log("Creating COD order with totalAmount:", totalAmount);
+    const { shippingAddress } = req.body;
+    const { products, total } = await getPricedCart(userId);
 
     const orderData = {
       userId: userId,
       shippingAddress: shippingAddress,
       products: products,
-      orderValue: totalAmount, // ✅ Make sure this is set
+      orderValue: total,
       paymentMethod: "cod",
       paymentStatus: "pending",
       orderStatus: "pending",
@@ -617,7 +630,6 @@ exports.createCODOrder = async (req, res) => {
     };
 
     const order = await createOrderWithInventory(Order, orderData);
-    console.log("Order created with value:", order.orderValue);
     await User.findByIdAndUpdate(userId, { $push: { orders: order._id } });
 
     // Clear cart

@@ -14,9 +14,47 @@ const port = process.env.PORT || 4000;
 connectDb();
 
 // Middlewares
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.disable("x-powered-by");
+app.use((req, res, next) => {
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "DENY");
+  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+  res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=(self)");
+  res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
+  next();
+});
+app.use(express.json({ limit: "100kb" }));
+app.use(express.urlencoded({ extended: true, limit: "100kb" }));
 app.use(cookieParser());
+
+const requestBuckets = new Map();
+app.use((req, res, next) => {
+  const key = `${req.ip}:${req.path.startsWith("/user/") ? "auth" : "api"}`;
+  const now = Date.now();
+  const windowMs = 15 * 60 * 1000;
+  const limit = req.path.startsWith("/user/") ? 30 : 300;
+  const bucket = requestBuckets.get(key);
+  if (!bucket || bucket.resetAt <= now) {
+    requestBuckets.set(key, { count: 1, resetAt: now + windowMs });
+  } else if (bucket.count >= limit) {
+    res.setHeader("Retry-After", Math.ceil((bucket.resetAt - now) / 1000));
+    return res.status(429).json({ success: false, message: "Too many requests. Please try again later." });
+  } else {
+    bucket.count += 1;
+  }
+  next();
+});
+
+app.use((req, res, next) => {
+  const rejectOperators = (value) => {
+    if (!value || typeof value !== "object") return false;
+    return Object.entries(value).some(([key, nested]) => key.startsWith("$") || key.includes(".") || rejectOperators(nested));
+  };
+  if (rejectOperators(req.body) || rejectOperators(req.query) || rejectOperators(req.params)) {
+    return res.status(400).json({ success: false, message: "Invalid request data" });
+  }
+  next();
+});
 
 // Auto-reconnect / check DB connection before handling requests
 app.use(async (req, res, next) => {
@@ -55,7 +93,7 @@ app.use(cors({
       isAllowed || 
       cleanOrigin.startsWith('http://localhost:') || 
       cleanOrigin.startsWith('http://127.0.0.1:') ||
-      cleanOrigin.endsWith('.vercel.app')
+      cleanOrigin === 'https://sportify-kashmir1.vercel.app'
     ) {
       callback(null, true);
     } else {
