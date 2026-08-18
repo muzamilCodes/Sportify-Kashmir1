@@ -8,6 +8,7 @@ import ScrollToTop from "@/components/shared/ScrollToTop";
 import RouteChangeHandler from "@/components/shared/RouteChangeHandler";
 import { CartCountProvider } from "@/components/providers/CartCountProvider";
 import { installRequestDedupe } from "@/lib/requestDedupe";
+import PWARegister from "@/components/shared/PWARegister";
 
 /**
  * ClientProviders
@@ -31,6 +32,7 @@ export default function ClientProviders({
         <ScrollToTop />
         <RouteChangeHandler />
         <InstallPrompt />
+        <PWARegister />
       </CartCountProvider>
     </ThemeProvider>
   );

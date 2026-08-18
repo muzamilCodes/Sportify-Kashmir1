@@ -5,16 +5,23 @@ import { useEffect } from "react";
 export default function PWARegister() {
   useEffect(() => {
     if (typeof window !== "undefined" && "serviceWorker" in navigator) {
-      window.addEventListener("load", () => {
+      const register = () => {
         navigator.serviceWorker
           .register("/sw.js")
           .then((registration) => {
-            console.log("PWA Service Worker registered successfully:", registration.scope);
+            registration.addEventListener("updatefound", () => {
+              const worker = registration.installing;
+              worker?.addEventListener("statechange", () => {
+                if (worker.state === "installed" && navigator.serviceWorker.controller) {
+                  window.dispatchEvent(new Event("pwa-update-available"));
+                }
+              });
+            });
           })
-          .catch((error) => {
-            console.error("PWA Service Worker registration failed:", error);
-          });
-      });
+          .catch(() => undefined);
+      };
+      if (document.readyState === "complete") register();
+      else window.addEventListener("load", register, { once: true });
     }
   }, []);
 

@@ -14,7 +14,6 @@
 const CACHE_VERSION = 'sportify-v2';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const DYNAMIC_CACHE = `${CACHE_VERSION}-dynamic`;
-const API_CACHE = `${CACHE_VERSION}-api`;
 
 // Static assets to pre-cache on install
 const PRECACHE_ASSETS = [
@@ -28,10 +27,8 @@ const PRECACHE_ASSETS = [
 
 // ─── Install Event ───────────────────────────────────────────────
 self.addEventListener('install', (event) => {
-  console.log('[SW] Installing Service Worker...');
   event.waitUntil(
     caches.open(STATIC_CACHE).then((cache) => {
-      console.log('[SW] Pre-caching static assets');
       return cache.addAll(PRECACHE_ASSETS);
     })
   );
@@ -41,14 +38,12 @@ self.addEventListener('install', (event) => {
 
 // ─── Activate Event ──────────────────────────────────────────────
 self.addEventListener('activate', (event) => {
-  console.log('[SW] Activating Service Worker...');
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames
-          .filter((name) => name !== STATIC_CACHE && name !== DYNAMIC_CACHE && name !== API_CACHE)
+          .filter((name) => name !== STATIC_CACHE && name !== DYNAMIC_CACHE)
           .map((name) => {
-            console.log('[SW] Deleting old cache:', name);
             return caches.delete(name);
           })
       );
@@ -69,7 +64,8 @@ self.addEventListener('fetch', (event) => {
   // Skip chrome-extension and other non-http(s) requests
   if (!url.protocol.startsWith('http')) return;
 
-  // Strategy 1: API requests → Network-First
+  // Never cache API responses. They can be user-specific, rapidly changing,
+  // or security-sensitive (cart, orders, account and admin data).
   if (url.pathname.startsWith('/user/') ||
       url.pathname.startsWith('/product/') ||
       url.pathname.startsWith('/category/') ||
@@ -82,7 +78,7 @@ self.addEventListener('fetch', (event) => {
       url.pathname.startsWith('/addresses/') ||
       url.pathname.startsWith('/refund/') ||
       url.pathname.startsWith('/posts/')) {
-    event.respondWith(networkFirst(request, API_CACHE));
+    event.respondWith(fetch(request).catch(() => new Response(JSON.stringify({ success: false, message: 'You are offline' }), { status: 503, headers: { 'Content-Type': 'application/json' } })));
     return;
   }
 
@@ -120,7 +116,7 @@ async function cacheFirst(request, cacheName) {
       cache.put(request, networkResponse.clone());
     }
     return networkResponse;
-  } catch (error) {
+  } catch (_error) {
     // Return a basic offline response for static assets
     return new Response('Offline', { status: 503, statusText: 'Service Unavailable' });
   }
@@ -138,7 +134,7 @@ async function networkFirst(request, cacheName) {
       cache.put(request, networkResponse.clone());
     }
     return networkResponse;
-  } catch (error) {
+  } catch (_error) {
     const cachedResponse = await caches.match(request);
     if (cachedResponse) {
       return cachedResponse;
@@ -158,7 +154,7 @@ async function navigationHandler(request) {
   try {
     const networkResponse = await fetch(request);
     return networkResponse;
-  } catch (error) {
+  } catch (_error) {
     const cachedResponse = await caches.match(request);
     if (cachedResponse) {
       return cachedResponse;

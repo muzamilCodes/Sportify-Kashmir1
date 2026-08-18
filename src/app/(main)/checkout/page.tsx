@@ -634,10 +634,7 @@ const clearCartAfterOrder = async () => {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          amount: totalAmount,
-          currency: "INR",
-        }),
+        body: JSON.stringify({ currency: "INR" }),
       });
 
       const orderData = await orderResponse.json();
@@ -671,19 +668,7 @@ const clearCartAfterOrder = async () => {
                 razorpay_order_id: response.razorpay_order_id,
                 razorpay_payment_id: response.razorpay_payment_id,
                 razorpay_signature: response.razorpay_signature,
-                products: cartItems.map(item => ({
-                  productId: item.productId._id,
-                  quantity: item.quantity,
-                  price: getItemPrice(item),
-                })),
-                totalAmount: totalAmount,
                 shippingAddressId: selectedAddress._id,
-                // ✅ Send customer details
-                customerDetails: {
-                  name: `${selectedAddress.firstName} ${selectedAddress.lastName}`,
-                  phone: selectedAddress.mobile,
-                  email: selectedAddress.email || "",
-                }
               }),
             });
 

@@ -1,5 +1,4 @@
 import type { Metadata, Viewport } from "next";
-import Script from "next/script";
 import { Toaster } from "react-hot-toast";
 import Footer from "@/components/shared/Footer";
 import Header from "@/components/shared/Header";
@@ -101,26 +100,6 @@ export default function RootLayout({
           <Footer />
         </ClientProviders>
 
-        {/* Service Worker Registration via Next.js Script */}
-        <Script
-          id="register-sw"
-          strategy="lazyOnload"
-          dangerouslySetInnerHTML={{
-            __html: `
-              if ('serviceWorker' in navigator) {
-                window.addEventListener('load', function() {
-                  navigator.serviceWorker.register('/sw.js')
-                    .then(function(registration) {
-                      console.log('[SW] Registered:', registration.scope);
-                    })
-                    .catch(function(error) {
-                      console.log('[SW] Registration failed:', error);
-                    });
-                });
-              }
-            `,
-          }}
-        />
       </body>
     </html>
   );

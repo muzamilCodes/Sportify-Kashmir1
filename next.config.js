@@ -62,6 +62,11 @@ const nextConfig = {
     ],
   },
   async headers() {
+    // Next.js React Refresh uses eval in development. Keep production strict.
+    const scriptSource = process.env.NODE_ENV === "development"
+      ? "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://checkout.razorpay.com"
+      : "script-src 'self' 'unsafe-inline' https://checkout.razorpay.com";
+
     return [
       {
         source: '/(.*)',
@@ -81,6 +86,18 @@ const nextConfig = {
           {
             key: 'Strict-Transport-Security',
             value: 'max-age=31536000; includeSubDomains; preload',
+          },
+          {
+            key: 'Referrer-Policy',
+            value: 'strict-origin-when-cross-origin',
+          },
+          {
+            key: 'Permissions-Policy',
+            value: 'camera=(), microphone=(), payment=(self "https://checkout.razorpay.com"), geolocation=(self)',
+          },
+          {
+            key: 'Content-Security-Policy',
+            value: `default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; ${scriptSource}; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://res.cloudinary.com https://sportify-kashmir1.onrender.com https://images.unsplash.com; font-src 'self' data:; connect-src 'self' https://sportify-kashmir1.onrender.com https://api.razorpay.com https://nominatim.openstreetmap.org; frame-src https://checkout.razorpay.com https://www.google.com; form-action 'self' https://checkout.razorpay.com; upgrade-insecure-requests`,
           }
         ],
       },
