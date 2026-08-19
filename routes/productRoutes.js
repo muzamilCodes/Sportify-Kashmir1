@@ -12,10 +12,10 @@ router.delete("/delete/:productId", authorize, admin, controller.deleteProduct);
 router.put("/archive/:productId", controller.archive_UnArchiveProduct);
 router.put("/isAvialable/:productId", controller.isAvailOrNot);
 router.get("/getAll", controller.getAllProducts);
+router.get("/sale", controller.getSaleProducts);
+router.get("/category/:category", controller.getProductsByCategory);
+router.get("/debug", controller.debugProducts);
 router.get("/get/:productId", controller.getProductById);
 router.get("/:productId", controller.getProductById);
-router.get("/category/:category", controller.getProductsByCategory);
-router.get("/sale", controller.getSaleProducts);
-router.get("/debug", controller.debugProducts);
 
 module.exports = router;

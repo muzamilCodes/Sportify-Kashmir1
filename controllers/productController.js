@@ -371,7 +371,17 @@ exports.getProductsByCategory = async (req, res) => {
     const { category } = req.params;
 
     const { Category } = require("../models/categoryModel");
-    const categoryDoc = await Category.findOne({ name: { $regex: new RegExp(`^${category}$`, 'i') } });
+    const cleanCategory = decodeURIComponent(category).trim();
+    const regexPattern = `^${cleanCategory.replace(/[-_]/g, "[-_\\s&/]*")}$`;
+    let categoryDoc = await Category.findOne({
+      name: { $regex: new RegExp(regexPattern, "i") },
+    });
+
+    if (!categoryDoc) {
+      categoryDoc = await Category.findOne({
+        name: { $regex: new RegExp(cleanCategory.replace(/[-_]/g, ".*"), "i") },
+      });
+    }
 
     if (!categoryDoc) {
       return resHandler(res, 200, "No products found in this category", []);
@@ -381,7 +391,7 @@ exports.getProductsByCategory = async (req, res) => {
       category: categoryDoc._id,
       isAvailable: true,
       isArchived: false
-    }).populate('category', 'name').populate('brand', 'name');
+    }).populate('category', 'name').populate('brand', 'name').sort({ createdAt: -1 });
 
     if (products.length > 0) {
       resHandler(res, 200, "Products Found", products);
@@ -397,10 +407,16 @@ exports.getProductsByCategory = async (req, res) => {
 exports.getSaleProducts = async (req, res) => {
   try {
     const products = await Product.find({
-      onSale: true,
+      $or: [
+        { onSale: true },
+        { discount: { $gt: 0 } },
+      ],
       isAvailable: true,
-      isArchived: false
-    }).populate('category', 'name').populate('brand', 'name');
+      isArchived: false,
+    })
+      .populate("category", "name")
+      .populate("brand", "name")
+      .sort({ discount: -1, createdAt: -1 });
 
     if (products.length > 0) {
       resHandler(res, 200, "Sale Products Found", products);
