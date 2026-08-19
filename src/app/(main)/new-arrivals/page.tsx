@@ -46,26 +46,27 @@ export default function NewArrivalsPage() {
     }
   }, []);
 
+  const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000").replace(/\/$/, "");
+
   const getImageUrl = (url: string) => {
     if (!url) return "/placeholder.jpg";
     if (url.startsWith('http')) return url;
-    return `${process.env.NEXT_PUBLIC_API_URL}/uploads/${url}`;
+    return `${API_URL}/uploads/${url}`;
   };
 
   const fetchNewProducts = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/product/getAll`);
+      const response = await fetch(`${API_URL}/product/getAll`);
       const result = await response.json();
       
       if (result.success && result.data) {
-        // Filter out unavailable products and sort by _id descending (newest first)
-        const availableProducts = result.data.filter((p: any) => p.isAvailable === true);
+        const rawList = Array.isArray(result.data) ? result.data : result.data?.items || [];
+        const availableProducts = rawList.filter((p: any) => p.isAvailable !== false && !p.isArchived);
         const sortedProducts = availableProducts.sort((a: any, b: any) => {
-            // MongoDB ObjectIds can be compared as strings for timestamp ordering
-            return b._id.localeCompare(a._id);
+          return (b.createdAt || b._id || "").localeCompare(a.createdAt || a._id || "");
         });
-        setProducts(sortedProducts.slice(0, 20)); // show latest 20
+        setProducts(sortedProducts.slice(0, 20));
       } else {
         setProducts([]);
       }
@@ -93,14 +94,13 @@ export default function NewArrivalsPage() {
     }
     
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/cart/add-to-cart`, {
+      const response = await fetch(`${API_URL}/cart/addtoCart/${productId}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          productId,
           quantity: 1,
         }),
       });
@@ -108,6 +108,7 @@ export default function NewArrivalsPage() {
       const result = await response.json();
       if (result.success) {
         toast.success("Added to cart");
+        window.dispatchEvent(new Event("cartUpdated"));
         window.dispatchEvent(new Event("cartUpdated"));
       } else {
         toast.error(result.message || "Failed to add to cart");

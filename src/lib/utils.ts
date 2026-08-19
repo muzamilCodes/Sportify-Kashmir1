@@ -113,22 +113,11 @@ export function isImageFile(filename: string): boolean {
   return imageExtensions.includes(getFileExtension(filename));
 }
 
+import { resolveProductImage } from "@/lib/imageHelper";
+
 // Get image URL with proper error handling
 export function getImageUrl(url: string | undefined | null): string {
-  if (!url) return "/placeholder.jpg";
-  if (typeof url !== "string") return "/placeholder.jpg";
-  
-  // If it's a full URL (http/https), return as-is
-  if (url.startsWith('http')) return url;
-  
-  // If it starts with /uploads/, remove that prefix since we'll add the full API URL
-  if (url.startsWith('/uploads/')) {
-    url = url.substring(9); // Remove '/uploads/' prefix
-  }
-  
-  // Otherwise, construct with API base URL
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
-  return `${apiUrl}/uploads/${url}`;
+  return resolveProductImage(url);
 }
 
 // Format file size

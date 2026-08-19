@@ -2,16 +2,9 @@
  * Sportify Kashmir — Service Worker
  * ==================================
  * Provides offline support and intelligent caching for the PWA.
- *
- * Caching strategies:
- *   - Static assets  → Cache-First  (fast loads, updated on new SW version)
- *   - API calls      → Network-First (fresh data when online, cached fallback)
- *   - Navigation     → Network-First with offline fallback page
  */
 
-// Bump this whenever the navigation/cache strategy changes so existing users
-// do not keep an old shell that requires a manual refresh.
-const CACHE_VERSION = 'sportify-v2';
+const CACHE_VERSION = 'sportify-v3';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const DYNAMIC_CACHE = `${CACHE_VERSION}-dynamic`;
 
@@ -29,10 +22,9 @@ const PRECACHE_ASSETS = [
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(STATIC_CACHE).then((cache) => {
-      return cache.addAll(PRECACHE_ASSETS);
+      return cache.addAll(PRECACHE_ASSETS).catch(() => undefined);
     })
   );
-  // Activate immediately without waiting for existing clients to close
   self.skipWaiting();
 });
 
@@ -43,13 +35,10 @@ self.addEventListener('activate', (event) => {
       return Promise.all(
         cacheNames
           .filter((name) => name !== STATIC_CACHE && name !== DYNAMIC_CACHE)
-          .map((name) => {
-            return caches.delete(name);
-          })
+          .map((name) => caches.delete(name))
       );
     })
   );
-  // Take control of all open clients immediately
   self.clients.claim();
 });
 
@@ -58,52 +47,46 @@ self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // Skip non-GET requests (POST, PUT, DELETE should always go to network)
+  // Skip non-GET requests
   if (request.method !== 'GET') return;
 
-  // Skip chrome-extension and other non-http(s) requests
+  // Skip non-http(s)
   if (!url.protocol.startsWith('http')) return;
 
-  // Never cache API responses. They can be user-specific, rapidly changing,
-  // or security-sensitive (cart, orders, account and admin data).
-  if (url.pathname.startsWith('/user/') ||
-      url.pathname.startsWith('/product/') ||
-      url.pathname.startsWith('/category/') ||
-      url.pathname.startsWith('/brand/') ||
-      url.pathname.startsWith('/cart/') ||
-      url.pathname.startsWith('/orders/') ||
-      url.pathname.startsWith('/api/') ||
-      url.pathname.startsWith('/admin/') ||
-      url.pathname.startsWith('/contact/') ||
-      url.pathname.startsWith('/addresses/') ||
-      url.pathname.startsWith('/refund/') ||
-      url.pathname.startsWith('/posts/')) {
-    event.respondWith(fetch(request).catch(() => new Response(JSON.stringify({ success: false, message: 'You are offline' }), { status: 503, headers: { 'Content-Type': 'application/json' } })));
-    return;
-  }
-
-  // Strategy 2: Static assets (JS, CSS, images, fonts) → Cache-First
-  if (isStaticAsset(url.pathname)) {
-    event.respondWith(cacheFirst(request, STATIC_CACHE));
-    return;
-  }
-
-  // Strategy 3: Navigation requests → Network-First with offline fallback
+  // Strategy 1: Page navigation requests → Network-First with offline fallback
   if (request.mode === 'navigate') {
     event.respondWith(navigationHandler(request));
     return;
   }
 
-  // Default: Network-First for everything else
+  // Strategy 2: Backend API calls → Bypass cache, direct network
+  const isBackendApi =
+    url.port === '4000' ||
+    url.hostname === 'sportify-kashmir1.onrender.com' ||
+    (url.origin !== self.location.origin &&
+      (url.pathname.startsWith('/product') ||
+        url.pathname.startsWith('/cart') ||
+        url.pathname.startsWith('/user') ||
+        url.pathname.startsWith('/orders') ||
+        url.pathname.startsWith('/category') ||
+        url.pathname.startsWith('/brand')));
+
+  if (isBackendApi) {
+    return; // Let browser handle network request natively
+  }
+
+  // Strategy 3: Static assets (JS, CSS, images, fonts) → Cache-First
+  if (isStaticAsset(url.pathname)) {
+    event.respondWith(cacheFirst(request, STATIC_CACHE));
+    return;
+  }
+
+  // Default: Network-First for local dynamic assets
   event.respondWith(networkFirst(request, DYNAMIC_CACHE));
 });
 
 // ─── Caching Strategies ──────────────────────────────────────────
 
-/**
- * Cache-First: Try cache, fallback to network (and update cache).
- * Best for static assets that change infrequently.
- */
 async function cacheFirst(request, cacheName) {
   const cachedResponse = await caches.match(request);
   if (cachedResponse) {
@@ -117,15 +100,10 @@ async function cacheFirst(request, cacheName) {
     }
     return networkResponse;
   } catch (_error) {
-    // Return a basic offline response for static assets
     return new Response('Offline', { status: 503, statusText: 'Service Unavailable' });
   }
 }
 
-/**
- * Network-First: Try network, fallback to cache.
- * Best for API calls and dynamic content.
- */
 async function networkFirst(request, cacheName) {
   try {
     const networkResponse = await fetch(request);
@@ -139,7 +117,6 @@ async function networkFirst(request, cacheName) {
     if (cachedResponse) {
       return cachedResponse;
     }
-    // Return a JSON error for API requests
     return new Response(
       JSON.stringify({ success: false, message: 'You are offline' }),
       { status: 503, headers: { 'Content-Type': 'application/json' } }
@@ -147,9 +124,6 @@ async function networkFirst(request, cacheName) {
   }
 }
 
-/**
- * Navigation handler: Network-first with offline.html fallback.
- */
 async function navigationHandler(request) {
   try {
     const networkResponse = await fetch(request);
@@ -159,27 +133,28 @@ async function navigationHandler(request) {
     if (cachedResponse) {
       return cachedResponse;
     }
-    // Show offline page
     return caches.match('/offline.html');
   }
 }
 
-// ─── Helpers ─────────────────────────────────────────────────────
-
-/**
- * Check if a path is a static asset worth caching aggressively.
- */
 function isStaticAsset(pathname) {
   const staticExtensions = [
-    '.js', '.css', '.woff', '.woff2', '.ttf', '.otf', '.eot',
-    '.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp', '.ico',
-    '.json', '.map'
+    '.js',
+    '.css',
+    '.woff',
+    '.woff2',
+    '.ttf',
+    '.otf',
+    '.eot',
+    '.png',
+    '.jpg',
+    '.jpeg',
+    '.gif',
+    '.svg',
+    '.webp',
+    '.ico',
+    '.json',
+    '.map',
   ];
   return staticExtensions.some((ext) => pathname.endsWith(ext));
 }
-
-// ─── Background Sync (future enhancement) ────────────────────────
-// self.addEventListener('sync', (event) => { ... });
-
-// ─── Push Notifications (future enhancement) ─────────────────────
-// self.addEventListener('push', (event) => { ... });

@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { generateAndDownloadInvoice } from "@/lib/invoice";
+import { resolveProductImage } from "@/lib/imageHelper";
 
 interface Order {
   _id: string;
@@ -73,6 +74,8 @@ export default function OrderDetailPage() {
   const [cancelling, setCancelling] = useState(false);
   const [recommendedProducts, setRecommendedProducts] = useState<any[]>([]);
 
+  const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000").replace(/\/$/, "");
+
   const fetchOrder = async () => {
     try {
       const token = localStorage.getItem("token");
@@ -81,7 +84,7 @@ export default function OrderDetailPage() {
         return;
       }
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/orders/fetchOrderById/${orderId}`,
+        `${API_URL}/orders/fetchOrderById/${orderId}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       const data = await res.json();
@@ -113,7 +116,7 @@ export default function OrderDetailPage() {
     fetchOrder();
     const interval = setInterval(fetchOrder, 15000);
 
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/product/getAll`)
+    fetch(`${API_URL}/product/getAll`)
       .then((res) => res.json())
       .then((data) => {
         if (data.success && data.data) {
@@ -133,7 +136,7 @@ export default function OrderDetailPage() {
     try {
       const token = localStorage.getItem("token");
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/orders/cancelled/${orderId}`,
+        `${API_URL}/orders/cancelled/${orderId}`,
         { method: "PUT", headers: { Authorization: `Bearer ${token}` } }
       );
       const data = await res.json();
@@ -448,21 +451,16 @@ export default function OrderDetailPage() {
                 const productPrice = Number(product?.price) || Number(item.price) || 0;
                 const quantity = Number(item.quantity) || 1;
                 const itemTotal = productPrice * quantity;
-                const rawImg = product?.productImgUrls?.[0];
-                const imgUrl = rawImg?.startsWith("http")
-                  ? rawImg
-                  : rawImg
-                  ? `${process.env.NEXT_PUBLIC_API_URL}/uploads/${rawImg}`
-                  : "/placeholder.jpg";
+                const imgUrl = resolveProductImage(product);
                 return (
                   <div key={idx} className="flex gap-4 p-3 border rounded-xl bg-white shadow-sm">
                     <div className="w-20 h-20 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
                       <img
                         src={imgUrl}
                         alt={productName}
-                        className="w-full h-full object-contain"
+                        className="w-full h-full object-contain p-1"
                         onError={(e) =>
-                          (e.currentTarget.src = "/placeholder.jpg")
+                          (e.currentTarget.src = "/placeholder.svg")
                         }
                       />
                     </div>
@@ -523,7 +521,7 @@ export default function OrderDetailPage() {
                 const imgUrl = rawImg?.startsWith("http")
                   ? rawImg
                   : rawImg
-                  ? `${process.env.NEXT_PUBLIC_API_URL}/uploads/${rawImg}`
+                  ? `${API_URL}/uploads/${rawImg}`
                   : "/placeholder.jpg";
                 const discountedPrice = product.discount 
                   ? product.price - (product.price * product.discount) / 100 

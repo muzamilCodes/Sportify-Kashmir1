@@ -6,14 +6,12 @@ import { useRouter } from "next/navigation";
 import { Package, Loader2, Calendar, IndianRupee, Truck, Clock, CheckCircle, XCircle, ChevronRight, Download } from "lucide-react";
 import toast from "react-hot-toast";
 import { generateAndDownloadInvoice } from "@/lib/invoice";
+import { resolveProductImage } from "@/lib/imageHelper";
 
 interface Order {
   _id: string;
   products: Array<{
-    productId?: {
-      name?: string;
-      productImgUrls?: string[];
-    };
+    productId?: any;
     quantity: number;
     price?: number;
   }>;
@@ -30,6 +28,8 @@ export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000").replace(/\/$/, "");
+
   const fetchOrders = async () => {
     const token = localStorage.getItem("token");
     if (!token) {
@@ -37,7 +37,7 @@ export default function OrdersPage() {
       return;
     }
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/orders/user-orders`, {
+      const res = await fetch(`${API_URL}/orders/user-orders`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
@@ -127,8 +127,9 @@ export default function OrdersPage() {
             const orderDate = order.createdAt ? new Date(order.createdAt).toLocaleDateString("en-IN") : "N/A";
             const totalValue = getSafePrice(order.orderValue).toFixed(2);
             const firstProduct = order.products?.[0];
-            const productImage = firstProduct?.productId?.productImgUrls?.[0] || "/placeholder.jpg";
-            const productName = firstProduct?.productId?.name || "Product";
+            const productObj = firstProduct?.productId;
+            const productImage = resolveProductImage(productObj);
+            const productName = typeof productObj === "object" ? productObj?.name || "Product" : "Product";
 
             return (
               <div key={order._id} className="group bg-white rounded-2xl shadow-sm hover:shadow-lg transition-all duration-300 border border-gray-100 overflow-hidden">
@@ -162,7 +163,14 @@ export default function OrdersPage() {
                   {/* Product preview & Actions */}
                   <div className="flex items-center gap-4 mt-4 flex-wrap">
                     <div className="w-16 h-16 rounded-xl overflow-hidden bg-gray-100 flex-shrink-0 border border-gray-200">
-                      <img src={productImage} alt={productName} className="w-full h-full object-cover" />
+                      <img 
+                        src={productImage} 
+                        alt={productName} 
+                        className="w-full h-full object-contain p-1"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = "/placeholder.jpg";
+                        }}
+                      />
                     </div>
                     <div className="flex-1 min-w-[200px]">
                       <p className="font-medium text-gray-800 truncate">{productName}</p>

@@ -90,11 +90,12 @@ function ProductsContent() {
   const fetchProducts = async () => {
     try {
       setLoading(true);
-      const result = await cachedJson<{ success: boolean; data: Product[] }>(`${API_URL}/product/getAll`);
+      const result = await cachedJson<{ success: boolean; data: any }>(`${API_URL}/product/getAll`);
 
       if (result.success && result.data) {
-        const availableProducts = result.data.filter(
-          (product: any) => product.isAvailable && !product.isArchived
+        const rawList = Array.isArray(result.data) ? result.data : result.data?.items || [];
+        const availableProducts = rawList.filter(
+          (product: any) => product.isAvailable !== false && !product.isArchived
         );
         setProducts(availableProducts);
         setFilteredProducts(availableProducts);
@@ -108,9 +109,10 @@ function ProductsContent() {
 
   const fetchCategories = async () => {
     try {
-      const result = await cachedJson<{ success: boolean; data: Category[] }>(`${API_URL}/category/all`);
+      const result = await cachedJson<{ success: boolean; data: any }>(`${API_URL}/category/all`);
       if (result.success && result.data) {
-        setCategories(result.data);
+        const list = Array.isArray(result.data) ? result.data : result.data?.items || [];
+        setCategories(list);
       }
     } catch (error) {
       console.error("Error fetching categories:", error);
@@ -119,8 +121,11 @@ function ProductsContent() {
 
   const fetchBrands = async () => {
     try {
-      const result = await cachedJson<{ success: boolean; data: Brand[] }>(`${API_URL}/brand/all`);
-      if (result.success && result.data) setBrands(result.data);
+      const result = await cachedJson<{ success: boolean; data: any }>(`${API_URL}/brand/all`);
+      if (result.success && result.data) {
+        const list = Array.isArray(result.data) ? result.data : result.data?.items || [];
+        setBrands(list);
+      }
     } catch (error) { console.error("Error fetching brands:", error); }
   };
 
@@ -142,9 +147,11 @@ function ProductsContent() {
     }
 
     if (selectedCategory !== "all") {
-      filtered = filtered.filter(
-        (product) => typeof product.category === "object" ? product.category?._id === selectedCategory : product.category === selectedCategory
-      );
+      filtered = filtered.filter((product) => {
+        const catId = typeof product.category === "object" ? product.category?._id : product.category;
+        const catName = typeof product.category === "object" ? product.category?.name : "";
+        return catId === selectedCategory || (catName && catName.toLowerCase() === selectedCategory.toLowerCase());
+      });
     }
 
     if (selectedBrand !== "all") filtered = filtered.filter((product) => typeof product.brand === "object" ? product.brand?._id === selectedBrand : product.brand === selectedBrand);
@@ -193,7 +200,7 @@ function ProductsContent() {
         Authorization: `Bearer ${token}`
       };
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/cart/addtoCart/${productId}`, {
+      const response = await fetch(`${API_URL}/cart/addtoCart/${productId}`, {
         method: "POST",
         headers,
         body: JSON.stringify({ quantity: 1 }),

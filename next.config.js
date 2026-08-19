@@ -42,12 +42,18 @@ const nextConfig = {
         protocol: 'http',
         hostname: 'localhost',
         port: '4000',
-        pathname: '/uploads/**',
+        pathname: '/**',
+      },
+      {
+        protocol: 'http',
+        hostname: '127.0.0.1',
+        port: '4000',
+        pathname: '/**',
       },
       {
         protocol: 'https',
         hostname: 'sportify-kashmir1.onrender.com',
-        pathname: '/uploads/**',
+        pathname: '/**',
       },
       {
         protocol: 'https',
@@ -57,6 +63,11 @@ const nextConfig = {
       {
         protocol: 'https',
         hostname: 'images.unsplash.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'plus.unsplash.com',
         pathname: '/**',
       },
     ],
@@ -97,7 +108,20 @@ const nextConfig = {
           },
           {
             key: 'Content-Security-Policy',
-            value: `default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; ${scriptSource}; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://res.cloudinary.com https://sportify-kashmir1.onrender.com https://images.unsplash.com; font-src 'self' data:; connect-src 'self' https://sportify-kashmir1.onrender.com https://api.razorpay.com https://nominatim.openstreetmap.org; frame-src https://checkout.razorpay.com https://www.google.com; form-action 'self' https://checkout.razorpay.com; upgrade-insecure-requests`,
+            value: [
+              "default-src 'self'",
+              "base-uri 'self'",
+              "object-src 'none'",
+              "frame-ancestors 'none'",
+              scriptSource,
+              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+              "font-src 'self' data: https://fonts.gstatic.com",
+              "img-src 'self' data: blob: https: http: http://localhost:4000 http://127.0.0.1:4000 https://res.cloudinary.com https://sportify-kashmir1.onrender.com https://images.unsplash.com",
+              "connect-src 'self' http://localhost:4000 http://127.0.0.1:4000 ws: wss: https://sportify-kashmir1.onrender.com https://api.razorpay.com https://nominatim.openstreetmap.org",
+              "frame-src 'self' https://checkout.razorpay.com https://api.razorpay.com https://www.google.com",
+              "form-action 'self' https://checkout.razorpay.com",
+              process.env.NODE_ENV === 'production' ? 'upgrade-insecure-requests' : '',
+            ].filter(Boolean).join('; '),
           }
         ],
       },

@@ -41,7 +41,7 @@ export default function HomePage() {
   const [visibleProducts, setVisibleProducts] = useState(10);
   const [wishlist, setWishlist] = useState<string[]>([]);
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+  const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000").replace(/\/$/, "");
 
   const getImageUrl = (url: string) => {
     if (!url) return "/placeholder.jpg";
@@ -78,19 +78,20 @@ export default function HomePage() {
       const result = await response.json();
 
       if (result.success && result.data) {
-        const availableProducts = result.data.filter(
-          (product: any) => product.isAvailable && !product.isArchived
+        const rawList = Array.isArray(result.data) ? result.data : result.data?.items || [];
+        const availableProducts = rawList.filter(
+          (product: any) => product.isAvailable !== false && !product.isArchived
         );
         setProducts(availableProducts);
         
         // Featured products (newest first, 5 products)
         const featured = [...availableProducts]
-          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+          .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())
           .slice(0, 5);
-        setFeaturedProducts(featured);
+        setFeaturedProducts(featured.length > 0 ? featured : availableProducts.slice(0, 5));
         
-        // Sale products (5 products)
-        const sale = availableProducts.filter((p: any) => p.onSale === true).slice(0, 5);
+        // Sale products (products with discount or onSale flag)
+        const sale = availableProducts.filter((p: any) => p.onSale === true || (p.discount && p.discount > 0)).slice(0, 5);
         setSaleProducts(sale);
       }
     } catch (error) {

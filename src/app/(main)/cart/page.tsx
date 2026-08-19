@@ -16,6 +16,7 @@ import {
   IndianRupee,
 } from "lucide-react";
 import toast from "react-hot-toast";
+import { resolveProductImage } from "@/lib/imageHelper";
 
 interface CartItem {
   productId: {
@@ -23,7 +24,9 @@ interface CartItem {
     name: string;
     price: number;
     discount?: number;
-    productImgUrls: string[];
+    productImgUrls?: string[];
+    images?: string[];
+    image?: string;
   };
   quantity: number;
   price: number;
@@ -38,18 +41,15 @@ export default function CartPage() {
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
+  const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000").replace(/\/$/, "");
+
   useEffect(() => {
     fetchCart();
   }, []);
 
-  const getImageUrl = (url: string) => {
-    if (!url) return "/placeholder.jpg";
-    if (url.startsWith("http")) return url;
-    return `${process.env.NEXT_PUBLIC_API_URL}/uploads/${url}`;
-  };
-
   const getItemPrice = (item: CartItem) => {
-    let price = item.productId.price;
+    if (!item || !item.productId) return 0;
+    let price = item.productId.price || item.price || 0;
     if (item.productId.discount && item.productId.discount > 0) {
       price = price - (price * item.productId.discount) / 100;
     }
@@ -61,17 +61,21 @@ export default function CartPage() {
       setLoading(true);
       const token = localStorage.getItem("token");
       if (!token) {
-        router.push("/login");
+        setCartItems([]);
+        setLoading(false);
         return;
       }
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/cart/getCart`, {
+      const response = await fetch(`${API_URL}/cart/getCart`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
       const result = await response.json();
       if (result.success && result.data) {
-        setCartItems(result.data.products || []);
+        const rawProducts = result.data.products || [];
+        setCartItems(rawProducts.filter((p: any) => p && p.productId));
+      } else {
+        setCartItems([]);
       }
     } catch (error) {
       console.error("Error fetching cart:", error);
@@ -81,118 +85,59 @@ export default function CartPage() {
     }
   };
 
-  
-// const updateQuantity = async (productId: string, newQuantity: number) => {
-//     if (newQuantity < 1) return;
-    
-//     setUpdatingId(productId);
-//     try {
-//       const token = localStorage.getItem("token");
-//       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/cart/updateQuantity/${productId}`, {
-//         method: "POST",
-//         headers: {
-//           "Content-Type": "application/json",
-//           Authorization: `Bearer ${token}`,
-//         },
-//         body: JSON.stringify({ quantity: newQuantity }),
-//       });
+  const updateQuantity = async (productId: string, newQuantity: number) => {
+    if (newQuantity < 1) return;
 
-//       const result = await response.json();
-//       if (result.success) {
-//         fetchCart();
-//         toast.success("Quantity updated");
-//       } else {
-//         toast.error(result.message || "Failed to update quantity");
-//       }
-//     } catch (error) {
-//       toast.error("Failed to update quantity");
-//     } finally {
-//       setUpdatingId(null);
-//     }
-//   };
+    setUpdatingId(productId);
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`${API_URL}/cart/updateQuantity/${productId}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ quantity: newQuantity }),
+      });
 
-const updateQuantity = async (productId: string, newQuantity: number) => {
-  if (newQuantity < 1) return;
-  
-  setUpdatingId(productId);
-  try {
-    const token = localStorage.getItem("token");
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/cart/updateQuantity/${productId}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ quantity: newQuantity }),
-    });
-
-    const result = await response.json();
-    if (result.success) {
-      fetchCart();
-      toast.success("Quantity updated");
-      
-      // ✅ Trigger cart update for header
-      window.dispatchEvent(new Event("cartUpdated"));
-      
-    } else {
-      toast.error(result.message || "Failed to update quantity");
+      const result = await response.json();
+      if (result.success) {
+        fetchCart();
+        toast.success("Quantity updated");
+        window.dispatchEvent(new Event("cartUpdated"));
+      } else {
+        toast.error(result.message || "Failed to update quantity");
+      }
+    } catch {
+      toast.error("Failed to update quantity");
+    } finally {
+      setUpdatingId(null);
     }
-  } catch (error) {
-    toast.error("Failed to update quantity");
-  } finally {
-    setUpdatingId(null);
-  }
-};
+  };
 
-const removeItem = async (productId: string) => {
-  setDeletingId(productId);
-  try {
-    const token = localStorage.getItem("token");
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/cart/removeFromCart/${productId}`, {
-      method: "GET",
-      headers: { Authorization: `Bearer ${token}` },
-    });
+  const removeItem = async (productId: string) => {
+    setDeletingId(productId);
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`${API_URL}/cart/removeFromCart/${productId}`, {
+        method: "GET",
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
-    const result = await response.json();
-    if (result.success) {
-      fetchCart();
-      toast.success("Item removed from cart");
-      
-      // ✅ Trigger cart update for header
-      window.dispatchEvent(new Event("cartUpdated"));
-      
-    } else {
-      toast.error(result.message || "Failed to remove item");
+      const result = await response.json();
+      if (result.success) {
+        fetchCart();
+        toast.success("Item removed from cart");
+        window.dispatchEvent(new Event("cartUpdated"));
+      } else {
+        toast.error(result.message || "Failed to remove item");
+      }
+    } catch {
+      toast.error("Failed to remove item");
+    } finally {
+      setDeletingId(null);
     }
-  } catch (error) {
-    toast.error("Failed to remove item");
-  } finally {
-    setDeletingId(null);
-  }
-};
-
-  // const removeItem = async (productId: string) => {
-  //   setDeletingId(productId);
-  //   try {
-  //     const token = localStorage.getItem("token");
-  //     const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/cart/removeFromCart/${productId}`, {
-  //       method: "GET",
-  //       headers: { Authorization: `Bearer ${token}` },
-  //     });
-
-  //     const result = await response.json();
-  //     if (result.success) {
-  //       fetchCart();
-  //       toast.success("Item removed from cart");
-  //     } else {
-  //       toast.error(result.message || "Failed to remove item");
-  //     }
-  //   } catch (error) {
-  //     toast.error("Failed to remove item");
-  //   } finally {
-  //     setDeletingId(null);
-  //   }
-  // };
+  };
 
   const getSubtotal = () => {
     return cartItems.reduce((total, item) => {
@@ -221,13 +166,13 @@ const removeItem = async (productId: string) => {
             <div className="w-32 h-32 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
               <ShoppingCart className="w-16 h-16 text-gray-400" />
             </div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">Your Cart is Empty</h1>
+            <h2 className="text-2xl font-bold text-gray-800 mb-2">Your Cart is Empty</h2>
             <p className="text-gray-600 mb-6">Looks like you haven't added any items to your cart yet.</p>
             <Link
               href="/products"
-              className="inline-block bg-orange-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-orange-600 transition"
+              className="inline-flex items-center justify-center px-6 py-3 bg-orange-500 hover:bg-orange-600 text-white font-medium rounded-xl transition shadow-lg shadow-orange-500/25"
             >
-              Continue Shopping
+              Start Shopping
             </Link>
           </div>
         </div>
@@ -237,105 +182,123 @@ const removeItem = async (productId: string) => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="container mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="flex items-center gap-4 mb-8">
-          <button onClick={() => router.back()} className="p-2 hover:bg-gray-100 rounded-lg transition">
-            <ArrowLeft className="w-5 h-5" />
-          </button>
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Shopping Cart</h1>
-          <span className="text-gray-500">({cartItems.length} items)</span>
+      {/* Header */}
+      <div className="bg-white border-b sticky top-0 z-10">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <Link href="/" className="flex items-center gap-2 text-gray-600 hover:text-orange-500 transition">
+              <ArrowLeft className="w-5 h-5" />
+              <span className="hidden sm:inline">Continue Shopping</span>
+            </Link>
+            <h1 className="text-xl font-bold text-gray-900">Shopping Cart ({cartItems.length})</h1>
+            <div className="w-20"></div>
+          </div>
         </div>
+      </div>
 
+      <div className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Cart Items */}
           <div className="lg:col-span-2 space-y-4">
-            {cartItems.map((item, idx) => {
-              const itemPrice = getItemPrice(item);
-              const originalPrice = item.productId.price;
-              const hasDiscount = item.productId.discount && item.productId.discount > 0;
-              const itemTotal = itemPrice * item.quantity;
+            {cartItems.map((item) => {
+              const product = item.productId;
+              const discountedPrice = getItemPrice(item);
+              const originalPrice = product.price;
+              const hasDiscount = product.discount && product.discount > 0;
+              const imageUrl = resolveProductImage(product);
 
               return (
-                <div key={idx} className="bg-white rounded-xl shadow-sm border p-4 flex gap-4">
-                  {/* Product Image */}
-                  <div className="w-24 h-24 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
-                    {item.productId.productImgUrls?.[0] ? (
+                <div
+                  key={product._id}
+                  className="bg-white rounded-2xl p-4 sm:p-6 shadow-sm border border-gray-100 hover:shadow-md transition"
+                >
+                  <div className="flex gap-4 sm:gap-6">
+                    {/* Product Image */}
+                    <div className="w-24 h-24 sm:w-32 sm:h-32 bg-gray-100 rounded-xl overflow-hidden flex-shrink-0">
                       <img
-                        src={getImageUrl(item.productId.productImgUrls[0])}
-                        alt={item.productId.name}
-                        className="w-full h-full object-cover"
+                        src={imageUrl}
+                        alt={product.name}
+                        className="w-full h-full object-contain p-2"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = "/placeholder.svg";
+                        }}
                       />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-gray-400">
-                        No image
+                    </div>
+
+                    {/* Product Details */}
+                    <div className="flex-1 flex flex-col justify-between">
+                      <div>
+                        <div className="flex justify-between items-start">
+                          <Link href={`/product/${product._id}`}>
+                            <h3 className="font-semibold text-gray-800 hover:text-orange-500 transition line-clamp-2 text-base sm:text-lg">
+                              {product.name}
+                            </h3>
+                          </Link>
+                          <button
+                            onClick={() => removeItem(product._id)}
+                            disabled={deletingId === product._id}
+                            className="text-gray-400 hover:text-red-500 transition p-1"
+                          >
+                            {deletingId === product._id ? (
+                              <Loader2 className="w-5 h-5 animate-spin text-red-500" />
+                            ) : (
+                              <Trash2 className="w-5 h-5" />
+                            )}
+                          </button>
+                        </div>
+
+                        {/* Price */}
+                        <div className="flex items-center gap-2 mt-2">
+                          <span className="text-xl font-bold text-gray-900">
+                            ₹{discountedPrice.toLocaleString("en-IN")}
+                          </span>
+                          {hasDiscount && (
+                            <>
+                              <span className="text-sm text-gray-400 line-through">
+                                ₹{originalPrice.toLocaleString("en-IN")}
+                              </span>
+                              <span className="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded-full font-medium">
+                                {product.discount}% OFF
+                              </span>
+                            </>
+                          )}
+                        </div>
                       </div>
-                    )}
-                  </div>
 
-                  {/* Product Details */}
-                  <div className="flex-1">
-                    <Link href={`/product/${item.productId._id}`}>
-                      <h3 className="font-semibold text-gray-900 hover:text-orange-600 transition line-clamp-2">
-                        {item.productId.name}
-                      </h3>
-                    </Link>
-                    <div className="flex flex-wrap gap-2 mt-1">
-                      {item.color && (
-                        <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded">Color: {item.color}</span>
-                      )}
-                      {item.size && (
-                        <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded">Size: {item.size}</span>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2 mt-2">
-                      <span className="font-bold text-orange-600">₹{itemPrice}</span>
-                      {hasDiscount && (
-                        <span className="text-xs text-gray-400 line-through">₹{originalPrice}</span>
-                      )}
-                    </div>
-                  </div>
+                      {/* Quantity Controls */}
+                      <div className="flex items-center justify-between mt-4">
+                        <div className="flex items-center border border-gray-200 rounded-xl bg-gray-50">
+                          <button
+                            onClick={() => updateQuantity(product._id, item.quantity - 1)}
+                            disabled={item.quantity <= 1 || updatingId === product._id}
+                            className="p-2 hover:text-orange-500 disabled:opacity-30 transition"
+                          >
+                            <Minus className="w-4 h-4" />
+                          </button>
+                          <span className="w-10 text-center font-medium text-gray-800">
+                            {updatingId === product._id ? (
+                              <Loader2 className="w-4 h-4 animate-spin mx-auto text-orange-500" />
+                            ) : (
+                              item.quantity
+                            )}
+                          </span>
+                          <button
+                            onClick={() => updateQuantity(product._id, item.quantity + 1)}
+                            disabled={updatingId === product._id}
+                            className="p-2 hover:text-orange-500 transition"
+                          >
+                            <Plus className="w-4 h-4" />
+                          </button>
+                        </div>
 
-                  {/* Quantity & Actions */}
-                  <div className="flex flex-col items-end gap-2">
-                    <div className="flex items-center border rounded-lg">
-                      <button
-                        onClick={() => updateQuantity(item.productId._id, item.quantity - 1)}
-                        disabled={updatingId === item.productId._id}
-                        className="px-3 py-1.5 hover:bg-gray-100 transition disabled:opacity-50"
-                      >
-                        <Minus className="w-3 h-3" />
-                      </button>
-                      <span className="w-8 text-center text-sm font-medium">
-                        {updatingId === item.productId._id ? (
-                          <Loader2 className="w-3 h-3 animate-spin mx-auto" />
-                        ) : (
-                          item.quantity
-                        )}
-                      </span>
-                      <button
-                        onClick={() => updateQuantity(item.productId._id, item.quantity + 1)}
-                        disabled={updatingId === item.productId._id}
-                        className="px-3 py-1.5 hover:bg-gray-100 transition disabled:opacity-50"
-                      >
-                        <Plus className="w-3 h-3" />
-                      </button>
+                        <div className="text-right">
+                          <span className="text-xs text-gray-500">Subtotal</span>
+                          <p className="font-bold text-gray-900">
+                            ₹{(discountedPrice * item.quantity).toLocaleString("en-IN")}
+                          </p>
+                        </div>
+                      </div>
                     </div>
-                    <div className="font-bold text-gray-900">
-                      ₹{itemTotal.toFixed(2)}
-                    </div>
-                    <button
-                      onClick={() => removeItem(item.productId._id)}
-                      disabled={deletingId === item.productId._id}
-                      className="text-red-500 hover:text-red-700 text-xs flex items-center gap-1 transition"
-                    >
-                      {deletingId === item.productId._id ? (
-                        <Loader2 className="w-3 h-3 animate-spin" />
-                      ) : (
-                        <Trash2 className="w-3 h-3" />
-                      )}
-                      Remove
-                    </button>
                   </div>
                 </div>
               );
@@ -344,42 +307,39 @@ const removeItem = async (productId: string) => {
 
           {/* Order Summary */}
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-xl shadow-sm border p-6 sticky top-24">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">Order Summary</h2>
-              
-              <div className="space-y-3">
+            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 sticky top-24">
+              <h2 className="text-lg font-bold text-gray-900 mb-4">Order Summary</h2>
+
+              <div className="space-y-3 pb-4 border-b border-gray-100">
                 <div className="flex justify-between text-gray-600">
-                  <span>Subtotal</span>
-                  <span>₹{subtotal.toFixed(2)}</span>
+                  <span>Price ({cartItems.length} items)</span>
+                  <span>₹{subtotal.toLocaleString("en-IN")}</span>
                 </div>
                 <div className="flex justify-between text-gray-600">
-                  <span>Shipping</span>
+                  <span>Delivery Charges</span>
                   {shipping === 0 ? (
-                    <span className="text-green-600">Free</span>
+                    <span className="text-green-600 font-medium">FREE</span>
                   ) : (
-                    <span>₹{shipping.toFixed(2)}</span>
+                    <span>₹{shipping}</span>
                   )}
-                </div>
-                {shipping > 0 && (
-                  <p className="text-xs text-gray-500">
-                    Add ₹{(999 - subtotal).toFixed(2)} more for free shipping
-                  </p>
-                )}
-                <div className="border-t pt-3 mt-3">
-                  <div className="flex justify-between font-bold text-lg">
-                    <span>Total</span>
-                    <span className="text-orange-600">₹{total.toFixed(2)}</span>
-                  </div>
                 </div>
               </div>
 
+              <div className="py-4 border-b border-gray-100">
+                <div className="flex justify-between text-lg font-bold text-gray-900">
+                  <span>Total Amount</span>
+                  <span className="text-orange-600">₹{total.toLocaleString("en-IN")}</span>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">Inclusive of all taxes</p>
+              </div>
+
               <Link href="/checkout">
-                <button className="w-full mt-6 bg-orange-500 text-white py-3 rounded-lg font-semibold hover:bg-orange-600 transition">
-                  Proceed to Checkout
+                <button className="w-full mt-6 bg-orange-500 hover:bg-orange-600 text-white font-bold py-3.5 px-6 rounded-xl transition shadow-lg shadow-orange-500/25 flex items-center justify-center gap-2">
+                  <span>Proceed to Checkout</span>
                 </button>
               </Link>
 
-              {/* Delivery Info */}
+              {/* Benefits */}
               <div className="mt-6 pt-4 border-t space-y-2">
                 <div className="flex items-center gap-2 text-sm text-gray-600">
                   <Truck className="w-4 h-4 text-green-600" />

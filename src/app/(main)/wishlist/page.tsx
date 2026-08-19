@@ -5,13 +5,15 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Heart, ShoppingCart, Trash2, Loader2, ArrowLeft } from "lucide-react";
 import toast from "react-hot-toast";
+import { resolveProductImage } from "@/lib/imageHelper";
 
 interface WishlistItem {
   _id: string;
   name: string;
   price: number;
   discount?: number;
-  productImgUrls: string[];
+  productImgUrls?: string[];
+  images?: string[];
   stock: number;
   isAvailable: boolean;
 }
@@ -27,10 +29,11 @@ export default function WishlistPage() {
     fetchWishlist();
   }, []);
 
+  const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000").replace(/\/$/, "");
+
   const fetchWishlist = async () => {
     try {
       setLoading(true);
-      // Get wishlist IDs from localStorage
       const savedWishlist = localStorage.getItem("wishlist");
       const wishlistIds = savedWishlist ? JSON.parse(savedWishlist) : [];
       
@@ -40,13 +43,13 @@ export default function WishlistPage() {
         return;
       }
 
-      // Fetch all products and filter wishlist items
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/product/getAll`);
+      const response = await fetch(`${API_URL}/product/getAll`);
       const result = await response.json();
       
       if (result.success && result.data) {
-        const filteredItems = result.data.filter(
-          (product: any) => wishlistIds.includes(product._id) && product.isAvailable && !product.isArchived
+        const rawList = Array.isArray(result.data) ? result.data : result.data?.items || [];
+        const filteredItems = rawList.filter(
+          (product: any) => wishlistIds.includes(product._id) && product.isAvailable !== false && !product.isArchived
         );
         setWishlistItems(filteredItems);
       }
@@ -56,12 +59,6 @@ export default function WishlistPage() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const getImageUrl = (url: string) => {
-    if (!url) return "/placeholder.jpg";
-    if (url.startsWith("http")) return url;
-    return `${process.env.NEXT_PUBLIC_API_URL}/uploads/${url}`;
   };
 
   const calculateDiscountedPrice = (price: number, discount?: number) => {
@@ -86,7 +83,7 @@ export default function WishlistPage() {
       const body: any = { quantity: 1 };
       if (!token && cartId) body.cartId = cartId;
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/cart/addtoCart/${productId}`, {
+      const response = await fetch(`${API_URL}/cart/addtoCart/${productId}`, {
         method: "POST",
         headers,
         body: JSON.stringify(body),
@@ -187,17 +184,14 @@ export default function WishlistPage() {
                     {/* Product Image */}
                     <div className="relative aspect-square w-full bg-gray-50 dark:bg-gray-850 p-2.5 flex items-center justify-center overflow-hidden">
                       <Link href={`/product/${item._id}`} className="w-full h-full flex items-center justify-center">
-                        {item.productImgUrls?.[0] ? (
-                          <img
-                            src={getImageUrl(item.productImgUrls[0])}
-                            alt={item.name}
-                            className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">
-                            No image
-                          </div>
-                        )}
+                        <img
+                          src={resolveProductImage(item)}
+                          alt={item.name}
+                          className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = "/placeholder.svg";
+                          }}
+                        />
                       </Link>
                       
                       {hasDiscount && (

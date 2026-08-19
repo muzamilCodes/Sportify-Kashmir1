@@ -6,6 +6,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import toast from "react-hot-toast";
+import { resolveProductImage } from "@/lib/imageHelper";
 
 export interface ProductItem {
   _id: string;
@@ -65,17 +66,9 @@ export default function ProductCard({
 
   const isWishlisted = (localWishlist.length > 0 ? localWishlist : wishlist).includes(product._id);
 
-  const imageUrls = product.productImgUrls || product.images || [];
-  const rawImage = imageUrls.length > 0 ? imageUrls[0] : null;
-
-  const resolveImageUrl = (url: string | null) => {
-    if (!url) return "/placeholder.jpg";
-    if (customGetImageUrl) return customGetImageUrl(url);
-    if (url.startsWith("http")) return url;
-    return `${API_URL}/uploads/${url}`;
-  };
-
-  const finalImageUrl = resolveImageUrl(rawImage);
+  const finalImageUrl = customGetImageUrl
+    ? customGetImageUrl(product.productImgUrls?.[0] || "")
+    : resolveProductImage(product);
 
   const toggleCompare = (e: React.MouseEvent) => {
     e.preventDefault(); e.stopPropagation();
@@ -228,16 +221,16 @@ export default function ProductCard({
       <Link href={`/product/${product._id}`} className="flex flex-col flex-1">
         {/* Product Image Area */}
         <div className="relative aspect-square w-full bg-gray-50 dark:bg-gray-850 p-2.5 sm:p-3.5 flex items-center justify-center overflow-hidden">
-          {rawImage && !imageError ? (
+          {finalImageUrl && !imageError ? (
             <Image
               src={finalImageUrl}
               alt={product.name}
               fill
+              unoptimized
               sizes="(max-width: 640px) 50vw, (max-width: 1280px) 25vw, 20vw"
               className="object-contain group-hover:scale-105 transition-transform duration-300 ease-out"
               onError={() => setImageError(true)}
               loading="lazy"
-              decoding="async"
             />
           ) : (
             <div className="w-full h-full flex flex-col items-center justify-center text-gray-400 dark:text-gray-500">

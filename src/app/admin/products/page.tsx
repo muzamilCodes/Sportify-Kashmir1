@@ -35,11 +35,13 @@ export default function AdminProductsPage() {
   );
   const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
 
+  const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000").replace(/\/$/, "");
+
   // Helper function to get image URL
   const getImageUrl = (url: string) => {
     if (!url) return "/placeholder.jpg";
     if (url.startsWith('http')) return url;
-    return `${process.env.NEXT_PUBLIC_API_URL}/uploads/${url}`;
+    return `${API_URL}/uploads/${url}`;
   };
 
   // Handle image error
@@ -63,13 +65,14 @@ export default function AdminProductsPage() {
     try {
       setLoading(true);
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/product/getAll`,
+        `${API_URL}/product/getAll`,
       );
 
       const result = await response.json();
       if (result.success) {
-        setProducts(result.data);
-        setFilteredProducts(result.data);
+        const rawList = Array.isArray(result.data) ? result.data : result.data?.items || [];
+        setProducts(rawList);
+        setFilteredProducts(rawList);
       }
     } catch (error) {
       console.error("Error:", error);
@@ -100,12 +103,14 @@ export default function AdminProductsPage() {
     }
 
     // Status filter
-    if (statusFilter === "available") {
-      filtered = filtered.filter((product) => product.isAvailable);
-    } else if (statusFilter === "unavailable") {
-      filtered = filtered.filter((product) => !product.isAvailable);
-    } else if (statusFilter === "archived") {
-      filtered = filtered.filter((product) => product.isArchived);
+    if (statusFilter !== "all") {
+      if (statusFilter === "active") {
+        filtered = filtered.filter((p) => p.isAvailable && !p.isArchived);
+      } else if (statusFilter === "inactive") {
+        filtered = filtered.filter((p) => !p.isAvailable);
+      } else if (statusFilter === "archived") {
+        filtered = filtered.filter((p) => p.isArchived);
+      }
     }
 
     setFilteredProducts(filtered);
@@ -118,7 +123,7 @@ export default function AdminProductsPage() {
     try {
       const token = localStorage.getItem("token");
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/product/delete/${productId}`,
+        `${API_URL}/product/delete/${productId}`,
         {
           method: "DELETE",
           headers: { Authorization: `Bearer ${token}` },
@@ -143,7 +148,7 @@ export default function AdminProductsPage() {
     try {
       const token = localStorage.getItem("token");
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/product/archive/${productId}`,
+        `${API_URL}/product/archive/${productId}`,
         {
           method: "PUT",
           headers: {
@@ -176,7 +181,7 @@ export default function AdminProductsPage() {
     try {
       const token = localStorage.getItem("token");
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/product/isAvialable/${productId}`,
+        `${API_URL}/product/isAvialable/${productId}`,
         {
           method: "PUT",
           headers: {

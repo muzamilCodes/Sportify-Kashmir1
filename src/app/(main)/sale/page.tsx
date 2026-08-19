@@ -8,11 +8,12 @@ import {
   TrendingDown,
   Filter,
   ChevronDown,
+  Zap,
+  ArrowRight,
 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
-
 import ProductCard from "@/components/ProductCard";
 
 interface SaleProduct {
@@ -23,9 +24,10 @@ interface SaleProduct {
   discount: number;
   productImgUrls: string[];
   category?: { _id: string; name: string } | string;
+  brand?: { _id: string; name: string } | string;
   isAvailable: boolean;
   stock: number;
-  onSale: boolean;
+  onSale?: boolean;
 }
 
 export default function SalePage() {
@@ -37,20 +39,25 @@ export default function SalePage() {
   const [showFilters, setShowFilters] = useState(false);
   const [priceRange, setPriceRange] = useState({ min: 0, max: 50000 });
   const [wishlist, setWishlist] = useState<string[]>([]);
-
-  // Get unique categories from products
   const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
+
+  const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000").replace(/\/$/, "");
 
   const getImageUrl = (url: string) => {
     if (!url) return "/placeholder.jpg";
-    if (url.startsWith('http')) return url;
-    return `${process.env.NEXT_PUBLIC_API_URL}/uploads/${url}`;
+    if (url.startsWith("http")) return url;
+    return `${API_URL}/uploads/${url}`;
   };
 
-  const getCategoryName = (category: SaleProduct['category']) => {
-    if (!category) return '';
-    if (typeof category === 'string') return category;
-    return category.name || '';
+  const getCategoryName = (category: SaleProduct["category"]) => {
+    if (!category) return "";
+    if (typeof category === "string") return category;
+    return category.name || "";
+  };
+
+  const calculateDiscountedPrice = (price: number, discount?: number) => {
+    if (!discount || discount <= 0) return price;
+    return price - (price * discount) / 100;
   };
 
   useEffect(() => {
@@ -68,28 +75,59 @@ export default function SalePage() {
   const fetchSaleProducts = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/product/getAll`);
-      const result = await response.json();
-      
-      if (result.success && result.data) {
-        // Filter products that are on sale
-        const saleProducts = result.data.filter((p: any) => p.onSale === true && p.isAvailable === true);
-        setProducts(saleProducts);
-        setFilteredProducts(saleProducts);
-        
-        // Extract unique categories
-        const uniqueCategories = new Map();
-        saleProducts.forEach((p: any) => {
-          const catName = getCategoryName(p.category);
-          if (catName && !uniqueCategories.has(catName.toLowerCase())) {
-            uniqueCategories.set(catName.toLowerCase(), { id: catName.toLowerCase(), name: catName });
+      // Try dedicated /product/sale endpoint, fallback to /product/getAll
+      let rawList: any[] = [];
+      try {
+        const res = await fetch(`${API_URL}/product/sale`);
+        if (res.ok) {
+          const json = await res.json();
+          if (json.success && json.data) {
+            rawList = Array.isArray(json.data) ? json.data : json.data?.items || [];
           }
-        });
-        setCategories([{ id: "all", name: "All Categories" }, ...Array.from(uniqueCategories.values())]);
-      } else {
-        setProducts([]);
-        setFilteredProducts([]);
+        }
+      } catch (err) {
+        console.warn("Could not fetch /product/sale, falling back to /product/getAll", err);
       }
+
+      if (rawList.length === 0) {
+        const allRes = await fetch(`${API_URL}/product/getAll`);
+        if (allRes.ok) {
+          const allJson = await allRes.json();
+          if (allJson.success && allJson.data) {
+            const allItems = Array.isArray(allJson.data) ? allJson.data : allJson.data?.items || [];
+            rawList = allItems.filter(
+              (p: any) =>
+                p.isAvailable !== false &&
+                !p.isArchived &&
+                (p.onSale === true || (p.discount && p.discount > 0))
+            );
+            // If still empty, show all available products
+            if (rawList.length === 0) {
+              rawList = allItems.filter((p: any) => p.isAvailable !== false && !p.isArchived);
+            }
+          }
+        }
+      }
+
+      const availableSaleProducts = rawList.filter((p: any) => p.isAvailable !== false && !p.isArchived);
+      setProducts(availableSaleProducts);
+      setFilteredProducts(availableSaleProducts);
+
+      // Extract unique categories
+      const uniqueCategories = new Map<string, { id: string; name: string }>();
+      availableSaleProducts.forEach((p: any) => {
+        const catName = getCategoryName(p.category);
+        if (catName && !uniqueCategories.has(catName.toLowerCase())) {
+          uniqueCategories.set(catName.toLowerCase(), {
+            id: catName.toLowerCase(),
+            name: catName,
+          });
+        }
+      });
+      setCategories([
+        { id: "all", name: "All Deals" },
+        ...Array.from(uniqueCategories.values()),
+      ]);
     } catch (error) {
       console.error("Error fetching sale products:", error);
       setProducts([]);
@@ -106,17 +144,16 @@ export default function SalePage() {
     // Category filter
     if (filterCategory !== "all") {
       filtered = filtered.filter(
-        (product) => getCategoryName(product.category)?.toLowerCase() === filterCategory.toLowerCase()
+        (product) =>
+          getCategoryName(product.category)?.toLowerCase() === filterCategory.toLowerCase()
       );
     }
 
     // Price range filter
-    filtered = filtered.filter(
-      (product) => {
-        const discountedPrice = calculateDiscountedPrice(product.price, product.discount);
-        return discountedPrice >= priceRange.min && discountedPrice <= priceRange.max;
-      }
-    );
+    filtered = filtered.filter((product) => {
+      const discountedPrice = calculateDiscountedPrice(product.price, product.discount);
+      return discountedPrice >= priceRange.min && discountedPrice <= priceRange.max;
+    });
 
     // Sorting
     switch (sortBy) {
@@ -143,11 +180,6 @@ export default function SalePage() {
     setFilteredProducts(filtered);
   }, [filterCategory, priceRange, sortBy, products]);
 
-  const calculateDiscountedPrice = (price: number, discount?: number) => {
-    if (!discount) return price;
-    return price - (price * discount) / 100;
-  };
-
   const handleAddToCart = async (productId: string, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -158,7 +190,7 @@ export default function SalePage() {
     }
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/cart/addtoCart/${productId}`, {
+      const response = await fetch(`${API_URL}/cart/addtoCart/${productId}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -184,7 +216,7 @@ export default function SalePage() {
     e.stopPropagation();
     let newWishlist: string[];
     if (wishlist.includes(productId)) {
-      newWishlist = wishlist.filter(id => id !== productId);
+      newWishlist = wishlist.filter((id) => id !== productId);
       toast.success("Removed from wishlist");
     } else {
       newWishlist = [...wishlist, productId];
@@ -196,7 +228,7 @@ export default function SalePage() {
 
   return (
     <div className="min-h-screen bg-[var(--color-bg-primary)] pb-16">
-      {/* Hero Banner: 30–36px Heading */}
+      {/* Hero Banner */}
       <div className="bg-gradient-to-r from-red-600 via-orange-600 to-pink-600 text-white py-10 md:py-14">
         <div className="container mx-auto px-4 text-center">
           <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/20 backdrop-blur-md rounded-full text-xs font-bold mb-3">
@@ -216,7 +248,9 @@ export default function SalePage() {
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 p-3 sm:p-4 mb-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2">
-              <span className="text-[13px] sm:text-[14px] font-medium text-gray-700 dark:text-gray-300">Sort by:</span>
+              <span className="text-[13px] sm:text-[14px] font-medium text-gray-700 dark:text-gray-300">
+                Sort by:
+              </span>
               <div className="relative">
                 <select
                   value={sortBy}
@@ -227,14 +261,19 @@ export default function SalePage() {
                   <option value="price-low">Price: Low to High</option>
                   <option value="price-high">Price: High to Low</option>
                 </select>
-                <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" size={14} />
+                <ChevronDown
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none"
+                  size={14}
+                />
               </div>
             </div>
 
             <button
               onClick={() => setShowFilters(!showFilters)}
               className={`flex items-center gap-1.5 px-3 py-1.5 text-[13px] sm:text-[14px] font-medium rounded-lg border transition ${
-                showFilters ? "bg-red-600 text-white border-red-600" : "border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50"
+                showFilters
+                  ? "bg-red-600 text-white border-red-600"
+                  : "border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50"
               }`}
             >
               <Filter size={15} />
@@ -246,7 +285,9 @@ export default function SalePage() {
           {showFilters && (
             <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 space-y-3">
               <div>
-                <label className="block text-[12px] font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Category</label>
+                <label className="block text-[12px] font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
+                  Category
+                </label>
                 <div className="flex flex-wrap gap-1.5">
                   {categories.map((cat) => (
                     <button
@@ -263,18 +304,49 @@ export default function SalePage() {
                   ))}
                 </div>
               </div>
+
+              <div>
+                <label className="block text-[12px] font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
+                  Price Range (₹{priceRange.min} - ₹{priceRange.max})
+                </label>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="range"
+                    min="0"
+                    max="50000"
+                    step="100"
+                    value={priceRange.max}
+                    onChange={(e) =>
+                      setPriceRange({ ...priceRange, max: Number(e.target.value) })
+                    }
+                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700 accent-red-600"
+                  />
+                </div>
+              </div>
             </div>
           )}
         </div>
 
         {/* Results Count */}
-        <div className="mb-4">
+        <div className="mb-4 flex items-center justify-between">
           <p className="text-[13px] sm:text-[14px] text-gray-600 dark:text-gray-400">
-            Found <span className="font-semibold text-gray-900 dark:text-white">{filteredProducts.length}</span> products on sale
+            Found{" "}
+            <span className="font-semibold text-gray-900 dark:text-white">
+              {filteredProducts.length}
+            </span>{" "}
+            products on sale
           </p>
+          {filterCategory !== "all" && (
+            <button
+              onClick={() => setFilterCategory("all")}
+              className="text-xs text-red-600 hover:underline font-medium"
+            >
+              Clear Category Filter
+            </button>
+          )}
         </div>
 
-        {/* Products Grid: 2 cols on mobile, 3 sm, 4 md/lg, 5 xl */}
+        {/* Products Grid */}
         {loading ? (
           <div className="flex justify-center items-center py-20">
             <div className="inline-block animate-spin rounded-full h-10 w-10 border-3 border-red-500 border-t-transparent"></div>
@@ -282,9 +354,16 @@ export default function SalePage() {
         ) : filteredProducts.length === 0 ? (
           <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-xs">
             <Tag className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
-            <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-1">No sale items found</h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Check back later for amazing deals!</p>
-            <Link href="/products" className="inline-block bg-red-600 text-white px-5 py-2 rounded-lg text-[14px] font-semibold hover:bg-red-700 transition">
+            <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-1">
+              No sale items found
+            </h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+              Check back later for amazing deals!
+            </p>
+            <Link
+              href="/products"
+              className="inline-block bg-red-600 text-white px-5 py-2 rounded-lg text-[14px] font-semibold hover:bg-red-700 transition"
+            >
               Browse All Products
             </Link>
           </div>
@@ -321,7 +400,7 @@ export default function SalePage() {
             <input
               type="email"
               placeholder="Enter your email"
-              className="flex-1 px-4 py-3 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-white"
+              className="flex-1 px-4 py-3 rounded-lg text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-white"
             />
             <button className="bg-white text-red-600 px-6 py-3 rounded-lg font-bold hover:bg-gray-100 transition">
               Subscribe

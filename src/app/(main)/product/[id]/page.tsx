@@ -1,4 +1,5 @@
 "use client";
+"use client";
 
 import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
@@ -31,6 +32,8 @@ import {
   MapPin,
 } from "lucide-react";
 import toast from "react-hot-toast";
+import { resolveProductImage } from "@/lib/imageHelper";
+
 const ProductCard = dynamic(() => import("@/components/ProductCard"), {
   loading: () => <div className="h-80 rounded-xl bg-gray-100 animate-pulse" />,
 });
@@ -454,12 +457,13 @@ export default function ProductDetailPage() {
               <div className="relative bg-gray-100 rounded-2xl overflow-hidden aspect-square mb-4">
                 {product.productImgUrls && product.productImgUrls.length > 0 ? (
                   <Image
-                    src={getImageUrl(product.productImgUrls[selectedImage])}
+                    src={resolveProductImage(product.productImgUrls[selectedImage])}
                     alt={product.name}
                     fill
+                    unoptimized
                     priority
                     sizes="(max-width: 1024px) 100vw, 50vw"
-                    className="object-cover"
+                    className="object-contain"
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-gray-400">
@@ -485,18 +489,20 @@ export default function ProductDetailPage() {
                     <button
                       key={index}
                       onClick={() => setSelectedImage(index)}
-                      className={`relative flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition ${selectedImage === index
-                        ? "border-orange-500 shadow-md"
-                        : "border-gray-200 hover:border-gray-400"
-                        }`}
+                      className={`relative flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition ${
+                        selectedImage === index
+                          ? "border-orange-500 shadow-md"
+                          : "border-gray-200 hover:border-gray-400"
+                      }`}
                     >
                       <Image
-                        src={getImageUrl(image)}
+                        src={resolveProductImage(image)}
                         alt={`${product.name} ${index + 1}`}
                         fill
+                        unoptimized
                         loading="lazy"
                         sizes="80px"
-                        className="object-cover"
+                        className="object-contain"
                       />
                     </button>
                   ))}
@@ -510,7 +516,7 @@ export default function ProductDetailPage() {
               <div className="flex flex-wrap gap-2 mb-3">
                 {product.category && (
                   <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
-                    {getCategoryName(product.category)}
+                    {typeof product.category === 'object' ? product.category.name : product.category}
                   </span>
                 )}
                 {product.brand && (
@@ -824,7 +830,6 @@ export default function ProductDetailPage() {
                 View All <ChevronRight className="w-4 h-4" />
               </Link>
             </div>
-            {/* 2 cols on mobile, 3 sm, 4 md/lg, 5 xl */}
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4 md:gap-4.5">
               {relatedProducts.map((relatedProduct) => {
                 const relatedDiscountedPrice = relatedProduct.discount
@@ -839,7 +844,6 @@ export default function ProductDetailPage() {
                     discountedPrice={relatedDiscountedPrice}
                     hasDiscount={hasRelatedDiscount}
                     wishlist={wishlist}
-                    getImageUrl={getImageUrl}
                   />
                 );
               })}

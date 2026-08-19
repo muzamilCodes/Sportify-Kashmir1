@@ -22,16 +22,14 @@ interface Product {
   category?: { _id: string; name: string } | string;
   stock: number;
   onSale?: boolean;
-  subcategory?: string; // Add subcategory field
+  subcategory?: string;
 }
-
-
 
 export default function CategoryPage() {
   const params = useParams();
   const searchParams = useSearchParams();
   const router = useRouter();
-  const categorySlug = params.category as string;
+  const categorySlug = (params.category as string) || "";
   const subcategoryParam = searchParams.get("subcategory");
 
   const [products, setProducts] = useState<Product[]>([]);
@@ -46,10 +44,12 @@ export default function CategoryPage() {
   const [selectedSubcategory, setSelectedSubcategory] = useState<string | null>(subcategoryParam);
   const [subcategories, setSubcategories] = useState<string[]>([]);
 
+  const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000").replace(/\/$/, "");
+
   const getImageUrl = (url: string) => {
     if (!url) return "/placeholder.jpg";
     if (url.startsWith("http")) return url;
-    return `${process.env.NEXT_PUBLIC_API_URL}/uploads/${url}`;
+    return `${API_URL}/uploads/${url}`;
   };
 
   const calculateDiscountedPrice = (price: number, discount?: number) => {
@@ -68,14 +68,20 @@ export default function CategoryPage() {
     return '';
   };
 
-  const categoryTitle = categorySlug.charAt(0).toUpperCase() + categorySlug.slice(1);
+  const categoryTitle = categorySlug ? categorySlug.charAt(0).toUpperCase() + categorySlug.slice(1) : "Category";
 
   useEffect(() => {
-    fetchProductsByCategory();
-    fetchCategoryData();
+    if (categorySlug) {
+      fetchProductsByCategory();
+      fetchCategoryData();
+    }
     const savedWishlist = localStorage.getItem("wishlist");
     if (savedWishlist) {
-      setWishlist(JSON.parse(savedWishlist));
+      try {
+        setWishlist(JSON.parse(savedWishlist));
+      } catch {
+        setWishlist([]);
+      }
     }
   }, [categorySlug]);
 
@@ -85,10 +91,13 @@ export default function CategoryPage() {
 
   const fetchCategoryData = async () => {
     try {
-      const result = await cachedJson<{ success: boolean; data: any[] }>(`${process.env.NEXT_PUBLIC_API_URL}/category/all`);
+      const result = await cachedJson<{ success: boolean; data: any[] }>(`${API_URL}/category/all`);
       if (result.success && result.data) {
-        // match category by name roughly matching the slug
-        const category = result.data.find((c: any) => c.name.toLowerCase() === categorySlug.toLowerCase());
+        const slugNorm = categorySlug.toLowerCase().replace(/[^a-z0-9]+/g, "");
+        const category = result.data.find((c: any) => {
+          const nameNorm = (c.name || "").toLowerCase().replace(/[^a-z0-9]+/g, "");
+          return nameNorm === slugNorm || (c.name || "").toLowerCase() === categorySlug.toLowerCase();
+        });
         if (category && category.subcategories) {
           setSubcategories(category.subcategories);
         }
@@ -101,17 +110,20 @@ export default function CategoryPage() {
   const fetchProductsByCategory = async () => {
     try {
       setLoading(true);
-      const result = await cachedJson<{ success: boolean; data: Product[] }>(`${process.env.NEXT_PUBLIC_API_URL}/product/category/${categorySlug}`);
+      const result = await cachedJson<{ success: boolean; data: any }>(`${API_URL}/product/category/${categorySlug}`);
 
       if (result.success && result.data) {
-        setProducts(result.data);
-        setFilteredProducts(result.data);
+        const list = Array.isArray(result.data) ? result.data : result.data?.items || [];
+        setProducts(list);
+        setFilteredProducts(list);
       } else {
         setProducts([]);
         setFilteredProducts([]);
       }
     } catch (error) {
       console.error("Error fetching products:", error);
+      setProducts([]);
+      setFilteredProducts([]);
     } finally {
       setLoading(false);
     }
@@ -124,33 +136,17 @@ export default function CategoryPage() {
     // Subcategory filter
     if (selectedSubcategory) {
       filtered = filtered.filter((product) => {
-        // Check if product name contains subcategory keyword
         const productName = product.name.toLowerCase();
         const subcategoryLower = selectedSubcategory.toLowerCase();
         
-        // Match based on keywords
-        if (subcategoryLower === "bats") {
-          return productName.includes("bat") || productName.includes("batting");
-        }
-        if (subcategoryLower === "balls") {
-          return productName.includes("ball");
-        }
-        if (subcategoryLower === "pads") {
-          return productName.includes("pad") || productName.includes("leg guard");
-        }
-        if (subcategoryLower === "gloves") {
-          return productName.includes("glove") || productName.includes("batting glove");
-        }
-        if (subcategoryLower === "helmets") {
-          return productName.includes("helmet");
-        }
-        if (subcategoryLower === "shoes") {
-          return productName.includes("shoe") || productName.includes("boot");
-        }
-        if (subcategoryLower === "jerseys") {
-          return productName.includes("jersey") || productName.includes("shirt");
-        }
-        return true;
+        if (subcategoryLower === "bats") return productName.includes("bat");
+        if (subcategoryLower === "balls") return productName.includes("ball");
+        if (subcategoryLower === "pads") return productName.includes("pad");
+        if (subcategoryLower === "gloves") return productName.includes("glove");
+        if (subcategoryLower === "helmets") return productName.includes("helmet");
+        if (subcategoryLower === "shoes" || subcategoryLower === "boots") return productName.includes("shoe") || productName.includes("boot");
+        if (subcategoryLower === "jerseys") return productName.includes("jersey") || productName.includes("shirt");
+        return productName.includes(subcategoryLower);
       });
     }
 
@@ -199,7 +195,7 @@ export default function CategoryPage() {
       const body: any = { quantity: 1 };
       if (!token && cartId) body.cartId = cartId;
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/cart/addtoCart/${productId}`, {
+      const response = await fetch(`${API_URL}/cart/addtoCart/${productId}`, {
         method: "POST",
         headers,
         body: JSON.stringify(body),
@@ -209,6 +205,7 @@ export default function CategoryPage() {
       if (result.success) {
         if (!token && result.data?._id) localStorage.setItem("cartId", result.data._id);
         toast.success("Added to cart!");
+        window.dispatchEvent(new Event("cartUpdated"));
       } else {
         toast.error(result.message || "Failed to add to cart");
       }
@@ -234,7 +231,6 @@ export default function CategoryPage() {
 
   const handleSubcategoryClick = (subcategory: string) => {
     if (selectedSubcategory === subcategory) {
-      // Deselect if already selected
       router.push(`/categories/${categorySlug}`);
       setSelectedSubcategory(null);
     } else {
@@ -264,8 +260,8 @@ export default function CategoryPage() {
     if (cat === "football") return "from-blue-600 to-indigo-700";
     if (cat === "basketball") return "from-orange-500 to-red-600";
     if (cat === "tennis") return "from-yellow-500 to-yellow-700";
-    if (cat === "fitness") return "from-red-500 to-orange-600";
-    if (cat === "apparel") return "from-pink-500 to-rose-600";
+    if (cat.includes("fit") || cat.includes("gym")) return "from-red-500 to-orange-600";
+    if (cat.includes("wear") || cat.includes("apparel")) return "from-pink-500 to-rose-600";
     return "from-gray-600 to-gray-800";
   };
 
@@ -282,7 +278,7 @@ export default function CategoryPage() {
       </div>
 
       <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-8">
-        {/* Subcategories Navigation - Like Amazon */}
+        {/* Subcategories Navigation */}
         {subcategories.length > 0 && (
           <div className="bg-white rounded-xl shadow-sm border mb-4 sm:mb-6 overflow-x-auto">
             <div className="flex items-center gap-1 p-2 min-w-max">
@@ -442,7 +438,6 @@ export default function CategoryPage() {
             </button>
           </div>
         ) : viewMode === "grid" ? (
-          /* 2 cols on mobile, 3 on sm, 4 on md/lg, 5 on xl */
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4 md:gap-4.5">
             {filteredProducts.map((product) => {
               const discountedPrice = calculateDiscountedPrice(product.price, product.discount);
@@ -466,7 +461,7 @@ export default function CategoryPage() {
           <div className="space-y-3 sm:space-y-4">
             {filteredProducts.map((product) => {
               const discountedPrice = calculateDiscountedPrice(product.price, product.discount);
-              const hasDiscount = product.discount && product.discount > 0;
+              const hasDiscount = !!(product.discount && product.discount > 0);
               
               return (
                 <Link key={product._id} href={`/product/${product._id}`} className="group">
