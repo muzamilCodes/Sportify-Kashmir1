@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
   ShoppingCart,
@@ -60,23 +61,71 @@ export default function CartPage() {
     try {
       setLoading(true);
       const token = localStorage.getItem("token");
-      if (!token) {
+      const guestCartId = localStorage.getItem("cartId");
+
+      let rawProducts: any[] = [];
+
+      if (token) {
+        const response = await fetch(`${API_URL}/cart/getCart`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const result = await response.json();
+        if (result.success && result.data) {
+          rawProducts = result.data.products || [];
+        }
+      } else if (guestCartId) {
+        const response = await fetch(`${API_URL}/cart/getGuestCart/${guestCartId}`);
+        const result = await response.json();
+        if (result.success && result.data) {
+          rawProducts = result.data.products || [];
+        }
+      }
+
+      if (rawProducts.length === 0) {
         setCartItems([]);
-        setLoading(false);
         return;
       }
 
-      const response = await fetch(`${API_URL}/cart/getCart`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      // Check if any product is unpopulated or missing productImgUrls
+      const needsPopulation = rawProducts.some(
+        (p: any) =>
+          typeof p.productId === "string" ||
+          !p.productId ||
+          !p.productId.name ||
+          (!p.productId.productImgUrls && !p.productId.images)
+      );
 
-      const result = await response.json();
-      if (result.success && result.data) {
-        const rawProducts = result.data.products || [];
-        setCartItems(rawProducts.filter((p: any) => p && p.productId));
-      } else {
-        setCartItems([]);
+      if (needsPopulation) {
+        try {
+          const prodRes = await fetch(`${API_URL}/product/getAll`);
+          const prodData = await prodRes.json();
+          const allProds = Array.isArray(prodData?.data)
+            ? prodData.data
+            : prodData?.data?.items || [];
+          const prodMap = new Map(allProds.map((pr: any) => [String(pr._id), pr]));
+
+          rawProducts = rawProducts.map((p: any) => {
+            const prodId =
+              typeof p.productId === "string"
+                ? p.productId
+                : p.productId?._id
+                ? String(p.productId._id)
+                : "";
+            if (prodId && prodMap.has(prodId)) {
+              return { ...p, productId: prodMap.get(prodId) };
+            }
+            return p;
+          });
+        } catch (e) {
+          console.error("Failed to populate products:", e);
+        }
       }
+
+      setCartItems(
+        rawProducts.filter(
+          (p: any) => p && p.productId && typeof p.productId === "object"
+        )
+      );
     } catch (error) {
       console.error("Error fetching cart:", error);
       toast.error("Failed to load cart");
@@ -200,27 +249,36 @@ export default function CartPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Cart Items */}
           <div className="lg:col-span-2 space-y-4">
-            {cartItems.map((item) => {
-              const product = item.productId;
+            {cartItems.map((item, idx) => {
+              const product = item?.productId && typeof item.productId === "object" ? item.productId : (item as any);
               const discountedPrice = getItemPrice(item);
-              const originalPrice = product.price;
-              const hasDiscount = product.discount && product.discount > 0;
+              const originalPrice = product?.price || item?.price || 0;
+              const hasDiscount = Boolean(product?.discount && product.discount > 0);
               const imageUrl = resolveProductImage(product);
+              const prodId = product?._id || (item as any)?._id || idx;
+              const prodName = product?.name || "Product";
 
               return (
                 <div
-                  key={product._id}
+                  key={prodId}
                   className="bg-white rounded-2xl p-4 sm:p-6 shadow-sm border border-gray-100 hover:shadow-md transition"
                 >
                   <div className="flex gap-4 sm:gap-6">
                     {/* Product Image */}
-                    <div className="w-24 h-24 sm:w-32 sm:h-32 bg-gray-100 rounded-xl overflow-hidden flex-shrink-0">
+                    <div className="relative w-24 h-24 sm:w-32 sm:h-32 bg-gray-50 dark:bg-gray-800/80 rounded-xl overflow-hidden flex-shrink-0 flex items-center justify-center border border-gray-100 dark:border-gray-700">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={imageUrl}
-                        alt={product.name}
-                        className="w-full h-full object-contain p-2"
+                        alt={prodName}
+                        loading="eager"
+                        referrerPolicy="no-referrer"
+                        crossOrigin="anonymous"
+                        className="w-full h-full object-contain p-2 transition-transform duration-200 hover:scale-105"
                         onError={(e) => {
-                          (e.target as HTMLImageElement).src = "/placeholder.svg";
+                          const target = e.currentTarget;
+                          if (!target.src.endsWith("/placeholder.svg")) {
+                            target.src = "/placeholder.svg";
+                          }
                         }}
                       />
                     </div>
@@ -229,9 +287,9 @@ export default function CartPage() {
                     <div className="flex-1 flex flex-col justify-between">
                       <div>
                         <div className="flex justify-between items-start">
-                          <Link href={`/product/${product._id}`}>
+                          <Link href={`/product/${product?._id || ""}`}>
                             <h3 className="font-semibold text-gray-800 hover:text-orange-500 transition line-clamp-2 text-base sm:text-lg">
-                              {product.name}
+                              {prodName}
                             </h3>
                           </Link>
                           <button

@@ -3,6 +3,7 @@
 import { useParams, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import {
   CheckCircle,
   Package,
@@ -89,11 +90,49 @@ export default function OrderDetailPage() {
       );
       const data = await res.json();
       if (data.success && data.data) {
-        const orderDate = new Date(data.data.createdAt);
+        let orderData = data.data;
+
+        // Check if any product in order is unpopulated
+        if (
+          Array.isArray(orderData.products) &&
+          orderData.products.some(
+            (p: any) =>
+              typeof p.productId === "string" ||
+              !p.productId?.name ||
+              (!p.productId?.productImgUrls && !p.productId?.images)
+          )
+        ) {
+          try {
+            const prodRes = await fetch(`${API_URL}/product/getAll`);
+            const prodData = await prodRes.json();
+            const allProds = Array.isArray(prodData?.data)
+              ? prodData.data
+              : prodData?.data?.items || [];
+            const prodMap = new Map(allProds.map((pr: any) => [String(pr._id), pr]));
+
+            const updatedProds = orderData.products.map((p: any) => {
+              const prodId =
+                typeof p.productId === "string"
+                  ? p.productId
+                  : p.productId?._id
+                  ? String(p.productId._id)
+                  : "";
+              if (prodId && prodMap.has(prodId)) {
+                return { ...p, productId: prodMap.get(prodId) };
+              }
+              return p;
+            });
+            orderData = { ...orderData, products: updatedProds };
+          } catch (e) {
+            console.error("Failed to populate products in order details:", e);
+          }
+        }
+
+        const orderDate = new Date(orderData.createdAt);
         const deliveryDate = new Date(orderDate);
         deliveryDate.setDate(orderDate.getDate() + 4);
         setOrder({
-          ...data.data,
+          ...orderData,
           estimatedDelivery: deliveryDate.toLocaleDateString("en-IN", {
             weekday: "long",
             year: "numeric",
@@ -454,14 +493,21 @@ export default function OrderDetailPage() {
                 const imgUrl = resolveProductImage(product);
                 return (
                   <div key={idx} className="flex gap-4 p-3 border rounded-xl bg-white shadow-sm">
-                    <div className="w-20 h-20 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+                    <div className="relative w-20 h-20 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800 flex-shrink-0 border border-gray-100 dark:border-gray-700 flex items-center justify-center">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={imgUrl}
                         alt={productName}
+                        loading="eager"
+                        referrerPolicy="no-referrer"
+                        crossOrigin="anonymous"
                         className="w-full h-full object-contain p-1"
-                        onError={(e) =>
-                          (e.currentTarget.src = "/placeholder.svg")
-                        }
+                        onError={(e) => {
+                          const target = e.currentTarget;
+                          if (!target.src.endsWith("/placeholder.svg")) {
+                            target.src = "/placeholder.svg";
+                          }
+                        }}
                       />
                     </div>
                     <div className="flex-1">

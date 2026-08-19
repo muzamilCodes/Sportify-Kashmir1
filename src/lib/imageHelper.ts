@@ -19,6 +19,10 @@ export const resolveProductImage = (product: any, customApiUrl?: string): string
       raw = product.images.find((u: any) => typeof u === "string" && u.trim().length > 0) || "";
     } else if (typeof product.productImgUrls === "string") {
       raw = product.productImgUrls;
+    } else if (typeof product.productImgUrl === "string") {
+      raw = product.productImgUrl;
+    } else if (typeof product.productImage === "string") {
+      raw = product.productImage;
     } else if (typeof product.image === "string") {
       raw = product.image;
     } else if (typeof product.img === "string") {
@@ -54,6 +58,11 @@ export const resolveProductImage = (product: any, customApiUrl?: string): string
     return raw;
   }
 
-  // Bare filename uploaded to backend
-  return `${apiUrl}/uploads/${raw}`;
+  // Bare filename uploaded to backend (only if it looks like an image file)
+  const isImageFile = /\.(jpg|jpeg|png|webp|avif|gif|svg)$/i.test(raw);
+  if (isImageFile) {
+    return `${apiUrl}/uploads/${raw}`;
+  }
+
+  return "/placeholder.svg";
 };

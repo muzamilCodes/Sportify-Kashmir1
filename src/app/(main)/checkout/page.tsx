@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import {
   ShoppingCart,
   Trash2,
@@ -152,7 +153,42 @@ export default function CheckoutPage() {
         }
       }
 
-      const validProducts = products.filter((p: any) => p && p.productId);
+      let validProducts = products.filter((p: any) => p && p.productId);
+
+      // Check if any product is unpopulated
+      const needsPopulation = validProducts.some(
+        (p: any) =>
+          typeof p.productId === "string" ||
+          !p.productId.name ||
+          (!p.productId.productImgUrls && !p.productId.images)
+      );
+
+      if (needsPopulation) {
+        try {
+          const prodRes = await fetch(`${API_URL}/product/getAll`);
+          const prodData = await prodRes.json();
+          const allProds = Array.isArray(prodData?.data)
+            ? prodData.data
+            : prodData?.data?.items || [];
+          const prodMap = new Map(allProds.map((pr: any) => [String(pr._id), pr]));
+
+          validProducts = validProducts.map((p: any) => {
+            const prodId =
+              typeof p.productId === "string"
+                ? p.productId
+                : p.productId?._id
+                ? String(p.productId._id)
+                : "";
+            if (prodId && prodMap.has(prodId)) {
+              return { ...p, productId: prodMap.get(prodId) };
+            }
+            return p;
+          });
+        } catch (e) {
+          console.error("Failed to populate products in checkout:", e);
+        }
+      }
+
       setCartItems(validProducts);
       calculateTotals(validProducts);
 
@@ -940,13 +976,20 @@ return (
                   const price = getItemPrice(item);
                   return (
                     <div key={product._id || idx} className="flex items-center gap-3">
-                      <div className="w-12 h-12 bg-gray-50 border rounded-lg overflow-hidden flex-shrink-0 flex items-center justify-center p-1">
+                      <div className="relative w-12 h-12 bg-gray-50 dark:bg-gray-800 rounded-lg overflow-hidden flex-shrink-0 flex items-center justify-center p-1 border border-gray-100 dark:border-gray-700">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                           src={imgUrl}
                           alt={product.name || "Product"}
-                          className="w-full h-full object-contain"
+                          loading="eager"
+                          referrerPolicy="no-referrer"
+                          crossOrigin="anonymous"
+                          className="w-full h-full object-contain p-0.5"
                           onError={(e) => {
-                            (e.target as HTMLImageElement).src = "/placeholder.jpg";
+                            const target = e.currentTarget;
+                            if (!target.src.endsWith("/placeholder.svg")) {
+                              target.src = "/placeholder.svg";
+                            }
                           }}
                         />
                       </div>

@@ -39,6 +39,8 @@ export default function AddressPage() {
   const [editingAddress, setEditingAddress] = useState<Address | null>(null);
   const [saving, setSaving] = useState(false);
 
+  const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000").replace(/\/$/, "");
+
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -67,7 +69,7 @@ export default function AddressPage() {
       }
 
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/addresses`,
+        `${API_URL}/addresses`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -163,7 +165,7 @@ export default function AddressPage() {
       let response;
       if (editingAddress) {
         response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/addresses/update/${editingAddress._id}`,
+          `${API_URL}/addresses/update/${editingAddress._id}`,
           {
             method: "PUT",
             headers: {
@@ -175,7 +177,7 @@ export default function AddressPage() {
         );
       } else {
         response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/addresses/create`,
+          `${API_URL}/addresses/create`,
           {
             method: "POST",
             headers: {
@@ -220,7 +222,7 @@ export default function AddressPage() {
       }
 
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/addresses/remove/${addressId}`,
+        `${API_URL}/addresses/remove/${addressId}`,
         {
           method: "DELETE",
           headers: { Authorization: `Bearer ${token}` },
@@ -249,7 +251,7 @@ export default function AddressPage() {
       }
 
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/addresses/setDefault/${addressId}`,
+        `${API_URL}/addresses/setDefault/${addressId}`,
         {
           method: "PUT",
           headers: { Authorization: `Bearer ${token}` },

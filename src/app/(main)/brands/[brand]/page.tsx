@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import EmptyState from "@/components/shared/EmptyState";
 import ProductCard from "@/components/ProductCard";
+import { resolveProductImage } from "@/lib/imageHelper";
 
 interface BrandMeta {
   name: string;
@@ -52,9 +53,7 @@ export default function BrandDetailPage() {
       .join(" ");
 
   const getImageUrl = (url: string) => {
-    if (!url) return "/placeholder.jpg";
-    if (url.startsWith("http")) return url;
-    return `${API_URL}/uploads/${url}`;
+    return resolveProductImage(url);
   };
 
   useEffect(() => {

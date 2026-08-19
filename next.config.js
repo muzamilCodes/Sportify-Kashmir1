@@ -39,36 +39,12 @@ const nextConfig = {
     minimumCacheTTL: 86400,
     remotePatterns: [
       {
-        protocol: 'http',
-        hostname: 'localhost',
-        port: '4000',
-        pathname: '/**',
+        protocol: 'https',
+        hostname: '**',
       },
       {
         protocol: 'http',
-        hostname: '127.0.0.1',
-        port: '4000',
-        pathname: '/**',
-      },
-      {
-        protocol: 'https',
-        hostname: 'sportify-kashmir1.onrender.com',
-        pathname: '/**',
-      },
-      {
-        protocol: 'https',
-        hostname: 'res.cloudinary.com',
-        pathname: '/**',
-      },
-      {
-        protocol: 'https',
-        hostname: 'images.unsplash.com',
-        pathname: '/**',
-      },
-      {
-        protocol: 'https',
-        hostname: 'plus.unsplash.com',
-        pathname: '/**',
+        hostname: '**',
       },
     ],
   },

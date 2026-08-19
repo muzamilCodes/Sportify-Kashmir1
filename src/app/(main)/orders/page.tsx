@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Package, Loader2, Calendar, IndianRupee, Truck, Clock, CheckCircle, XCircle, ChevronRight, Download } from "lucide-react";
 import toast from "react-hot-toast";
@@ -41,8 +42,56 @@ export default function OrdersPage() {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
-      if (data.success) setOrders(data.data);
-      else setOrders([]);
+      if (data.success && Array.isArray(data.data)) {
+        let rawOrders = data.data;
+
+        // Check if any order has unpopulated product
+        const needsPopulation = rawOrders.some((ord: any) =>
+          Array.isArray(ord.products) &&
+          ord.products.some(
+            (p: any) =>
+              typeof p.productId === "string" ||
+              !p.productId?.name ||
+              (!p.productId?.productImgUrls && !p.productId?.images)
+          )
+        );
+
+        if (needsPopulation) {
+          try {
+            const prodRes = await fetch(`${API_URL}/product/getAll`);
+            const prodData = await prodRes.json();
+            const allProds = Array.isArray(prodData?.data)
+              ? prodData.data
+              : prodData?.data?.items || [];
+            const prodMap = new Map(allProds.map((pr: any) => [String(pr._id), pr]));
+
+            rawOrders = rawOrders.map((ord: any) => {
+              if (Array.isArray(ord.products)) {
+                const updatedProds = ord.products.map((p: any) => {
+                  const prodId =
+                    typeof p.productId === "string"
+                      ? p.productId
+                      : p.productId?._id
+                      ? String(p.productId._id)
+                      : "";
+                  if (prodId && prodMap.has(prodId)) {
+                    return { ...p, productId: prodMap.get(prodId) };
+                  }
+                  return p;
+                });
+                return { ...ord, products: updatedProds };
+              }
+              return ord;
+            });
+          } catch (e) {
+            console.error("Failed to populate products in orders:", e);
+          }
+        }
+
+        setOrders(rawOrders);
+      } else {
+        setOrders([]);
+      }
     } catch (err) {
       toast.error("Failed to load orders");
     } finally {
@@ -162,13 +211,20 @@ export default function OrdersPage() {
 
                   {/* Product preview & Actions */}
                   <div className="flex items-center gap-4 mt-4 flex-wrap">
-                    <div className="w-16 h-16 rounded-xl overflow-hidden bg-gray-100 flex-shrink-0 border border-gray-200">
+                    <div className="relative w-16 h-16 rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-800 flex-shrink-0 border border-gray-200 dark:border-gray-700 flex items-center justify-center">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img 
                         src={productImage} 
                         alt={productName} 
+                        loading="eager"
+                        referrerPolicy="no-referrer"
+                        crossOrigin="anonymous"
                         className="w-full h-full object-contain p-1"
                         onError={(e) => {
-                          (e.target as HTMLImageElement).src = "/placeholder.jpg";
+                          const target = e.currentTarget;
+                          if (!target.src.endsWith("/placeholder.svg")) {
+                            target.src = "/placeholder.svg";
+                          }
                         }}
                       />
                     </div>

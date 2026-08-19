@@ -16,6 +16,7 @@ import toast from "react-hot-toast";
 import ProductCard from "@/components/ProductCard";
 import RecentlyViewed from "@/components/RecentlyViewed";
 import { ProductGridSkeleton } from "@/components/shared/SkeletonLoaders";
+import { resolveProductImage } from "@/lib/imageHelper";
 
 interface Product {
   _id: string;
@@ -44,9 +45,7 @@ export default function HomePage() {
   const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000").replace(/\/$/, "");
 
   const getImageUrl = (url: string) => {
-    if (!url) return "/placeholder.jpg";
-    if (url.startsWith("http")) return url;
-    return `${API_URL}/uploads/${url}`;
+    return resolveProductImage(url);
   };
 
   const calculateDiscountedPrice = (price: number, discount?: number) => {
