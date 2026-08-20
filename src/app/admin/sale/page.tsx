@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { productApi } from "@/lib/api";
 import { resolveProductImage } from "@/lib/imageHelper";
+import ProductImage from "@/components/ProductImage";
 
 interface Product {
   _id: string;
@@ -27,274 +28,227 @@ export default function AdminSalePage() {
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
+  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [categories, setCategories] = useState<{ _id: string; name: string }[]>([]);
 
-  const getImageUrl = (url: string) => resolveProductImage(url);
-
-  // Handle image error
-  const handleImageError = (productId: string) => {
-    setImageErrors(prev => new Set([...prev, productId]));
-  };
-
-  // Helper to get category name
-  const getCategoryName = (category: Product['category']) => {
-    if (!category) return 'N/A';
-    if (typeof category === 'string') return category;
-    return category.name || 'N/A';
-  };
-
-  // Helper to get brand name
-  const getBrandName = (brand: Product['brand']) => {
-    if (!brand) return 'N/A';
-    if (typeof brand === 'string') return brand;
-    return brand.name || 'N/A';
-  };
-
-  // Fetch all products (not just sale products)
   useEffect(() => {
     fetchProducts();
+    fetchCategories();
   }, []);
+
+  useEffect(() => {
+    filterProducts();
+  }, [searchTerm, selectedCategory, products]);
 
   const fetchProducts = async () => {
     try {
       setLoading(true);
-      // Fetch all products, not just sale products
-      const response = await productApi.getAllProducts();
-      if (response.success && response.data) {
-        // Filter for products that are on sale
-        const saleProducts = response.data.filter((p: Product) => p.onSale);
-        setProducts(saleProducts);
-        setFilteredProducts(saleProducts);
-      }
+      const res = await productApi.getAll();
+      const allProducts = Array.isArray(res.data) ? res.data : res.data?.items || [];
+      const activeProducts = allProducts.filter((p: Product) => !p.isArchived);
+      setProducts(activeProducts);
     } catch (error) {
-      console.error("Error:", error);
-      toast.error("Failed to load sale products");
+      console.error("Error fetching products:", error);
+      toast.error("Failed to load products");
     } finally {
       setLoading(false);
     }
   };
 
-  // Apply filters
-  useEffect(() => {
-    let filtered = [...products];
+  const fetchCategories = async () => {
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}/category/all`);
+      const data = await res.json();
+      if (data.success) {
+        setCategories(data.data);
+      }
+    } catch (error) {
+      console.error("Error fetching categories:", error);
+    }
+  };
 
-    // Search filter
+  const filterProducts = () => {
+    let result = [...products];
+
     if (searchTerm) {
-      filtered = filtered.filter(
-        (product) =>
-          product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          product.description.toLowerCase().includes(searchTerm.toLowerCase()),
+      result = result.filter((p) =>
+        p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        p.description?.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
-    setFilteredProducts(filtered);
-  }, [searchTerm, products]);
+    if (selectedCategory !== "all") {
+      result = result.filter((p) => {
+        const catId = typeof p.category === "object" ? p.category?._id : p.category;
+        return catId === selectedCategory;
+      });
+    }
 
-  // Toggle sale status
-  const handleToggleSale = async (productId: string, currentOnSale: boolean) => {
+    setFilteredProducts(result);
+  };
+
+  const handleToggleSale = async (productId: string, currentStatus: boolean) => {
     try {
-      const token = localStorage.getItem("token");
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/product/edit/${productId}`,
-        {
-          method: "PUT",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ onSale: !currentOnSale }),
-        },
-      );
-
-      const result = await response.json();
-      if (result.success) {
-        toast.success(
-          `Product ${!currentOnSale ? "added to" : "removed from"} sale successfully`,
+      const res = await productApi.update(productId, { onSale: !currentStatus });
+      if (res.success) {
+        toast.success(currentStatus ? "Removed from sale" : "Added to sale");
+        setProducts((prev) =>
+          prev.map((p) => (p._id === productId ? { ...p, onSale: !currentStatus } : p))
         );
-        fetchProducts(); // Refresh list
-      } else {
-        toast.error(result.message);
       }
     } catch (error) {
+      console.error("Error toggling sale:", error);
       toast.error("Failed to update product");
     }
   };
 
+  const getCategoryName = (category: Product["category"]) => {
+    if (!category) return "Uncategorized";
+    if (typeof category === "string") return category;
+    return category.name || "Uncategorized";
+  };
+
+  const getBrandName = (brand: Product["brand"]) => {
+    if (!brand) return "Generic";
+    if (typeof brand === "string") return brand;
+    return brand.name || "Generic";
+  };
+
   return (
-    <div>
-      {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+    <div className="p-6 max-w-7xl mx-auto">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Sale Management</h1>
-          <p className="text-gray-600">Manage products on sale</p>
+          <h1 className="text-2xl font-bold text-gray-900">Sale Management</h1>
+          <p className="text-gray-600 text-sm mt-1">Manage discounts and flash sale products</p>
         </div>
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-lg shadow p-4 mb-6">
-        <div className="flex flex-col md:flex-row gap-4">
-          {/* Search */}
-          <div className="flex-1">
-            <div className="relative">
-              <Search
-                className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-                size={20}
-              />
-              <input
-                type="text"
-                placeholder="Search sale products..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
+      <div className="bg-white rounded-xl shadow-sm border p-4 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <input
+              type="text"
+              placeholder="Search products..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-9 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-orange-500"
+            />
+          </div>
+          <div>
+            <select
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+              className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-orange-500"
+            >
+              <option value="all">All Categories</option>
+              {categories.map((cat) => (
+                <option key={cat._id} value={cat._id}>
+                  {cat.name}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
       </div>
 
       {/* Products Table */}
-      <div className="bg-white rounded-xl shadow overflow-hidden">
+      <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
         {loading ? (
-          <div className="flex items-center justify-center min-h-[400px]">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          <div className="flex items-center justify-center p-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
           </div>
         ) : filteredProducts.length === 0 ? (
           <div className="text-center py-12">
-            <Tag className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-            <p className="text-gray-600 mb-4">No products on sale</p>
-            <Link
-              href="/admin/products"
-              className="text-blue-600 hover:text-blue-800"
-            >
-              Go to Products to add items on sale
-            </Link>
+            <Tag className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+            <p className="text-gray-500 font-medium">No products found</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="bg-gray-50 text-left text-gray-500">
-                  <th className="p-4">Product</th>
-                  <th className="p-4">Category</th>
-                  <th className="p-4">Brand</th>
-                  <th className="p-4">Price</th>
-                  <th className="p-4">Stock</th>
-                  <th className="p-4">On Sale</th>
-                  <th className="p-4">Actions</th>
+            <table className="w-full text-sm text-left">
+              <thead className="bg-gray-50 text-gray-600 border-b">
+                <tr>
+                  <th className="p-4 font-semibold">Product</th>
+                  <th className="p-4 font-semibold">Category</th>
+                  <th className="p-4 font-semibold">Brand</th>
+                  <th className="p-4 font-semibold">Price</th>
+                  <th className="p-4 font-semibold">Stock</th>
+                  <th className="p-4 font-semibold">On Sale</th>
+                  <th className="p-4 font-semibold">Actions</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y">
                 {filteredProducts.map((product) => (
-                  <tr key={product._id} className="border-t hover:bg-gray-50">
+                  <tr key={product._id} className="hover:bg-gray-50/80">
                     {/* Product Info */}
                     <td className="p-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
-                          {product.productImgUrls && product.productImgUrls.length > 0 && !imageErrors.has(product._id) ? (
-                            <img
-                              src={getImageUrl(product.productImgUrls[0])}
-                              alt={product.name}
-                              className="w-full h-full object-cover"
-                              onError={() => handleImageError(product._id)}
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center text-gray-400">
-                              No image
-                            </div>
-                          )}
+                        <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-gray-100 shrink-0 border">
+                          <ProductImage
+                            product={product}
+                            alt={product.name}
+                            fill
+                            className="w-full h-full object-contain"
+                          />
                         </div>
                         <div>
-                          <p className="font-medium text-gray-900">
-                            {product.name}
-                          </p>
-                          <p className="text-sm text-gray-500 line-clamp-1">
-                            {product.description}
-                          </p>
+                          <p className="font-semibold text-gray-900 line-clamp-1">{product.name}</p>
+                          <p className="text-xs text-gray-500 line-clamp-1">{product.description}</p>
                         </div>
                       </div>
                     </td>
 
                     {/* Category */}
-                    <td className="p-4">
-                      <span className="px-2 py-1 bg-gray-100 text-gray-800 rounded text-sm">
-                        {getCategoryName(product.category)}
-                      </span>
-                    </td>
+                    <td className="p-4 text-gray-600">{getCategoryName(product.category)}</td>
 
                     {/* Brand */}
-                    <td className="p-4">
-                      <span className="px-2 py-1 bg-gray-100 text-gray-800 rounded text-sm">
-                        {getBrandName(product.brand)}
-                      </span>
-                    </td>
+                    <td className="p-4 text-gray-600">{getBrandName(product.brand)}</td>
 
                     {/* Price */}
                     <td className="p-4">
-                      <div>
-                        <p className="font-medium">₹{product.price}</p>
-                        {product.discount && (
-                          <p className="text-sm text-green-600">
-                            Discount: {product.discount}%
-                          </p>
-                        )}
-                      </div>
+                      <span className="font-semibold text-gray-900">₹{product.price}</span>
+                      {Boolean(product.discount && product.discount > 0) && (
+                        <span className="ml-2 text-xs bg-red-100 text-red-600 px-1.5 py-0.5 rounded font-medium">
+                          {product.discount}% OFF
+                        </span>
+                      )}
                     </td>
 
                     {/* Stock */}
                     <td className="p-4">
-                      <div className="flex items-center gap-2">
-                        <div
-                          className={`w-3 h-3 rounded-full ${
-                            product.stock > 10
-                              ? "bg-green-500"
-                              : product.stock > 0
-                                ? "bg-yellow-500"
-                                : "bg-red-500"
-                          }`}
-                        ></div>
-                        <span>{product.stock}</span>
-                      </div>
+                      <span
+                        className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                          product.stock > 0 ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+                        }`}
+                      >
+                        {product.stock > 0 ? `${product.stock} in stock` : "Out of stock"}
+                      </span>
                     </td>
 
-                    {/* On Sale */}
+                    {/* On Sale Toggle */}
                     <td className="p-4">
-                      <div className="flex items-center gap-2">
-                        <div
-                          className={`w-3 h-3 rounded-full ${
-                            product.onSale ? "bg-green-500" : "bg-gray-400"
-                          }`}
-                        ></div>
-                        <span className={product.onSale ? "text-green-600" : "text-gray-600"}>
-                          {product.onSale ? "On Sale" : "Not on Sale"}
-                        </span>
-                      </div>
+                      <button
+                        onClick={() => handleToggleSale(product._id, product.onSale)}
+                        className={`px-2.5 py-1 rounded-full text-xs font-semibold transition ${
+                          product.onSale
+                            ? "bg-orange-100 text-orange-700 hover:bg-orange-200"
+                            : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                        }`}
+                      >
+                        {product.onSale ? "Active Sale" : "Not on Sale"}
+                      </button>
                     </td>
 
                     {/* Actions */}
                     <td className="p-4">
-                      <div className="flex items-center gap-2">
-                        {/* Edit */}
-                        <Link
-                          href={`/admin/products/edit/${product._id}`}
-                          className="p-2 text-green-600 hover:bg-green-50 rounded-lg"
-                          title="Edit"
-                        >
-                          <Edit size={18} />
-                        </Link>
-
-                        {/* Toggle Sale */}
-                        <button
-                          onClick={() => handleToggleSale(product._id, product.onSale)}
-                          className={`p-2 rounded-lg ${
-                            product.onSale
-                              ? "text-red-600 hover:bg-red-50"
-                              : "text-green-600 hover:bg-green-50"
-                          }`}
-                          title={product.onSale ? "Remove from Sale" : "Add to Sale"}
-                        >
-                          <Tag size={18} />
-                        </button>
-                      </div>
+                      <Link
+                        href={`/admin/products/edit/${product._id}`}
+                        className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg inline-flex items-center"
+                        title="Edit"
+                      >
+                        <Edit size={16} />
+                      </Link>
                     </td>
                   </tr>
                 ))}

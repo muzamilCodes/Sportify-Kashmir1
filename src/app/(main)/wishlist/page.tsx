@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Heart, ShoppingCart, Trash2, Loader2, ArrowLeft } from "lucide-react";
 import toast from "react-hot-toast";
 import { resolveProductImage } from "@/lib/imageHelper";
+import ProductImage from "@/components/ProductImage";
 
 interface WishlistItem {
   _id: string;
@@ -183,14 +184,12 @@ export default function WishlistPage() {
                   <div key={item._id} className="group h-full flex flex-col justify-between bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-xs hover:shadow-md transition-all duration-200 overflow-hidden">
                     {/* Product Image */}
                     <div className="relative aspect-square w-full bg-gray-50 dark:bg-gray-850 p-2.5 flex items-center justify-center overflow-hidden">
-                      <Link href={`/product/${item._id}`} className="w-full h-full flex items-center justify-center">
-                        <img
-                          src={resolveProductImage(item)}
+                      <Link href={`/product/${item._id}`} className="w-full h-full relative block">
+                        <ProductImage
+                          product={item}
                           alt={item.name}
+                          fill
                           className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).src = "/placeholder.svg";
-                          }}
                         />
                       </Link>
                       

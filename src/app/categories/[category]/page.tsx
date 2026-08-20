@@ -8,6 +8,7 @@ import toast from "react-hot-toast";
 import ProductCard from "@/components/ProductCard";
 import { cachedJson } from "@/lib/clientCache";
 import { resolveProductImage } from "@/lib/imageHelper";
+import ProductImage from "@/components/ProductImage";
 
 interface Product {
   _id: string;
@@ -467,13 +468,14 @@ export default function CategoryPage() {
                   <div className="bg-white rounded-lg sm:rounded-xl shadow-sm border p-3 sm:p-4 hover:shadow-lg transition">
                     <div className="flex gap-3 sm:gap-4">
                       <div className="relative w-20 h-20 sm:w-24 sm:h-24 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
-                        {product.productImgUrls?.[0] ? (
-                          <img src={getImageUrl(product.productImgUrls[0])} alt={product.name} className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">No image</div>
-                        )}
+                        <ProductImage
+                          product={product}
+                          alt={product.name}
+                          fill
+                          className="w-full h-full object-contain"
+                        />
                         {hasDiscount && (
-                          <div className="absolute top-1 left-1 bg-red-500 text-white text-xs font-bold px-1 py-0.5 rounded">
+                          <div className="absolute top-1 left-1 bg-red-500 text-white text-xs font-bold px-1 py-0.5 rounded z-10">
                             {product.discount}%
                           </div>
                         )}

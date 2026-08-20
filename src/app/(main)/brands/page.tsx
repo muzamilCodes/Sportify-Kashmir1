@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import EmptyState from "@/components/shared/EmptyState";
 import { resolveProductImage } from "@/lib/imageHelper";
+import ProductImage from "@/components/ProductImage";
 
 interface Brand {
   _id: string;
@@ -147,12 +148,12 @@ export default function BrandsPage() {
                   href={getBrandHref(brand.name)}
                   className="bg-white rounded-xl shadow-md p-5 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group flex flex-col items-center text-center overflow-hidden border border-gray-100"
                 >
-                  <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mb-4 overflow-hidden p-2 border group-hover:scale-105 transition-transform">
-                    {brand.image ? (
-                      <img
-                        src={resolveProductImage(brand.image)}
+                  <div className="relative w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mb-4 overflow-hidden p-2 border group-hover:scale-105 transition-transform">
+                    {brand.image || brand.logo ? (
+                      <ProductImage
+                        product={brand.image || brand.logo}
                         alt={brand.name}
-                        referrerPolicy="no-referrer"
+                        fill
                         className="w-full h-full object-contain"
                       />
                     ) : (
@@ -193,11 +194,11 @@ export default function BrandsPage() {
               >
                 {/* Brand Header Banner with Image */}
                 <div className="relative h-36 bg-gradient-to-r from-blue-600 to-indigo-700 p-4 text-white flex flex-col justify-between overflow-hidden">
-                  {brand.image && (
-                    <img
-                      src={resolveProductImage(brand.image)}
+                  {(brand.image || brand.logo) && (
+                    <ProductImage
+                      product={brand.image || brand.logo}
                       alt={brand.name}
-                      referrerPolicy="no-referrer"
+                      fill
                       className="absolute inset-0 w-full h-full object-cover opacity-25"
                     />
                   )}

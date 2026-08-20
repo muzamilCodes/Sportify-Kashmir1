@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { cachedJson } from "@/lib/clientCache";
 import { resolveProductImage } from "@/lib/imageHelper";
+import ProductImage from "@/components/ProductImage";
 
 // Custom icons for sports (not available in lucide-react)
 const CricketIcon = ({ className }: { className?: string }) => (
@@ -224,10 +225,10 @@ export default function CategoriesPage() {
               {/* Category Image Header */}
               <div className="relative h-44 w-full bg-gray-100 overflow-hidden">
                 {category.image ? (
-                  <img
-                    src={resolveProductImage(category.image)}
+                  <ProductImage
+                    product={category.image}
                     alt={category.name}
-                    referrerPolicy="no-referrer"
+                    fill
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   />
                 ) : (

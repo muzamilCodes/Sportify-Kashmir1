@@ -4,7 +4,7 @@
  * Provides offline support and intelligent caching for the PWA.
  */
 
-const CACHE_VERSION = 'sportify-v3';
+const CACHE_VERSION = 'sportify-v4';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const DYNAMIC_CACHE = `${CACHE_VERSION}-dynamic`;
 
@@ -16,6 +16,7 @@ const PRECACHE_ASSETS = [
   '/icons/icon-192x192.png',
   '/icons/icon-512x512.png',
   '/hero-sports.png',
+  '/placeholder.svg',
 ];
 
 // ─── Install Event ───────────────────────────────────────────────
@@ -59,23 +60,25 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Strategy 2: Backend API calls → Bypass cache, direct network
-  const isBackendApi =
+  // Strategy 2: Backend API calls and external image CDNs → Bypass cache, direct network
+  const isExternalOrApi =
+    url.origin !== self.location.origin ||
     url.port === '4000' ||
-    url.hostname === 'sportify-kashmir1.onrender.com' ||
-    (url.origin !== self.location.origin &&
-      (url.pathname.startsWith('/product') ||
-        url.pathname.startsWith('/cart') ||
-        url.pathname.startsWith('/user') ||
-        url.pathname.startsWith('/orders') ||
-        url.pathname.startsWith('/category') ||
-        url.pathname.startsWith('/brand')));
+    url.hostname.includes('unsplash.com') ||
+    url.hostname.includes('cloudinary.com') ||
+    url.hostname.includes('onrender.com') ||
+    url.pathname.startsWith('/product') ||
+    url.pathname.startsWith('/cart') ||
+    url.pathname.startsWith('/user') ||
+    url.pathname.startsWith('/orders') ||
+    url.pathname.startsWith('/category') ||
+    url.pathname.startsWith('/brand');
 
-  if (isBackendApi) {
+  if (isExternalOrApi) {
     return; // Let browser handle network request natively
   }
 
-  // Strategy 3: Static assets (JS, CSS, images, fonts) → Cache-First
+  // Strategy 3: Local static assets (JS, CSS, fonts) → Cache-First
   if (isStaticAsset(url.pathname)) {
     event.respondWith(cacheFirst(request, STATIC_CACHE));
     return;
@@ -146,12 +149,6 @@ function isStaticAsset(pathname) {
     '.ttf',
     '.otf',
     '.eot',
-    '.png',
-    '.jpg',
-    '.jpeg',
-    '.gif',
-    '.svg',
-    '.webp',
     '.ico',
     '.json',
     '.map',

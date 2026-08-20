@@ -2,12 +2,12 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Package, Loader2, Calendar, IndianRupee, Truck, Clock, CheckCircle, XCircle, ChevronRight, Download } from "lucide-react";
 import toast from "react-hot-toast";
 import { generateAndDownloadInvoice } from "@/lib/invoice";
 import { resolveProductImage } from "@/lib/imageHelper";
+import ProductImage from "@/components/ProductImage";
 
 interface Order {
   _id: string;
@@ -212,18 +212,11 @@ export default function OrdersPage() {
                   {/* Product preview & Actions */}
                   <div className="flex items-center gap-4 mt-4 flex-wrap">
                     <div className="relative w-16 h-16 rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-800 flex-shrink-0 border border-gray-200 dark:border-gray-700 flex items-center justify-center">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img 
-                        src={productImage} 
+                      <ProductImage 
+                        product={productObj} 
                         alt={productName} 
-                        loading="eager"
+                        fill
                         className="w-full h-full object-contain p-1"
-                        onError={(e) => {
-                          const target = e.currentTarget;
-                          if (!target.src.endsWith("/placeholder.svg")) {
-                            target.src = "/placeholder.svg";
-                          }
-                        }}
                       />
                     </div>
                     <div className="flex-1 min-w-[200px]">

@@ -56,6 +56,21 @@ export const productApi = {
     }
   },
 
+  // Get all products (alias)
+  getAll: async () => {
+    const response = await api.get("/product/getAll");
+    return response.data;
+  },
+
+  // Update single product
+  update: async (id: string, data: any) => {
+    const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+    const response = await api.put(`/product/edit/${id}`, data, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    return response.data;
+  },
+
   // Get single product
   getProduct: async (id: string) => {
     const response = await api.get(`/product/get/${id}`);

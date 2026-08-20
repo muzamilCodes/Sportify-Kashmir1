@@ -2,11 +2,11 @@
 
 import { ShoppingBag, ShoppingCart, Zap, Star, Heart, Loader2, Eye, GitCompare } from "lucide-react";
 import Link from "next/link";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import toast from "react-hot-toast";
 import { resolveProductImage } from "@/lib/imageHelper";
+import ProductImage from "@/components/ProductImage";
 
 export interface ProductItem {
   _id: string;
@@ -48,7 +48,6 @@ export default function ProductCard({
   toggleWishlist: customToggleWishlist,
 }: ProductCardProps) {
   const router = useRouter();
-  const [imageError, setImageError] = useState(false);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
   const [isBuyingNow, setIsBuyingNow] = useState(false);
   const [localWishlist, setLocalWishlist] = useState<string[]>(wishlist);
@@ -69,10 +68,6 @@ export default function ProductCard({
   const finalImageUrl = customGetImageUrl
     ? (customGetImageUrl(product.productImgUrls?.[0] || "") || resolveProductImage(product))
     : resolveProductImage(product);
-
-  useEffect(() => {
-    setImageError(false);
-  }, [finalImageUrl, product._id]);
 
   const toggleCompare = (e: React.MouseEvent) => {
     e.preventDefault(); e.stopPropagation();
@@ -225,24 +220,14 @@ export default function ProductCard({
       <Link href={`/product/${product._id}`} className="flex flex-col flex-1">
         {/* Product Image Area */}
         <div className="relative aspect-square w-full bg-gray-50 dark:bg-gray-850 p-2.5 sm:p-3.5 flex items-center justify-center overflow-hidden">
-          {finalImageUrl && !imageError ? (
-            <Image
-              src={finalImageUrl}
-              alt={product.name}
-              fill
-              unoptimized
-              referrerPolicy="no-referrer"
-              sizes="(max-width: 640px) 50vw, (max-width: 1280px) 25vw, 20vw"
-              className="object-contain group-hover:scale-105 transition-transform duration-300 ease-out"
-              onError={() => setImageError(true)}
-              loading="lazy"
-            />
-          ) : (
-            <div className="w-full h-full flex flex-col items-center justify-center text-gray-400 dark:text-gray-500">
-              <ShoppingBag className="w-10 h-10 mb-1 opacity-50" />
-              <span className="text-[11px] font-medium">No Image</span>
-            </div>
-          )}
+          <ProductImage
+            product={product}
+            src={finalImageUrl}
+            alt={product.name}
+            fill
+            sizes="(max-width: 640px) 50vw, (max-width: 1280px) 25vw, 20vw"
+            className="object-contain group-hover:scale-105 transition-transform duration-300 ease-out"
+          />
 
           {/* Discount Badge */}
           {isDiscounted && discountPercent > 0 && (
@@ -265,28 +250,11 @@ export default function ProductCard({
           </button>
           <button type="button" onClick={toggleCompare} aria-label="Compare product" className={`absolute top-11 right-2 rounded-full p-1.5 shadow ${compareSelected ? "bg-orange-500 text-white" : "bg-white/90 text-gray-500"}`}><GitCompare size={15} /></button>
           <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setQuickView(true); }} aria-label="Quick view" className="absolute bottom-2 right-2 rounded-full bg-white/90 p-1.5 text-gray-600 shadow hover:text-orange-600"><Eye size={15} /></button>
-
-          {/* Out of Stock Overlay */}
-          {!isAvailable && (
-            <div className="absolute inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center">
-              <span className="bg-gray-900/90 text-white font-semibold text-xs px-3 py-1 rounded shadow">
-                Out of Stock
-              </span>
-            </div>
-          )}
-
-          {/* Low Stock Warning */}
-          {isAvailable && stockCount > 0 && stockCount <= 5 && (
-            <div className="absolute bottom-1.5 left-2 bg-amber-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded shadow-xs">
-              Only {stockCount} left
-            </div>
-          )}
         </div>
 
         {/* Product Details */}
         <div className="p-3 sm:p-3.5 flex flex-col flex-1 justify-between">
           <div>
-            {/* Title: 15–16px, Max 2 lines */}
             <h3 className="text-[14px] sm:text-[15px] font-semibold text-gray-900 dark:text-gray-100 line-clamp-2 min-h-[40px] sm:min-h-[42px] leading-snug group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors">
               {product.name}
             </h3>
@@ -364,7 +332,33 @@ export default function ProductCard({
           </button>
         </div>
       </div>
-      {quickView && <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4" onClick={() => setQuickView(false)}><div className="w-full max-w-lg rounded-2xl bg-white p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}><div className="flex gap-4"><div className="relative h-36 w-36 shrink-0"><Image src={finalImageUrl} alt={product.name} fill sizes="144px" className="rounded-xl bg-gray-50 object-contain" /></div><div><h3 className="text-lg font-semibold text-gray-900">{product.name}</h3><p className="mt-2 text-xl font-bold text-orange-600">₹{Math.round(resolvedDiscountPrice).toLocaleString("en-IN")}</p><p className="mt-2 line-clamp-3 text-sm text-gray-600">{product.description || "Premium sports gear from Sportify Kashmir."}</p></div></div><div className="mt-5 flex gap-2"><Link href={`/product/${product._id}`} onClick={() => setQuickView(false)} className="flex-1 rounded-lg border px-4 py-2 text-center text-sm font-semibold">View details</Link><button onClick={onAddToCart} disabled={!isAvailable} className="flex-1 rounded-lg bg-orange-500 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">Add to cart</button></div></div></div>}
+      {quickView && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4" onClick={() => setQuickView(false)}>
+          <div className="w-full max-w-lg rounded-2xl bg-white p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex gap-4">
+              <div className="relative h-36 w-36 shrink-0 overflow-hidden rounded-xl bg-gray-50 border">
+                <ProductImage
+                  product={product}
+                  src={finalImageUrl}
+                  alt={product.name}
+                  fill
+                  sizes="144px"
+                  className="object-contain"
+                />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold text-gray-900">{product.name}</h3>
+                <p className="mt-2 text-xl font-bold text-orange-600">₹{Math.round(resolvedDiscountPrice).toLocaleString("en-IN")}</p>
+                <p className="mt-2 line-clamp-3 text-sm text-gray-600">{product.description || "Premium sports gear from Sportify Kashmir."}</p>
+              </div>
+            </div>
+            <div className="mt-5 flex gap-2">
+              <Link href={`/product/${product._id}`} onClick={() => setQuickView(false)} className="flex-1 rounded-lg border px-4 py-2 text-center text-sm font-semibold">View details</Link>
+              <button onClick={onAddToCart} disabled={!isAvailable} className="flex-1 rounded-lg bg-orange-500 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">Add to cart</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

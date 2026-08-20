@@ -3,7 +3,6 @@
 import { useParams, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import {
   CheckCircle,
   Package,
@@ -24,6 +23,7 @@ import {
 import toast from "react-hot-toast";
 import { generateAndDownloadInvoice } from "@/lib/invoice";
 import { resolveProductImage } from "@/lib/imageHelper";
+import ProductImage from "@/components/ProductImage";
 
 interface Order {
   _id: string;
@@ -494,18 +494,11 @@ export default function OrderDetailPage() {
                 return (
                   <div key={idx} className="flex gap-4 p-3 border rounded-xl bg-white shadow-sm">
                     <div className="relative w-20 h-20 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800 flex-shrink-0 border border-gray-100 dark:border-gray-700 flex items-center justify-center">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={imgUrl}
+                      <ProductImage
+                        product={product}
                         alt={productName}
-                        loading="eager"
+                        fill
                         className="w-full h-full object-contain p-1"
-                        onError={(e) => {
-                          const target = e.currentTarget;
-                          if (!target.src.endsWith("/placeholder.svg")) {
-                            target.src = "/placeholder.svg";
-                          }
-                        }}
                       />
                     </div>
                     <div className="flex-1">

@@ -4,7 +4,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
 import dynamic from "next/dynamic";
 import {
   ShoppingCart,
@@ -33,6 +32,7 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { resolveProductImage } from "@/lib/imageHelper";
+import ProductImage from "@/components/ProductImage";
 
 const ProductCard = dynamic(() => import("@/components/ProductCard"), {
   loading: () => <div className="h-80 rounded-xl bg-gray-100 animate-pulse" />,
@@ -455,29 +455,21 @@ export default function ProductDetailPage() {
             {/* Product Images */}
             <div>
               <div className="relative bg-gray-100 rounded-2xl overflow-hidden aspect-square mb-4">
-                {product.productImgUrls && product.productImgUrls.length > 0 ? (
-                  <Image
-                    src={resolveProductImage(product.productImgUrls[selectedImage])}
-                    alt={product.name}
-                    fill
-                    unoptimized
-                    referrerPolicy="no-referrer"
-                    priority
-                    sizes="(max-width: 1024px) 100vw, 50vw"
-                    className="object-contain"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-gray-400">
-                    No image available
-                  </div>
-                )}
+                <ProductImage
+                  product={product.productImgUrls?.[selectedImage] || product}
+                  alt={product.name}
+                  fill
+                  priority
+                  sizes="(max-width: 1024px) 100vw, 50vw"
+                  className="object-contain"
+                />
                 {hasDiscount && (
-                  <div className="absolute top-4 left-4 bg-red-500 text-white px-3 py-1 rounded-full text-sm font-bold">
+                  <div className="absolute top-4 left-4 bg-red-500 text-white px-3 py-1 rounded-full text-sm font-bold z-10">
                     {product.discount}% OFF
                   </div>
                 )}
                 {product.onSale && (
-                  <div className="absolute top-4 right-4 bg-orange-500 text-white px-3 py-1 rounded-full text-sm font-bold animate-pulse">
+                  <div className="absolute top-4 right-4 bg-orange-500 text-white px-3 py-1 rounded-full text-sm font-bold animate-pulse z-10">
                     SALE
                   </div>
                 )}
@@ -496,13 +488,10 @@ export default function ProductDetailPage() {
                           : "border-gray-200 hover:border-gray-400"
                       }`}
                     >
-                      <Image
-                        src={resolveProductImage(image)}
+                      <ProductImage
+                        product={image}
                         alt={`${product.name} ${index + 1}`}
                         fill
-                        unoptimized
-                        referrerPolicy="no-referrer"
-                        loading="lazy"
                         sizes="80px"
                         className="object-contain"
                       />

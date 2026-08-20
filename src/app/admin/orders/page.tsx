@@ -21,6 +21,7 @@ import {
   ShoppingBag,
 } from "lucide-react";
 import toast from "react-hot-toast";
+import ProductImage from "@/components/ProductImage";
 
 interface Order {
   _id: string;
@@ -632,6 +633,8 @@ export default function AdminOrdersPage() {
                     <div>
                       <p className="text-xs text-gray-500">Order Date</p>
                       <p className="font-medium text-gray-900">{new Date(selectedOrder.createdAt).toLocaleString()}</p>
+
+
                     </div>
                   </div>
                 </div>
@@ -664,23 +667,17 @@ export default function AdminOrdersPage() {
                   {selectedOrder.products.map((item, idx) => {
                     const productPrice = getProductPrice(item);
                     const productName = getProductName(item);
-                    const productImage = getProductImage(item);
                     const itemTotal = productPrice * (item.quantity || 1);
-                    
+
                     return (
                       <div key={idx} className="flex gap-4 py-3 border-b last:border-0">
-                        <div className="w-16 h-16 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
-                          {productImage ? (
-                            <img
-                              src={productImage}
-                              alt={productName}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">
-                              No image
-                            </div>
-                          )}
+                        <div className="relative w-16 h-16 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0 border">
+                          <ProductImage
+                            product={item}
+                            alt={productName}
+                            fill
+                            className="w-full h-full object-contain"
+                          />
                         </div>
                         <div className="flex-1">
                           <p className="font-medium text-gray-900">{productName}</p>

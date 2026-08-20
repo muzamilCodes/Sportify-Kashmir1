@@ -9,6 +9,7 @@ import toast from "react-hot-toast";
 import ProductCard from "@/components/ProductCard";
 import { cachedJson } from "@/lib/clientCache";
 import { resolveProductImage } from "@/lib/imageHelper";
+import ProductImage from "@/components/ProductImage";
 
 interface Product {
   _id: string;
@@ -466,17 +467,14 @@ function ProductsContent() {
                   <div className="flex gap-3 sm:gap-4">
                     {/* Product Image */}
                     <Link href={`/product/${product._id}`} className="relative w-24 h-24 sm:w-28 sm:h-28 bg-gray-50 dark:bg-gray-850 rounded-lg overflow-hidden shrink-0 flex items-center justify-center p-2">
-                      {product.productImgUrls?.[0] ? (
-                        <img
-                          src={getImageUrl(product.productImgUrls[0])}
-                          alt={product.name}
-                          className="w-full h-full object-contain"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">No image</div>
-                      )}
+                      <ProductImage
+                        product={product}
+                        alt={product.name}
+                        fill
+                        className="w-full h-full object-contain"
+                      />
                       {hasDiscount && (
-                        <div className="absolute top-1 left-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
+                        <div className="absolute top-1 left-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded z-10">
                           {product.discount}% OFF
                         </div>
                       )}

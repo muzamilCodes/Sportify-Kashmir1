@@ -38,6 +38,7 @@ import toast from "react-hot-toast";
 import ThemeToggle from "@/components/shared/ThemeToggle";
 import { useCartCount } from "@/components/providers/CartCountProvider";
 import { resolveProductImage } from "@/lib/imageHelper";
+import ProductImage from "@/components/ProductImage";
 
 // The header is mounted on every route. Prefetching every menu destination
 // from here creates a burst of RSC requests on initial load.
@@ -343,12 +344,15 @@ export default function Header() {
                         onClick={() => setShowSuggestions(false)}
                         className="flex items-center gap-3 p-2.5 hover:bg-orange-50/70 dark:hover:bg-orange-950/30 transition-colors group"
                       >
-                        <img
-                          src={imgSrc}
-                          alt={item.name}
-                          referrerPolicy="no-referrer"
-                          className="w-11 h-11 rounded-lg object-contain bg-gray-50 dark:bg-gray-700 shrink-0 border border-gray-100 dark:border-gray-600"
-                        />
+                        <div className="relative w-11 h-11 rounded-lg overflow-hidden bg-gray-50 dark:bg-gray-700 shrink-0 border border-gray-100 dark:border-gray-600 flex items-center justify-center">
+                          <ProductImage
+                            product={item}
+                            alt={item.name}
+                            fill
+                            sizes="44px"
+                            className="object-contain"
+                          />
+                        </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate group-hover:text-orange-600 transition-colors">
                             {item.name}

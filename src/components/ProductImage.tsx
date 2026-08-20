@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import { resolveProductImage } from "@/lib/imageHelper";
 
@@ -22,15 +21,13 @@ export type ProductImageProps = {
 
 /**
  * Universal Image component for Sportify Kashmir.
- * Handles productId.productImgUrls[0], category/brand images, Cloudinary,
- * local disk /uploads/, Unsplash, and external HTTPS URLs safely.
+ * Guarantees display of product, category, brand, Cloudinary, Unsplash, and local /uploads/ images.
  */
 export default function ProductImage({
   product,
   src,
   url,
   alt = "Product Image",
-  sizes = "(max-width: 768px) 100vw, 300px",
   className = "object-contain",
   priority = false,
   fill,
@@ -39,57 +36,36 @@ export default function ProductImage({
   loading,
 }: ProductImageProps) {
   const target = src || url || product;
-  const resolvedSource = useMemo(() => resolveProductImage(target), [target]);
-  const [currentSrc, setCurrentSrc] = useState<string>(resolvedSource);
-  const [hasError, setHasError] = useState<boolean>(false);
+  const initialSource = useMemo(() => resolveProductImage(target), [target]);
+  const [imgSrc, setImgSrc] = useState<string>(initialSource);
 
   useEffect(() => {
-    setCurrentSrc(resolvedSource);
-    setHasError(false);
-  }, [resolvedSource]);
+    const resolved = resolveProductImage(target);
+    setImgSrc(resolved || FALLBACK_IMAGE);
+  }, [target]);
 
-  const safeAlt = alt || "Product Image";
-  const imageSrc = hasError || !currentSrc ? FALLBACK_IMAGE : currentSrc;
-
-  // Determine fill mode if not explicitly passed
   const isFill = fill !== undefined ? fill : !Boolean(width && height);
-
-  const handleError = () => {
-    if (!hasError) {
-      setHasError(true);
-      setCurrentSrc(FALLBACK_IMAGE);
-    }
-  };
-
-  if (!isFill && width && height) {
-    return (
-      <Image
-        src={imageSrc}
-        alt={safeAlt}
-        width={width}
-        height={height}
-        unoptimized
-        referrerPolicy="no-referrer"
-        priority={priority}
-        loading={priority ? undefined : loading || "lazy"}
-        className={className}
-        onError={handleError}
-      />
-    );
-  }
+  const safeAlt = alt || "Product Image";
+  const displaySrc = imgSrc || FALLBACK_IMAGE;
 
   return (
-    <Image
-      src={imageSrc}
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={displaySrc}
       alt={safeAlt}
-      fill
-      sizes={sizes}
-      unoptimized
+      width={!isFill ? width : undefined}
+      height={!isFill ? height : undefined}
+      loading={priority ? "eager" : loading || "lazy"}
+      decoding="async"
       referrerPolicy="no-referrer"
-      priority={priority}
-      loading={priority ? undefined : loading || "lazy"}
-      className={className}
-      onError={handleError}
+      className={`${isFill ? "absolute inset-0 w-full h-full" : ""} ${className}`}
+      onError={(e) => {
+        const targetEl = e.currentTarget;
+        if (!targetEl.src.endsWith(FALLBACK_IMAGE)) {
+          targetEl.src = FALLBACK_IMAGE;
+          setImgSrc(FALLBACK_IMAGE);
+        }
+      }}
     />
   );
 }
