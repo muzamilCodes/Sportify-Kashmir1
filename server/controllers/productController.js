@@ -123,18 +123,28 @@ exports.addProduct = async (req, res) => {
       (file) => file && (file.mimetype ? file.mimetype.startsWith("image/") : true)
     );
     
-    if (files.length < 3) {
-      return resHandler(res, 400, `At least 3 product images are required (received ${files.length})`);
+    const imageUrls = [];
+
+    // Accept raw URLs passed directly via body
+    if (req.body.productImgUrls) {
+      const rawUrls = Array.isArray(req.body.productImgUrls)
+        ? req.body.productImgUrls
+        : req.body.productImgUrls.split(",").map((s) => s.trim()).filter(Boolean);
+      imageUrls.push(...rawUrls);
+    } else if (req.body.imageUrls) {
+      const rawUrls = Array.isArray(req.body.imageUrls)
+        ? req.body.imageUrls
+        : req.body.imageUrls.split(",").map((s) => s.trim()).filter(Boolean);
+      imageUrls.push(...rawUrls);
     }
 
-    const imageUrls = [];
     for (const file of files) {
       const url = await uploadProductImage(file);
       if (url) imageUrls.push(url);
     }
 
     if (imageUrls.length === 0) {
-      return resHandler(res, 400, "At least 3 product images are required");
+      return resHandler(res, 400, "At least 1 product image is required (3 recommended)");
     }
 
     let product = await Product.create({
@@ -164,7 +174,7 @@ exports.addProduct = async (req, res) => {
 
 exports.editProduct = async (req, res) => {
   try {
-    const { name, description, price, discount, colors, sizes, tags, category, brand, stock, onSale, existingImages } = req.body;
+    const { name, description, price, discount, colors, sizes, tags, category, brand, stock, onSale, existingImages, productImgUrls, imageUrls } = req.body;
     const { productId } = req.params;
 
     let product = await Product.findById(productId);
@@ -210,17 +220,20 @@ exports.editProduct = async (req, res) => {
       }
     }
 
+    // Process retained existing images
     let finalImages = [];
-    if (existingImages !== undefined) {
-      if (Array.isArray(existingImages)) {
-        finalImages = existingImages.filter(Boolean);
-      } else if (typeof existingImages === "string" && existingImages.trim()) {
-        finalImages = existingImages.split(",").map(s => s.trim()).filter(Boolean);
+    const rawExisting = existingImages !== undefined ? existingImages : (productImgUrls !== undefined ? productImgUrls : imageUrls);
+    if (rawExisting !== undefined) {
+      if (Array.isArray(rawExisting)) {
+        finalImages = rawExisting.filter(Boolean);
+      } else if (typeof rawExisting === "string" && rawExisting.trim()) {
+        finalImages = rawExisting.split(",").map(s => s.trim()).filter(Boolean);
       }
     } else {
       finalImages = [...(product.productImgUrls || [])];
     }
 
+    // Process new image files
     let files = [];
     if (Array.isArray(req.files)) {
       files = req.files;
@@ -392,16 +405,34 @@ exports.deleteProduct = async (req, res) => {
   try {
     const { productId } = req.params;
 
+    if (!productId) {
+      return resHandler(res, 400, "Product ID is required");
+    }
+
     const product = await Product.findById(productId);
     if (!product) {
-      return resHandler(res, 404, "Product not found");
+      return resHandler(res, 404, "Product not found or already deleted");
     }
 
     await Product.findByIdAndDelete(productId);
+
+    // Clean up references from user carts so invalid product IDs are not retained
+    try {
+      const { Cart } = require("../models/cartModel");
+      if (Cart) {
+        await Cart.updateMany(
+          {},
+          { $pull: { products: { productId: productId } } }
+        );
+      }
+    } catch (cartErr) {
+      console.warn("Notice: Could not clean cart refs on product delete:", cartErr.message);
+    }
+
     return resHandler(res, 200, "Product deleted successfully");
   } catch (error) {
-    console.error(error);
-    return resHandler(res, 500, "Server Error!");
+    console.error("Delete product error:", error);
+    return resHandler(res, 500, error.message || "Server Error!");
   }
 };
 

@@ -3,7 +3,7 @@ const { resHandler } = require("../utilities/resHandler");
 
 exports.addBrand = async (req, res) => {
   try {
-    const { name, description } = req.body;
+    const { name, description, image, logo } = req.body;
 
     if (!name) {
       return resHandler(res, 400, "Brand name is required");
@@ -14,7 +14,12 @@ exports.addBrand = async (req, res) => {
       return resHandler(res, 400, "Brand already exists");
     }
 
-    const brand = await Brand.create({ name, description });
+    const brand = await Brand.create({
+      name,
+      description,
+      image: image || logo || "",
+      logo: logo || image || "",
+    });
     return resHandler(res, 201, "Brand created successfully", brand);
   } catch (error) {
     console.error(error);
@@ -24,7 +29,7 @@ exports.addBrand = async (req, res) => {
 
 exports.editBrand = async (req, res) => {
   try {
-    const { name, description } = req.body;
+    const { name, description, image, logo } = req.body;
     const { brandId } = req.params;
 
     if (!name) {
@@ -47,6 +52,13 @@ exports.editBrand = async (req, res) => {
 
     brand.name = name;
     brand.description = description;
+    if (image !== undefined) {
+      brand.image = image;
+      brand.logo = image;
+    } else if (logo !== undefined) {
+      brand.logo = logo;
+      brand.image = logo;
+    }
     await brand.save();
 
     return resHandler(res, 200, "Brand updated successfully", brand);

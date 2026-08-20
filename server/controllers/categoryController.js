@@ -3,7 +3,7 @@ const { resHandler } = require("../utilities/resHandler");
 
 exports.addCategory = async (req, res) => {
   try {
-    const { name, description, subcategories } = req.body;
+    const { name, description, subcategories, image } = req.body;
 
     if (!name) {
       return resHandler(res, 400, "Category name is required");
@@ -18,6 +18,7 @@ exports.addCategory = async (req, res) => {
     const category = await Category.create({ 
       name, 
       description,
+      image: image || "",
       subcategories: Array.isArray(subcategories) ? subcategories : []
     });
     return resHandler(res, 201, "Category created successfully", category);
@@ -29,7 +30,7 @@ exports.addCategory = async (req, res) => {
 
 exports.editCategory = async (req, res) => {
   try {
-    const { name, description, subcategories } = req.body;
+    const { name, description, subcategories, image } = req.body;
     const { categoryId } = req.params;
 
     if (!name) {
@@ -52,6 +53,9 @@ exports.editCategory = async (req, res) => {
 
     category.name = name;
     category.description = description;
+    if (image !== undefined) {
+      category.image = image;
+    }
     
     if (subcategories && Array.isArray(subcategories)) {
       category.subcategories = subcategories;
