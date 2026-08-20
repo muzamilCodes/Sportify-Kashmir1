@@ -4,7 +4,7 @@ import { ShoppingBag, ShoppingCart, Zap, Star, Heart, Loader2, Eye, GitCompare }
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import toast from "react-hot-toast";
 import { resolveProductImage } from "@/lib/imageHelper";
 
@@ -67,8 +67,12 @@ export default function ProductCard({
   const isWishlisted = (localWishlist.length > 0 ? localWishlist : wishlist).includes(product._id);
 
   const finalImageUrl = customGetImageUrl
-    ? customGetImageUrl(product.productImgUrls?.[0] || "")
+    ? (customGetImageUrl(product.productImgUrls?.[0] || "") || resolveProductImage(product))
     : resolveProductImage(product);
+
+  useEffect(() => {
+    setImageError(false);
+  }, [finalImageUrl, product._id]);
 
   const toggleCompare = (e: React.MouseEvent) => {
     e.preventDefault(); e.stopPropagation();
@@ -227,6 +231,7 @@ export default function ProductCard({
               alt={product.name}
               fill
               unoptimized
+              referrerPolicy="no-referrer"
               sizes="(max-width: 640px) 50vw, (max-width: 1280px) 25vw, 20vw"
               className="object-contain group-hover:scale-105 transition-transform duration-300 ease-out"
               onError={() => setImageError(true)}

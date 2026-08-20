@@ -461,6 +461,7 @@ export default function ProductDetailPage() {
                     alt={product.name}
                     fill
                     unoptimized
+                    referrerPolicy="no-referrer"
                     priority
                     sizes="(max-width: 1024px) 100vw, 50vw"
                     className="object-contain"
@@ -500,6 +501,7 @@ export default function ProductDetailPage() {
                         alt={`${product.name} ${index + 1}`}
                         fill
                         unoptimized
+                        referrerPolicy="no-referrer"
                         loading="lazy"
                         sizes="80px"
                         className="object-contain"

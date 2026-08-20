@@ -35,6 +35,7 @@ const nextConfig = {
         : 'http://localhost:4000'),
   },
   images: {
+    unoptimized: true,
     formats: ['image/avif', 'image/webp'],
     minimumCacheTTL: 86400,
     remotePatterns: [
@@ -44,18 +45,45 @@ const nextConfig = {
       },
       {
         protocol: 'https',
+        hostname: 'plus.unsplash.com',
+      },
+      {
+        protocol: 'https',
+        hostname: '**.unsplash.com',
+      },
+      {
+        protocol: 'https',
         hostname: 'res.cloudinary.com',
       },
       {
         protocol: 'https',
+        hostname: '**.cloudinary.com',
+      },
+      {
+        protocol: 'https',
         hostname: 'sportify-kashmir1.onrender.com',
-        pathname: '/uploads/**',
+      },
+      {
+        protocol: 'https',
+        hostname: '**.onrender.com',
       },
       {
         protocol: 'http',
         hostname: 'localhost',
         port: '4000',
-        pathname: '/uploads/**',
+      },
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+      },
+      {
+        protocol: 'http',
+        hostname: '127.0.0.1',
+        port: '4000',
+      },
+      {
+        protocol: 'http',
+        hostname: '127.0.0.1',
       },
     ],
   },
@@ -103,13 +131,13 @@ const nextConfig = {
               scriptSource,
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "font-src 'self' data: https://fonts.gstatic.com",
-              "img-src 'self' data: blob: https: http: http://localhost:4000 http://127.0.0.1:4000 https://res.cloudinary.com https://sportify-kashmir1.onrender.com https://images.unsplash.com",
+              "img-src 'self' data: blob: https: http: http://localhost:4000 http://127.0.0.1:4000 https://res.cloudinary.com https://sportify-kashmir1.onrender.com https://images.unsplash.com https://plus.unsplash.com",
               "connect-src 'self' http://localhost:4000 http://127.0.0.1:4000 ws: wss: https://sportify-kashmir1.onrender.com https://api.razorpay.com https://nominatim.openstreetmap.org",
               "frame-src 'self' https://checkout.razorpay.com https://api.razorpay.com https://www.google.com",
               "form-action 'self' https://checkout.razorpay.com",
               process.env.NODE_ENV === 'production' ? 'upgrade-insecure-requests' : '',
             ].filter(Boolean).join('; '),
-          }
+          },
         ],
       },
       {

@@ -6,41 +6,90 @@ import { resolveProductImage } from "@/lib/imageHelper";
 
 const FALLBACK_IMAGE = "/placeholder.svg";
 
-type ProductImageProps = {
-  product: unknown;
-  alt: string;
-  sizes: string;
+export type ProductImageProps = {
+  product?: unknown;
+  src?: string;
+  url?: string;
+  alt?: string;
+  sizes?: string;
   className?: string;
   priority?: boolean;
+  fill?: boolean;
+  width?: number;
+  height?: number;
+  loading?: "lazy" | "eager";
 };
 
-/** Renders productId.productImgUrls[0] for local, Cloudinary and Unsplash images. */
+/**
+ * Universal Image component for Sportify Kashmir.
+ * Handles productId.productImgUrls[0], category/brand images, Cloudinary,
+ * local disk /uploads/, Unsplash, and external HTTPS URLs safely.
+ */
 export default function ProductImage({
   product,
-  alt,
-  sizes,
+  src,
+  url,
+  alt = "Product Image",
+  sizes = "(max-width: 768px) 100vw, 300px",
   className = "object-contain",
   priority = false,
+  fill,
+  width,
+  height,
+  loading,
 }: ProductImageProps) {
-  const resolvedSource = useMemo(() => resolveProductImage(product), [product]);
-  const [source, setSource] = useState(resolvedSource);
+  const target = src || url || product;
+  const resolvedSource = useMemo(() => resolveProductImage(target), [target]);
+  const [currentSrc, setCurrentSrc] = useState<string>(resolvedSource);
+  const [hasError, setHasError] = useState<boolean>(false);
 
-  useEffect(() => setSource(resolvedSource), [resolvedSource]);
+  useEffect(() => {
+    setCurrentSrc(resolvedSource);
+    setHasError(false);
+  }, [resolvedSource]);
+
+  const safeAlt = alt || "Product Image";
+  const imageSrc = hasError || !currentSrc ? FALLBACK_IMAGE : currentSrc;
+
+  // Determine fill mode if not explicitly passed
+  const isFill = fill !== undefined ? fill : !Boolean(width && height);
+
+  const handleError = () => {
+    if (!hasError) {
+      setHasError(true);
+      setCurrentSrc(FALLBACK_IMAGE);
+    }
+  };
+
+  if (!isFill && width && height) {
+    return (
+      <Image
+        src={imageSrc}
+        alt={safeAlt}
+        width={width}
+        height={height}
+        unoptimized
+        referrerPolicy="no-referrer"
+        priority={priority}
+        loading={priority ? undefined : loading || "lazy"}
+        className={className}
+        onError={handleError}
+      />
+    );
+  }
 
   return (
     <Image
-      src={source}
-      alt={alt}
+      src={imageSrc}
+      alt={safeAlt}
       fill
       sizes={sizes}
-      // The CDN already transforms product images. Avoid a Next image optimizer
-      // failure hiding a valid remote API URL.
       unoptimized
+      referrerPolicy="no-referrer"
       priority={priority}
+      loading={priority ? undefined : loading || "lazy"}
       className={className}
-      onError={() => {
-        if (source !== FALLBACK_IMAGE) setSource(FALLBACK_IMAGE);
-      }}
+      onError={handleError}
     />
   );
 }

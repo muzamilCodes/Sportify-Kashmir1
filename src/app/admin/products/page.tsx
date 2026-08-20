@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { resolveProductImage } from "@/lib/imageHelper";
+import ProductImage from "@/components/ProductImage";
 
 interface Product {
   _id: string;
@@ -31,9 +32,7 @@ export default function AdminProductsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(
-    null,
-  );
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
   const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
 
   const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000").replace(/\/$/, "");
@@ -52,30 +51,35 @@ export default function AdminProductsPage() {
   };
 
   // Fetch all products
-  useEffect(() => {
-    fetchProducts();
-  }, []);
-
   const fetchProducts = async () => {
     try {
       setLoading(true);
-      const response = await fetch(
-        `${API_URL}/product/getAll`,
-      );
+      const response = await fetch(`${API_URL}/product/getAll`, {
+        cache: "no-store",
+      });
 
       const result = await response.json();
       if (result.success) {
         const rawList = Array.isArray(result.data) ? result.data : result.data?.items || [];
         setProducts(rawList);
         setFilteredProducts(rawList);
+      } else {
+        setProducts([]);
+        setFilteredProducts([]);
       }
     } catch (error) {
-      console.error("Error:", error);
+      console.error("Error fetching products:", error);
       toast.error("Failed to load products");
+      setProducts([]);
+      setFilteredProducts([]);
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchProducts();
+  }, []);
 
   // Apply filters
   useEffect(() => {
@@ -111,30 +115,41 @@ export default function AdminProductsPage() {
     setFilteredProducts(filtered);
   }, [searchTerm, categoryFilter, statusFilter, products]);
 
-  
-
   // Delete product
   const handleDeleteProduct = async (productId: string) => {
     try {
       const token = localStorage.getItem("token");
+      if (!token) {
+        toast.error("Please login as admin first");
+        setShowDeleteConfirm(null);
+        return;
+      }
+
       const response = await fetch(
         `${API_URL}/product/delete/${productId}`,
         {
           method: "DELETE",
-          headers: { Authorization: `Bearer ${token}` },
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
         },
       );
 
       const result = await response.json();
       if (result.success) {
-        toast.success("Product deleted successfully");
-        fetchProducts(); // Refresh list
+        toast.success(result.message || "Product deleted successfully");
         setShowDeleteConfirm(null);
+        // Optimistically remove from state for instant UI update
+        setProducts((prev) => prev.filter((p) => p._id !== productId));
+        setFilteredProducts((prev) => prev.filter((p) => p._id !== productId));
+        fetchProducts(); // Refresh list to sync with server
       } else {
-        toast.error(result.message);
+        toast.error(result.message || "Failed to delete product");
       }
-    } catch (error) {
-      toast.error("Failed to delete product");
+    } catch (error: any) {
+      console.error("Delete product error:", error);
+      toast.error(error.message || "Failed to delete product");
     }
   };
 
@@ -168,7 +183,7 @@ export default function AdminProductsPage() {
     }
   };
 
-// Toggle availability
+  // Toggle availability
   const handleToggleAvailability = async (
     productId: string,
     available: boolean,
@@ -307,19 +322,13 @@ export default function AdminProductsPage() {
                     {/* Product Info */}
                     <td className="p-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
-                          {product.productImgUrls && product.productImgUrls.length > 0 && !imageErrors.has(product._id) ? (
-                            <img
-                              src={getImageUrl(product.productImgUrls[0])}
-                              alt={product.name}
-                              className="w-full h-full object-cover"
-                              onError={() => handleImageError(product._id)}
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center text-gray-400">
-                              No image
-                            </div>
-                          )}
+                        <div className="w-12 h-12 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0 relative">
+                          <ProductImage
+                            product={product}
+                            alt={product.name}
+                            fill
+                            className="w-full h-full object-cover"
+                          />
                         </div>
                         <div>
                           <p className="font-medium text-gray-900">

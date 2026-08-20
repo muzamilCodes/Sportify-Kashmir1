@@ -86,13 +86,16 @@ export default function CartPage() {
       }
 
       // Check if any product is unpopulated or missing productImgUrls
-      const needsPopulation = rawProducts.some(
-        (p: any) =>
+      const needsPopulation = rawProducts.some((p: any) => {
+        const prod = p.productId && typeof p.productId === "object" ? p.productId : p;
+        return (
           typeof p.productId === "string" ||
-          !p.productId ||
-          !p.productId.name ||
-          (!p.productId.productImgUrls && !p.productId.images)
-      );
+          !prod ||
+          !prod.name ||
+          (!prod.productImgUrls && !prod.images) ||
+          (Array.isArray(prod.productImgUrls) && prod.productImgUrls.length === 0 && (!prod.images || prod.images.length === 0))
+        );
+      });
 
       if (needsPopulation) {
         try {
@@ -265,7 +268,7 @@ export default function CartPage() {
                     {/* Product Image */}
                     <div className="relative w-24 h-24 sm:w-32 sm:h-32 bg-gray-50 dark:bg-gray-800/80 rounded-xl overflow-hidden flex-shrink-0 flex items-center justify-center border border-gray-100 dark:border-gray-700">
                       <ProductImage
-                        product={product}
+                        product={product || item}
                         alt={prodName}
                         sizes="(max-width: 640px) 96px, 128px"
                         className="object-contain p-2 transition-transform duration-200 hover:scale-105"

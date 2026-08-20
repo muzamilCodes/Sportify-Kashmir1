@@ -5,13 +5,13 @@ import Link from "next/link";
 import {
   ChevronRight,
   Star,
-  TrendingUp,
-  Clock,
   Tag,
   Truck,
   Shield,
+  Clock,
 } from "lucide-react";
 import { cachedJson } from "@/lib/clientCache";
+import { resolveProductImage } from "@/lib/imageHelper";
 
 // Custom icons for sports (not available in lucide-react)
 const CricketIcon = ({ className }: { className?: string }) => (
@@ -79,6 +79,7 @@ interface Category {
   name: string;
   description: string;
   image?: string;
+  subcategories?: string[];
   slug?: string;
 }
 
@@ -108,21 +109,21 @@ export default function CategoriesPage() {
   const getCategoryIcon = (name: string) => {
     const lowerName = name.toLowerCase();
     if (lowerName.includes("cricket")) {
-      return <CricketIcon className="w-12 h-12" />;
+      return <CricketIcon className="w-10 h-10" />;
     } else if (lowerName.includes("football")) {
-      return <FootballIcon className="w-12 h-12" />;
+      return <FootballIcon className="w-10 h-10" />;
     } else if (lowerName.includes("basketball")) {
-      return <BasketballIcon className="w-12 h-12" />;
+      return <BasketballIcon className="w-10 h-10" />;
     } else if (lowerName.includes("tennis")) {
-      return <TennisIcon className="w-12 h-12" />;
+      return <TennisIcon className="w-10 h-10" />;
     } else if (lowerName.includes("badminton")) {
-      return <BadmintonIcon className="w-12 h-12" />;
+      return <BadmintonIcon className="w-10 h-10" />;
     } else if (lowerName.includes("fitness") || lowerName.includes("gym")) {
-      return <FitnessIcon className="w-12 h-12" />;
-    } else if (lowerName.includes("apparel") || lowerName.includes("clothing")) {
-      return <ApparelIcon className="w-12 h-12" />;
+      return <FitnessIcon className="w-10 h-10" />;
+    } else if (lowerName.includes("apparel") || lowerName.includes("clothing") || lowerName.includes("wear")) {
+      return <ApparelIcon className="w-10 h-10" />;
     }
-    return <Star className="w-12 h-12" />;
+    return <Star className="w-10 h-10" />;
   };
 
   const getCategoryGradient = (name: string) => {
@@ -132,20 +133,27 @@ export default function CategoriesPage() {
     if (lowerName.includes("basketball")) return "from-orange-500 to-red-600";
     if (lowerName.includes("tennis")) return "from-yellow-500 to-yellow-700";
     if (lowerName.includes("badminton")) return "from-purple-500 to-pink-600";
-    if (lowerName.includes("fitness")) return "from-red-500 to-orange-600";
-    if (lowerName.includes("apparel")) return "from-pink-500 to-rose-600";
+    if (lowerName.includes("fitness") || lowerName.includes("gym")) return "from-red-500 to-orange-600";
+    if (lowerName.includes("running")) return "from-teal-500 to-cyan-600";
+    if (lowerName.includes("cycling")) return "from-amber-500 to-orange-600";
+    if (lowerName.includes("wear")) return "from-pink-500 to-rose-600";
     return "from-gray-600 to-gray-800";
   };
 
-  const getPopularItems = (name: string) => {
-    const lowerName = name.toLowerCase();
+  const getPopularItems = (cat: Category) => {
+    if (cat.subcategories && cat.subcategories.length > 0) {
+      return cat.subcategories;
+    }
+    const lowerName = cat.name.toLowerCase();
     if (lowerName.includes("cricket")) return ["Bats", "Balls", "Pads", "Gloves", "Helmets"];
-    if (lowerName.includes("football")) return ["Boots", "Jerseys", "Shin Guards", "Goal Keeper Gloves"];
+    if (lowerName.includes("football")) return ["Footballs", "Boots", "Shin Guards", "Goalkeeper Gloves"];
     if (lowerName.includes("basketball")) return ["Basketballs", "Shoes", "Jerseys", "Hoops"];
     if (lowerName.includes("tennis")) return ["Rackets", "Balls", "Grips", "Shoes"];
-    if (lowerName.includes("badminton")) return ["Rackets", "Shuttlecocks", "Grips", "Net"];
-    if (lowerName.includes("fitness")) return ["Dumbbells", "Yoga Mats", "Gym Wear", "Supplements"];
-    if (lowerName.includes("apparel")) return ["Jerseys", "Shorts", "Tracksuits", "Compression Wear"];
+    if (lowerName.includes("badminton")) return ["Rackets", "Shuttlecocks", "Shoes", "Grips"];
+    if (lowerName.includes("fitness")) return ["Dumbbells", "Yoga Mats", "Resistance Bands"];
+    if (lowerName.includes("running")) return ["Shoes", "Hydration Packs", "Headbands"];
+    if (lowerName.includes("cycling")) return ["Helmets", "Gloves", "Bottles"];
+    if (lowerName.includes("wear")) return ["T-Shirts", "Shorts", "Tracksuits"];
     return ["Equipment", "Accessories", "Gear"];
   };
 
@@ -158,8 +166,6 @@ export default function CategoriesPage() {
         </div>
       </div>
     );
-
-    
   }
 
   return (
@@ -173,25 +179,21 @@ export default function CategoriesPage() {
               Shop by Sports
             </h1>
             <p className="text-xl text-orange-100 mb-6">
-              Find everything you need for your favorite sport
+              Find everything you need for your favorite sport in Kashmir
             </p>
             <div className="flex flex-wrap justify-center gap-3">
               <div className="bg-white/20 backdrop-blur rounded-full px-4 py-2 text-sm">
                 🏆 Premium Quality
               </div>
               <div className="bg-white/20 backdrop-blur rounded-full px-4 py-2 text-sm">
-                🚚 Free Shipping
+                🚚 Fast Kashmir Delivery
               </div>
               <div className="bg-white/20 backdrop-blur rounded-full px-4 py-2 text-sm">
-                💯 Authentic Products
+                💯 100% Authentic Brands
               </div>
             </div>
           </div>
         </div>
-        {/* Wave SVG */}
-        <svg className="absolute bottom-0 left-0 right-0" viewBox="0 0 1440 120" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M0 64L60 69.3C120 75 240 85 360 80C480 75 600 53 720 48C840 43 960 53 1080 58.7C1200 64 1320 64 1380 64L1440 64L1440 120L1380 120C1320 120 1200 120 1080 120C960 120 840 120 720 120C600 120 480 120 360 120C240 120 120 120 60 120L0 120Z" fill="#F9FAFB"/>
-        </svg>
       </div>
 
       <div className="container mx-auto px-4 py-12">
@@ -201,7 +203,7 @@ export default function CategoriesPage() {
             <div>
               <Tag className="w-8 h-8 text-orange-500 mb-2" />
               <h2 className="text-2xl font-bold text-gray-900">Limited Time Offers</h2>
-              <p className="text-gray-600 mt-1">Up to 50% off on selected categories</p>
+              <p className="text-gray-600 mt-1">Up to 50% off on selected sports equipment</p>
             </div>
             <Link href="/sale" className="bg-orange-500 text-white px-6 py-3 rounded-full font-semibold hover:bg-orange-600 transition flex items-center gap-2">
               View All Deals
@@ -215,60 +217,70 @@ export default function CategoriesPage() {
           {categories.map((category) => (
             <div
               key={category._id}
-              className="group relative bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-500 hover:-translate-y-2"
+              className="group relative bg-white rounded-2xl shadow-md overflow-hidden hover:shadow-2xl transition-all duration-500 hover:-translate-y-1.5 flex flex-col justify-between border border-gray-100"
               onMouseEnter={() => setHoveredCategory(category._id)}
               onMouseLeave={() => setHoveredCategory(null)}
             >
-              {/* Gradient Background */}
-              <div className={`absolute inset-0 bg-gradient-to-br ${getCategoryGradient(category.name)} opacity-0 group-hover:opacity-100 transition-opacity duration-500`}></div>
-              
-              {/* Content */}
-              <div className="relative p-6 z-10">
-                {/* Icon */}
-                <div className={`w-20 h-20 rounded-2xl flex items-center justify-center mb-5 transition-all duration-300 ${hoveredCategory === category._id ? 'bg-white/20 text-white' : 'bg-orange-100 text-orange-600'} group-hover:bg-white/20 group-hover:text-white`}>
-                  {getCategoryIcon(category.name)}
+              {/* Category Image Header */}
+              <div className="relative h-44 w-full bg-gray-100 overflow-hidden">
+                {category.image ? (
+                  <img
+                    src={resolveProductImage(category.image)}
+                    alt={category.name}
+                    referrerPolicy="no-referrer"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  />
+                ) : (
+                  <div className={`w-full h-full bg-gradient-to-br ${getCategoryGradient(category.name)} flex items-center justify-center text-white`}>
+                    {getCategoryIcon(category.name)}
+                  </div>
+                )}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"></div>
+                
+                <div className="absolute bottom-3 left-4 right-4 text-white flex items-center justify-between">
+                  <h3 className="text-2xl font-bold drop-shadow-md">
+                    {category.name}
+                  </h3>
+                  <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur flex items-center justify-center text-white">
+                    {getCategoryIcon(category.name)}
+                  </div>
                 </div>
+              </div>
 
-                {/* Category Name */}
-                <h3 className={`text-2xl font-bold mb-2 transition-colors duration-300 ${hoveredCategory === category._id ? 'text-white' : 'text-gray-900'} group-hover:text-white`}>
-                  {category.name}
-                </h3>
-
-                {/* Description */}
-                <p className={`text-sm mb-4 transition-colors duration-300 ${hoveredCategory === category._id ? 'text-white/80' : 'text-gray-600'} group-hover:text-white/80 line-clamp-2`}>
-                  {category.description || `Shop the best ${category.name} equipment and gear`}
-                </p>
-
-                {/* Popular Items */}
-                <div className="mb-5">
-                  <p className={`text-xs font-medium mb-2 transition-colors duration-300 ${hoveredCategory === category._id ? 'text-white/70' : 'text-gray-500'} group-hover:text-white/70`}>
-                    Popular in this category:
+              {/* Content */}
+              <div className="p-6 flex flex-col flex-1 justify-between">
+                <div>
+                  <p className="text-sm text-gray-600 mb-4 line-clamp-2">
+                    {category.description || `Explore authentic ${category.name} equipment, accessories, and gear`}
                   </p>
-                  <div className="flex flex-wrap gap-2">
-                    {getPopularItems(category.name).slice(0, 4).map((item) => (
-                      <span
-                        key={item}
-                        className={`text-xs px-2 py-1 rounded-full transition-all duration-300 ${hoveredCategory === category._id ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-700'} group-hover:bg-white/20 group-hover:text-white`}
-                      >
-                        {item}
-                      </span>
-                    ))}
+
+                  {/* Subcategories / Popular Items */}
+                  <div className="mb-5">
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
+                      Featured Gear
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {getPopularItems(category).slice(0, 4).map((item) => (
+                        <span
+                          key={item}
+                          className="text-xs px-2.5 py-1 rounded-md bg-gray-100 text-gray-700 font-medium"
+                        >
+                          {item}
+                        </span>
+                      ))}
+                    </div>
                   </div>
                 </div>
 
                 {/* Shop Now Button */}
                 <Link
                   href={`/categories/${category.name.toLowerCase()}`}
-                  className={`inline-flex items-center gap-2 font-semibold transition-all duration-300 ${hoveredCategory === category._id ? 'text-white' : 'text-orange-600'} group-hover:text-white group-hover:gap-3`}
+                  className="w-full inline-flex items-center justify-center gap-2 font-semibold bg-orange-50 text-orange-600 hover:bg-orange-500 hover:text-white py-2.5 rounded-lg transition-all"
                 >
-                  Shop Now
-                  <ChevronRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+                  Explore {category.name}
+                  <ChevronRight className="w-4 h-4" />
                 </Link>
               </div>
-
-              {/* Decorative Elements */}
-              <div className={`absolute -bottom-4 -right-4 w-32 h-32 rounded-full bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500`}></div>
-              <div className={`absolute -top-4 -left-4 w-24 h-24 rounded-full bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500 delay-100`}></div>
             </div>
           ))}
         </div>
@@ -280,7 +292,7 @@ export default function CategoriesPage() {
               <Star className="w-12 h-12 text-gray-400" />
             </div>
             <h3 className="text-xl font-semibold text-gray-900 mb-2">No Categories Found</h3>
-            <p className="text-gray-600 mb-6">Categories will appear here once added by admin</p>
+            <p className="text-gray-600 mb-6">Categories will appear here once loaded from the server</p>
           </div>
         )}
 
@@ -291,37 +303,21 @@ export default function CategoriesPage() {
               <Truck className="w-7 h-7 text-green-600" />
             </div>
             <h3 className="font-bold text-gray-900 mb-2">Free Delivery</h3>
-            <p className="text-gray-600 text-sm">On orders above ₹999</p>
+            <p className="text-gray-600 text-sm">On sports orders above ₹999</p>
           </div>
           <div className="bg-white rounded-xl p-6 text-center shadow-sm border border-gray-100">
             <div className="w-14 h-14 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <Shield className="w-7 h-7 text-blue-600" />
             </div>
-            <h3 className="font-bold text-gray-900 mb-2">Secure Payment</h3>
-            <p className="text-gray-600 text-sm">100% secure transactions</p>
+            <h3 className="font-bold text-gray-900 mb-2">100% Genuine</h3>
+            <p className="text-gray-600 text-sm">Authentic gear from top sports brands</p>
           </div>
           <div className="bg-white rounded-xl p-6 text-center shadow-sm border border-gray-100">
             <div className="w-14 h-14 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <Clock className="w-7 h-7 text-orange-600" />
             </div>
-            <h3 className="font-bold text-gray-900 mb-2">24/7 Support</h3>
-            <p className="text-gray-600 text-sm">Get help anytime</p>
-          </div>
-        </div>
-
-        {/* Newsletter Section */}
-        <div className="mt-12 bg-gradient-to-r from-gray-900 to-gray-800 rounded-2xl p-8 text-center text-white">
-          <h3 className="text-2xl font-bold mb-2">Stay Updated</h3>
-          <p className="text-gray-300 mb-6">Subscribe to get updates on new arrivals and special offers</p>
-          <div className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto">
-            <input
-              type="email"
-              placeholder="Enter your email"
-              className="flex-1 px-4 py-3 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-500"
-            />
-            <button className="bg-orange-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-orange-600 transition">
-              Subscribe
-            </button>
+            <h3 className="font-bold text-gray-900 mb-2">Kashmir Support</h3>
+            <p className="text-gray-600 text-sm">Quick customer help & easy exchanges</p>
           </div>
         </div>
       </div>

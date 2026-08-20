@@ -125,42 +125,64 @@ export default function CheckoutPage() {
   const fetchCart = async () => {
     try {
       const token = localStorage.getItem("token");
-      if (!token) {
+      const guestCartId = localStorage.getItem("cartId");
+
+      let rawProducts: any[] = [];
+
+      if (token) {
+        const res = await fetch(`${API_URL}/cart/getCart`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json"
+          },
+          cache: "no-store",
+        });
+
+        const data = await res.json();
+
+        if (data.success && data.data) {
+          if (data.data.products && Array.isArray(data.data.products)) {
+            rawProducts = data.data.products;
+          } else if (data.data.cart && data.data.cart.products) {
+            rawProducts = data.data.cart.products;
+          } else if (data.data.items) {
+            rawProducts = data.data.items;
+          }
+        }
+      } else if (guestCartId) {
+        const res = await fetch(`${API_URL}/cart/getGuestCart/${guestCartId}`, {
+          cache: "no-store",
+        });
+
+        const data = await res.json();
+
+        if (data.success && data.data) {
+          if (data.data.products && Array.isArray(data.data.products)) {
+            rawProducts = data.data.products;
+          } else if (data.data.cart && data.data.cart.products) {
+            rawProducts = data.data.cart.products;
+          } else if (data.data.items) {
+            rawProducts = data.data.items;
+          }
+        }
+      } else {
         router.push("/login");
         return;
       }
 
-      const res = await fetch(`${API_URL}/cart/getCart`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json"
-        },
-        cache: "no-store",
-      });
+      let validProducts = rawProducts.filter((p: any) => p && (p.productId || p._id));
 
-      const data = await res.json();
-
-      let products: CartItem[] = [];
-
-      if (data.success && data.data) {
-        if (data.data.products && Array.isArray(data.data.products)) {
-          products = data.data.products;
-        } else if (data.data.cart && data.data.cart.products) {
-          products = data.data.cart.products;
-        } else if (data.data.items) {
-          products = data.data.items;
-        }
-      }
-
-      let validProducts = products.filter((p: any) => p && p.productId);
-
-      // Check if any product is unpopulated
-      const needsPopulation = validProducts.some(
-        (p: any) =>
+      // Check if any product is unpopulated or missing images
+      const needsPopulation = validProducts.some((p: any) => {
+        const prod = p.productId && typeof p.productId === "object" ? p.productId : p;
+        return (
           typeof p.productId === "string" ||
-          !p.productId.name ||
-          (!p.productId.productImgUrls && !p.productId.images)
-      );
+          !prod ||
+          !prod.name ||
+          (!prod.productImgUrls && !prod.images) ||
+          (Array.isArray(prod.productImgUrls) && prod.productImgUrls.length === 0 && (!prod.images || prod.images.length === 0))
+        );
+      });
 
       if (needsPopulation) {
         try {
@@ -177,6 +199,8 @@ export default function CheckoutPage() {
                 ? p.productId
                 : p.productId?._id
                 ? String(p.productId._id)
+                : p._id
+                ? String(p._id)
                 : "";
             if (prodId && prodMap.has(prodId)) {
               return { ...p, productId: prodMap.get(prodId) };
@@ -215,58 +239,14 @@ export default function CheckoutPage() {
       window.removeEventListener("focus", handleCartUpdate);
     };
   }, []);
-  // const fetchCart = async () => {
-  //   try {
-  //     const token = localStorage.getItem("token");
-  //     console.log("Token being sent:", token ? "Yes" : "No");
 
-  //     if (!token) {
-  //       console.log("No token found");
-  //       router.push("/login");
-  //       return;
-  //     }
-
-  //     const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/cart/getCart`, {
-  //       headers: { 
-  //         Authorization: `Bearer ${token}`,
-  //         "Content-Type": "application/json"
-  //       },
-  //     });
-
-  //     console.log("Response status:", res.status);
-  //     const data = await res.json();
-  //     console.log("Full response:", data);
-
-  //     let products: CartItem[] = [];
-
-  //     // Try all possible paths to extract products
-  //     if (data.success && data.data) {
-  //       if (data.data.products && Array.isArray(data.data.products)) {
-  //         products = data.data.products;
-  //       } else if (data.data.cart && data.data.cart.products) {
-  //         products = data.data.cart.products;
-  //       } else if (data.data.items) {
-  //         products = data.data.items;
-  //       } else if (Array.isArray(data.data)) {
-  //         products = data.data;
-  //       }
-  //     }
-
-  //     console.log("Extracted products:", products);
-  //     setCartItems(products);
-  //     calculateTotals(products);
-  //   } catch (err) {
-  //     console.error("Cart fetch error:", err);
-  //     setCartItems([]);
-  //     calculateTotals([]);
-  //   }
-  // };
   const calculateTotals = (items: CartItem[]) => {
     let sub = 0;
     items.forEach((item) => {
-      let price = item.productId.price;
-      if (item.productId.discount && item.productId.discount > 0) {
-        price = price - (price * item.productId.discount) / 100;
+      const product = item.productId && typeof item.productId === "object" ? item.productId : (item as any);
+      let price = product.price;
+      if (product.discount && product.discount > 0) {
+        price = price - (price * product.discount) / 100;
       }
       sub += price * item.quantity;
     });
@@ -478,9 +458,10 @@ export default function CheckoutPage() {
   };
 
   const getItemPrice = (item: CartItem) => {
-    let price = item.productId.price;
-    if (item.productId.discount && item.productId.discount > 0) {
-      price = price - (price * item.productId.discount) / 100;
+    const product = item.productId && typeof item.productId === "object" ? item.productId : (item as any);
+    let price = product.price;
+    if (product.discount && product.discount > 0) {
+      price = price - (price * product.discount) / 100;
     }
     return Math.round(price);
   };
@@ -809,22 +790,25 @@ return (
             ) : (
               <div className="space-y-4">
                 {cartItems.map((item, idx) => {
+                  const product = item?.productId && typeof item.productId === "object" ? item.productId : (item as any);
                   const itemPrice = getItemPrice(item);
-                  const originalPrice = item.productId.price;
-                  const hasDiscount = item.productId.discount && item.productId.discount > 0;
+                  const originalPrice = product?.price || item?.price || 0;
+                  const hasDiscount = Boolean(product?.discount && product.discount > 0);
+                  const prodName = product?.name || "Product";
+                  const prodId = product?._id || (item as any)?._id || idx;
 
                   return (
-                    <div key={idx} className="flex gap-4 py-4 border-b last:border-0">
-                      <div className="relative w-20 h-20 bg-gray-100 rounded-xl overflow-hidden flex-shrink-0">
+                    <div key={prodId} className="flex gap-4 py-4 border-b last:border-0">
+                      <div className="relative w-20 h-20 bg-gray-100 dark:bg-gray-800 rounded-xl overflow-hidden flex-shrink-0 flex items-center justify-center border border-gray-100 dark:border-gray-700">
                         <ProductImage
-                          product={item.productId}
-                          alt={item.productId.name}
+                          product={product || item}
+                          alt={prodName}
                           sizes="80px"
-                          className="object-cover"
+                          className="object-contain p-1"
                         />
                       </div>
-                      <div className="flex-1">
-                        <h3 className="font-medium text-gray-900 line-clamp-2">{item.productId.name}</h3>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-medium text-gray-900 line-clamp-2">{prodName}</h3>
                         <div className="flex flex-wrap gap-2 mt-1">
                           {item.color && <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded">Color: {item.color}</span>}
                           {item.size && <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded">Size: {item.size}</span>}
@@ -964,21 +948,23 @@ return (
             {cartItems.length > 0 && (
               <div className="mb-4 max-h-56 overflow-y-auto space-y-3 pr-1 border-b pb-4">
                 {cartItems.map((item, idx) => {
-                  const product = item.productId;
+                  const product = item?.productId && typeof item.productId === "object" ? item.productId : (item as any);
                   if (!product) return null;
                   const price = getItemPrice(item);
+                  const prodName = product?.name || "Product";
+                  const prodId = product?._id || (item as any)?._id || idx;
                   return (
-                    <div key={product._id || idx} className="flex items-center gap-3">
+                    <div key={prodId} className="flex items-center gap-3">
                       <div className="relative w-12 h-12 bg-gray-50 dark:bg-gray-800 rounded-lg overflow-hidden flex-shrink-0 flex items-center justify-center p-1 border border-gray-100 dark:border-gray-700">
                         <ProductImage
-                          product={product}
-                          alt={product.name || "Product"}
+                          product={product || item}
+                          alt={prodName}
                           sizes="48px"
                           className="object-contain p-0.5"
                         />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs font-medium text-gray-800 line-clamp-1">{product.name}</p>
+                        <p className="text-xs font-medium text-gray-800 line-clamp-1">{prodName}</p>
                         <p className="text-xs text-gray-400">Qty: {item.quantity}</p>
                       </div>
                       <span className="text-xs font-semibold text-gray-900">
