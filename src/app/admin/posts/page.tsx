@@ -75,7 +75,7 @@ export default function AdminPostsPage() {
   };
 
   const getImageUrl = (url: string) => {
-    if (!url) return "/placeholder.jpg";
+    if (!url) return "/placeholder.svg";
     if (url.startsWith("http")) return url;
     return `${process.env.NEXT_PUBLIC_API_URL}/uploads/${url}`;
   };

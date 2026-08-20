@@ -499,8 +499,6 @@ export default function OrderDetailPage() {
                         src={imgUrl}
                         alt={productName}
                         loading="eager"
-                        referrerPolicy="no-referrer"
-                        crossOrigin="anonymous"
                         className="w-full h-full object-contain p-1"
                         onError={(e) => {
                           const target = e.currentTarget;

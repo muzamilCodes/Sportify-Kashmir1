@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
   ShoppingCart,
@@ -17,7 +16,7 @@ import {
   IndianRupee,
 } from "lucide-react";
 import toast from "react-hot-toast";
-import { resolveProductImage } from "@/lib/imageHelper";
+import ProductImage from "@/components/ProductImage";
 
 interface CartItem {
   productId: {
@@ -254,7 +253,6 @@ export default function CartPage() {
               const discountedPrice = getItemPrice(item);
               const originalPrice = product?.price || item?.price || 0;
               const hasDiscount = Boolean(product?.discount && product.discount > 0);
-              const imageUrl = resolveProductImage(product);
               const prodId = product?._id || (item as any)?._id || idx;
               const prodName = product?.name || "Product";
 
@@ -266,20 +264,11 @@ export default function CartPage() {
                   <div className="flex gap-4 sm:gap-6">
                     {/* Product Image */}
                     <div className="relative w-24 h-24 sm:w-32 sm:h-32 bg-gray-50 dark:bg-gray-800/80 rounded-xl overflow-hidden flex-shrink-0 flex items-center justify-center border border-gray-100 dark:border-gray-700">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={imageUrl}
+                      <ProductImage
+                        product={product}
                         alt={prodName}
-                        loading="eager"
-                        referrerPolicy="no-referrer"
-                        crossOrigin="anonymous"
-                        className="w-full h-full object-contain p-2 transition-transform duration-200 hover:scale-105"
-                        onError={(e) => {
-                          const target = e.currentTarget;
-                          if (!target.src.endsWith("/placeholder.svg")) {
-                            target.src = "/placeholder.svg";
-                          }
-                        }}
+                        sizes="(max-width: 640px) 96px, 128px"
+                        className="object-contain p-2 transition-transform duration-200 hover:scale-105"
                       />
                     </div>
 

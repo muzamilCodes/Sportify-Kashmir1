@@ -37,6 +37,7 @@ import {
 import toast from "react-hot-toast";
 import ThemeToggle from "@/components/shared/ThemeToggle";
 import { useCartCount } from "@/components/providers/CartCountProvider";
+import { resolveProductImage } from "@/lib/imageHelper";
 
 // The header is mounted on every route. Prefetching every menu destination
 // from here creates a burst of RSC requests on initial load.
@@ -331,7 +332,7 @@ export default function Header() {
                 <div className="max-h-80 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-700/50">
                   {searchSuggestions.map((item) => {
                     const img = item.productImgUrls?.[0] || item.images?.[0];
-                    const imgSrc = img?.startsWith("http") ? img : img ? `${API_URL}/uploads/${img}` : "/placeholder.jpg";
+                    const imgSrc = img ? resolveProductImage(img) : "/placeholder.svg";
                     const hasDiscount = item.discount && item.discount > 0;
                     const finalPrice = hasDiscount ? item.price - (item.price * item.discount) / 100 : item.price;
 

@@ -380,7 +380,7 @@ export default function HomePage() {
           )}
         </section>
 
-        <RecentlyViewed products={products} apiUrl={API_URL} />
+        <RecentlyViewed products={products} />
 
         {/* Features Section */}
         <section className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">

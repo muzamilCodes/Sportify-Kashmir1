@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { productApi } from "@/lib/api";
+import { resolveProductImage } from "@/lib/imageHelper";
 
 interface Product {
   _id: string;
@@ -28,12 +29,7 @@ export default function AdminSalePage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
 
-  // Helper function to get image URL
-  const getImageUrl = (url: string) => {
-    if (!url) return "/placeholder.jpg";
-    if (url.startsWith('http')) return url;
-    return `${process.env.NEXT_PUBLIC_API_URL}/uploads/${url}`;
-  };
+  const getImageUrl = (url: string) => resolveProductImage(url);
 
   // Handle image error
   const handleImageError = (productId: string) => {

@@ -53,7 +53,7 @@ export default function BlogPage() {
   };
 
   const getImageUrl = (url?: string) => {
-    if (!url) return "/placeholder.jpg";
+    if (!url) return "/placeholder.svg";
     if (url.startsWith("http://") || url.startsWith("https://")) return url;
     const apiUrl = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000").replace(/\/$/, "");
     if (url.startsWith("/")) return `${apiUrl}${url}`;

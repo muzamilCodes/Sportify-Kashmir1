@@ -5,8 +5,10 @@ export const getApiUrl = (): string => {
   return (process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000").replace(/\/$/, "");
 };
 
+const PLACEHOLDER_IMAGE = "/placeholder.svg";
+
 export const resolveProductImage = (product: any, customApiUrl?: string): string => {
-  if (!product) return "/placeholder.svg";
+  if (!product) return PLACEHOLDER_IMAGE;
 
   let raw = "";
 
@@ -35,8 +37,10 @@ export const resolveProductImage = (product: any, customApiUrl?: string): string
     }
   }
 
-  raw = (raw || "").trim();
-  if (!raw) return "/placeholder.svg";
+  // Older records may contain Windows-style paths. Normalize them before
+  // deciding whether the image belongs to the backend uploads directory.
+  raw = (raw || "").trim().replace(/\\/g, "/");
+  if (!raw) return PLACEHOLDER_IMAGE;
 
   // Absolute HTTP / HTTPS or Data URI
   if (raw.startsWith("http://") || raw.startsWith("https://") || raw.startsWith("data:") || raw.startsWith("blob:")) {
@@ -58,11 +62,13 @@ export const resolveProductImage = (product: any, customApiUrl?: string): string
     return raw;
   }
 
-  // Bare filename uploaded to backend (only if it looks like an image file)
-  const isImageFile = /\.(jpg|jpeg|png|webp|avif|gif|svg)$/i.test(raw);
-  if (isImageFile) {
+  // Older uploads may have no file extension. A single safe filename is still
+  // an API upload; do not treat arbitrary paths or URLs as backend files.
+  const isImageFile = /\.(jpg|jpeg|png|webp|avif|gif|svg)(\?.*)?$/i.test(raw);
+  const isLegacyUploadName = /^[a-zA-Z0-9][a-zA-Z0-9._-]{0,254}$/.test(raw);
+  if (isImageFile || isLegacyUploadName) {
     return `${apiUrl}/uploads/${raw}`;
   }
 
-  return "/placeholder.svg";
+  return PLACEHOLDER_IMAGE;
 };

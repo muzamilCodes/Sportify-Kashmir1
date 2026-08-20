@@ -40,11 +40,22 @@ const nextConfig = {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: '**',
+        hostname: 'images.unsplash.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'res.cloudinary.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'sportify-kashmir1.onrender.com',
+        pathname: '/uploads/**',
       },
       {
         protocol: 'http',
-        hostname: '**',
+        hostname: 'localhost',
+        port: '4000',
+        pathname: '/uploads/**',
       },
     ],
   },

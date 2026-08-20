@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
+import ProductImage from "@/components/ProductImage";
 import {
   ShoppingCart,
   Trash2,
@@ -31,7 +31,6 @@ import {
   Edit,
 } from "lucide-react";
 import toast from "react-hot-toast";
-import { resolveProductImage } from "@/lib/imageHelper";
 
 declare global {
   interface Window {
@@ -816,18 +815,13 @@ return (
 
                   return (
                     <div key={idx} className="flex gap-4 py-4 border-b last:border-0">
-                      <div className="w-20 h-20 bg-gray-100 rounded-xl overflow-hidden flex-shrink-0">
-                        {item.productId.productImgUrls?.[0] ? (
-                          <img
-                            src={item.productId.productImgUrls[0]}
-                            alt={item.productId.name}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-gray-400">
-                            No image
-                          </div>
-                        )}
+                      <div className="relative w-20 h-20 bg-gray-100 rounded-xl overflow-hidden flex-shrink-0">
+                        <ProductImage
+                          product={item.productId}
+                          alt={item.productId.name}
+                          sizes="80px"
+                          className="object-cover"
+                        />
                       </div>
                       <div className="flex-1">
                         <h3 className="font-medium text-gray-900 line-clamp-2">{item.productId.name}</h3>
@@ -972,25 +966,15 @@ return (
                 {cartItems.map((item, idx) => {
                   const product = item.productId;
                   if (!product) return null;
-                  const imgUrl = resolveProductImage(product);
                   const price = getItemPrice(item);
                   return (
                     <div key={product._id || idx} className="flex items-center gap-3">
                       <div className="relative w-12 h-12 bg-gray-50 dark:bg-gray-800 rounded-lg overflow-hidden flex-shrink-0 flex items-center justify-center p-1 border border-gray-100 dark:border-gray-700">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src={imgUrl}
+                        <ProductImage
+                          product={product}
                           alt={product.name || "Product"}
-                          loading="eager"
-                          referrerPolicy="no-referrer"
-                          crossOrigin="anonymous"
-                          className="w-full h-full object-contain p-0.5"
-                          onError={(e) => {
-                            const target = e.currentTarget;
-                            if (!target.src.endsWith("/placeholder.svg")) {
-                              target.src = "/placeholder.svg";
-                            }
-                          }}
+                          sizes="48px"
+                          className="object-contain p-0.5"
                         />
                       </div>
                       <div className="flex-1 min-w-0">

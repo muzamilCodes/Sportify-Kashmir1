@@ -4,6 +4,7 @@ import { Edit, Eye, Filter, Plus, Search, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
+import { resolveProductImage } from "@/lib/imageHelper";
 
 interface Product {
   _id: string;
@@ -36,13 +37,7 @@ export default function AdminProductsPage() {
   const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
 
   const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000").replace(/\/$/, "");
-
-  // Helper function to get image URL
-  const getImageUrl = (url: string) => {
-    if (!url) return "/placeholder.jpg";
-    if (url.startsWith('http')) return url;
-    return `${API_URL}/uploads/${url}`;
-  };
+  const getImageUrl = (url: string) => resolveProductImage(url);
 
   // Handle image error
   const handleImageError = (productId: string) => {
