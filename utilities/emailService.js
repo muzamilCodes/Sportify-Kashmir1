@@ -16,24 +16,39 @@ class EnhancedEmailService {
   initTransporters() {
     this.transporters = [];
 
-    // 1. Amazon SES (Highest deliverability on Live/Production, 0 SMTP blocking)
+    // 1. Amazon SES (SSL Port 465 - Works on Render/EC2/Production without SMTP blocking)
     const sesKey = process.env.AWS_SES_ACCESS_KEY;
     const sesSecret = process.env.AWS_SES_SECRET_KEY;
     const sesRegion = process.env.AWS_SES_REGION || "ap-south-1";
+    const sesFrom = process.env.AWS_SES_VERIFIED_EMAIL || "info@ilsimperia.com";
     if (sesKey && sesSecret) {
       try {
         this.transporters.push({
-          name: "Amazon-SES",
-          from: `"Sportify Kashmir" <${process.env.AWS_SES_VERIFIED_EMAIL || "info@ilsimperia.com"}>`,
+          name: "Amazon-SES-SSL",
+          from: `"Sportify Kashmir" <${sesFrom}>`,
+          transporter: nodemailer.createTransport({
+            host: `email-smtp.${sesRegion}.amazonaws.com`,
+            port: 465,
+            secure: true,
+            auth: { user: sesKey, pass: sesSecret },
+            tls: { rejectUnauthorized: false },
+            connectionTimeout: 5000,
+            greetingTimeout: 5000,
+            socketTimeout: 8000,
+          }),
+        });
+        this.transporters.push({
+          name: "Amazon-SES-TLS",
+          from: `"Sportify Kashmir" <${sesFrom}>`,
           transporter: nodemailer.createTransport({
             host: `email-smtp.${sesRegion}.amazonaws.com`,
             port: 587,
             secure: false,
             auth: { user: sesKey, pass: sesSecret },
             tls: { rejectUnauthorized: false },
-            connectionTimeout: 8000,
-            greetingTimeout: 8000,
-            socketTimeout: 10000,
+            connectionTimeout: 5000,
+            greetingTimeout: 5000,
+            socketTimeout: 8000,
           }),
         });
       } catch (e) {
@@ -41,21 +56,37 @@ class EnhancedEmailService {
       }
     }
 
-    // 2. Primary Gmail SMTP (Direct Gmail Service)
+    // 2. Primary Gmail SMTP - Direct Port 465 SSL (Crucial for Cloud Hosts that block Port 587)
     const gmailUser = process.env.SMTP_USER || process.env.GMAIL_USER || "warmuzamil68@gmail.com";
     const gmailPass = process.env.SMTP_PASS || process.env.GMAIL_APP_PASSWORD || "kbjv fdru ctul bixg";
     if (gmailUser && gmailPass) {
       try {
         this.transporters.push({
-          name: "Gmail-Service",
+          name: "Gmail-SSL-465",
           from: `"Sportify Kashmir" <${gmailUser}>`,
           transporter: nodemailer.createTransport({
-            service: "gmail",
+            host: "smtp.gmail.com",
+            port: 465,
+            secure: true,
             auth: { user: gmailUser, pass: gmailPass },
             tls: { rejectUnauthorized: false },
-            connectionTimeout: 8000,
-            greetingTimeout: 8000,
-            socketTimeout: 10000,
+            connectionTimeout: 5000,
+            greetingTimeout: 5000,
+            socketTimeout: 8000,
+          }),
+        });
+        this.transporters.push({
+          name: "Gmail-TLS-587",
+          from: `"Sportify Kashmir" <${gmailUser}>`,
+          transporter: nodemailer.createTransport({
+            host: "smtp.gmail.com",
+            port: 587,
+            secure: false,
+            auth: { user: gmailUser, pass: gmailPass },
+            tls: { rejectUnauthorized: false },
+            connectionTimeout: 5000,
+            greetingTimeout: 5000,
+            socketTimeout: 8000,
           }),
         });
       } catch (e) {
@@ -63,21 +94,23 @@ class EnhancedEmailService {
       }
     }
 
-    // 3. Fallback Gmail SMTP (Alternative App Password)
+    // 3. Fallback Gmail SMTP (Alternative App Password with Port 465 SSL)
     const fallbackGmailUser = process.env.GMAIL_USER || "ilsimperia.official@gmail.com";
     const fallbackGmailPass = process.env.GMAIL_APP_PASSWORD || "ftci bfwk yhtd ycdg";
     if (fallbackGmailUser && fallbackGmailPass && fallbackGmailUser !== gmailUser) {
       try {
         this.transporters.push({
-          name: "Gmail-Fallback",
+          name: "Gmail-Fallback-SSL",
           from: `"Sportify Kashmir" <${fallbackGmailUser}>`,
           transporter: nodemailer.createTransport({
-            service: "gmail",
+            host: "smtp.gmail.com",
+            port: 465,
+            secure: true,
             auth: { user: fallbackGmailUser, pass: fallbackGmailPass },
             tls: { rejectUnauthorized: false },
-            connectionTimeout: 8000,
-            greetingTimeout: 8000,
-            socketTimeout: 10000,
+            connectionTimeout: 5000,
+            greetingTimeout: 5000,
+            socketTimeout: 8000,
           }),
         });
       } catch (e) {
@@ -95,13 +128,13 @@ class EnhancedEmailService {
           from: `"Sportify Kashmir" <${hostingerUser}>`,
           transporter: nodemailer.createTransport({
             host: "smtp.hostinger.com",
-            port: 587,
-            secure: false,
+            port: 465,
+            secure: true,
             auth: { user: hostingerUser, pass: hostingerPass },
             tls: { rejectUnauthorized: false },
-            connectionTimeout: 8000,
-            greetingTimeout: 8000,
-            socketTimeout: 10000,
+            connectionTimeout: 5000,
+            greetingTimeout: 5000,
+            socketTimeout: 8000,
           }),
         });
       } catch (e) {
@@ -121,9 +154,9 @@ class EnhancedEmailService {
             secure: Number(process.env.SMTP_PORT) === 465,
             auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
             tls: { rejectUnauthorized: false },
-            connectionTimeout: 8000,
-            greetingTimeout: 8000,
-            socketTimeout: 10000,
+            connectionTimeout: 5000,
+            greetingTimeout: 5000,
+            socketTimeout: 8000,
           }),
         });
       } catch (e) {
@@ -132,6 +165,61 @@ class EnhancedEmailService {
     }
 
     console.log(`[EMAIL-SERVICE] Successfully initialized ${this.transporters.length} high-deliverability email transporter(s)`);
+  }
+
+  // REST API HTTPS Fallback (Port 443 - NEVER blocked by cloud firewalls)
+  async sendViaRestApi(to, subject, html, from) {
+    // 1. Resend API
+    if (process.env.RESEND_API_KEY) {
+      try {
+        const res = await fetch("https://api.resend.com/emails", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            from: process.env.RESEND_FROM || "Sportify Kashmir <onboarding@resend.dev>",
+            to: [to],
+            subject: subject,
+            html: html,
+          }),
+        });
+        if (res.ok) {
+          console.log(`✅ [EMAIL-DELIVERY-SUCCESS] Sent via [Resend-REST-API] to: ${to}`);
+          return true;
+        }
+      } catch (e) {
+        console.warn("[REST-EMAIL] Resend failed:", e.message);
+      }
+    }
+
+    // 2. Brevo API
+    if (process.env.BREVO_API_KEY) {
+      try {
+        const res = await fetch("https://api.brevo.com/v3/smtp/email", {
+          method: "POST",
+          headers: {
+            "api-key": process.env.BREVO_API_KEY,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            sender: { name: "Sportify Kashmir", email: process.env.BREVO_SENDER_EMAIL || process.env.SMTP_USER || "warmuzamil68@gmail.com" },
+            to: [{ email: to }],
+            subject: subject,
+            htmlContent: html,
+          }),
+        });
+        if (res.ok) {
+          console.log(`✅ [EMAIL-DELIVERY-SUCCESS] Sent via [Brevo-REST-API] to: ${to}`);
+          return true;
+        }
+      } catch (e) {
+        console.warn("[REST-EMAIL] Brevo failed:", e.message);
+      }
+    }
+
+    return false;
   }
 
   async sendMail(to, subject, html, options = {}) {
@@ -143,6 +231,12 @@ class EnhancedEmailService {
 
     const cleanTo = String(to).trim().toLowerCase();
     const failures = [];
+
+    // First attempt REST API if available (fastest on live cloud)
+    if (process.env.RESEND_API_KEY || process.env.BREVO_API_KEY) {
+      const restOk = await this.sendViaRestApi(cleanTo, subject, html, options.from);
+      if (restOk) return true;
+    }
 
     // Ensure transporters are ready
     if (!this.transporters || this.transporters.length === 0) {
@@ -165,9 +259,9 @@ class EnhancedEmailService {
           },
         };
 
-        // 8 second timeout race per transporter so request never hangs
+        // 5 second timeout race per transporter so request never hangs
         const timeoutPromise = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error(`${name} connection timed out after 8000ms`)), 8000)
+          setTimeout(() => reject(new Error(`${name} connection timed out after 5000ms`)), 5000)
         );
 
         const info = await Promise.race([
