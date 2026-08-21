@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
+import { clearCachedJson } from "@/lib/clientCache";
 
 export default function AddProductPage() {
   const router = useRouter();
@@ -227,8 +228,10 @@ export default function AddProductPage() {
 
       const result = await response.json();
       if (result.success) {
+        clearCachedJson();
         toast.success("Product added successfully!");
         router.push("/admin/products");
+        router.refresh();
       } else {
         toast.error(result.message || "Failed to add product");
       }

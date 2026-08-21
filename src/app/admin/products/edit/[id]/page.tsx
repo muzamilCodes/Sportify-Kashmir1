@@ -6,6 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { getImageUrl } from "@/lib/utils";
+import { clearCachedJson } from "@/lib/clientCache";
 
 interface GalleryItem {
   id: string;
@@ -58,7 +59,9 @@ export default function EditProductPage() {
   const fetchProduct = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/product/get/${productId}`);
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/product/get/${productId}?_t=${Date.now()}`, {
+        cache: "no-store",
+      });
       const result = await response.json();
       
       if (result.success && result.data) {
@@ -263,13 +266,14 @@ export default function EditProductPage() {
     try {
       setSaving(true);
       
-      const retainedExistingUrls: string[] = [];
       const newFiles: File[] = [];
+      const manifest: Array<{ type: "existing"; url: string } | { type: "new" }> = [];
 
       galleryItems.forEach((item) => {
         if (item.type === "existing") {
-          retainedExistingUrls.push(item.url);
+          manifest.push({ type: "existing", url: item.url });
         } else if (item.file) {
+          manifest.push({ type: "new" });
           newFiles.push(item.file);
         }
       });
@@ -281,9 +285,7 @@ export default function EditProductPage() {
       data.append("discount", formData.discount || "0");
       data.append("category", formData.category);
       data.append("subcategory", formData.subcategory || "");
-      if (formData.brand) {
-        data.append("brand", formData.brand);
-      }
+      data.append("brand", formData.brand || "");
       data.append("stock", formData.stock || "0");
       data.append("isAvailable", formData.isAvailable.toString());
       data.append("isArchived", formData.isArchived.toString());
@@ -292,8 +294,13 @@ export default function EditProductPage() {
       data.append("sizes", sizes.join(","));
       data.append("tags", tags.join(","));
       
-      // Retained existing images
-      retainedExistingUrls.forEach((url) => data.append("existingImages", url));
+      // Gallery Manifest with exact slot ordering
+      data.append("galleryManifest", JSON.stringify(manifest));
+
+      // Retained existing images (fallback)
+      galleryItems
+        .filter((item) => item.type === "existing")
+        .forEach((item) => data.append("existingImages", item.url));
 
       // Newly uploaded image files
       newFiles.forEach((file) => data.append("images", file));
@@ -311,8 +318,10 @@ export default function EditProductPage() {
       const result = await response.json();
       
       if (result.success) {
+        clearCachedJson();
         toast.success("Product updated successfully!");
         router.push("/admin/products");
+        router.refresh();
       } else {
         toast.error(result.message || "Failed to update product");
         console.error("Server error:", result);

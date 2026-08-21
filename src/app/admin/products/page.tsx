@@ -54,7 +54,7 @@ export default function AdminProductsPage() {
   const fetchProducts = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_URL}/product/getAll`, {
+      const response = await fetch(`${API_URL}/product/getAll?_t=${Date.now()}`, {
         cache: "no-store",
       });
 
