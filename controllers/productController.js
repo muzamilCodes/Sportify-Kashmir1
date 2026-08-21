@@ -74,13 +74,13 @@ const uploadProductImage = async (file) => {
 
 exports.addProduct = async (req, res) => {
   try {
-    const { name, description, price, discount, colors, sizes, tags, category, brand, stock, onSale } = req.body;
+    const { name, description, price, discount, colors, sizes, tags, category, subcategory, brand, stock, onSale } = req.body;
 
-    let colorsARR = colors ? (Array.isArray(colors) ? colors : colors.split(",").map(s => s.trim()).filter(Boolean)) : [];
-    let sizesARR = sizes ? (Array.isArray(sizes) ? sizes : sizes.split(",").map(s => s.trim()).filter(Boolean)) : [];
+    let colorsARR = colors ? (Array.isArray(colors) ? colors : colors.split(",").map(s => s.trim().toLowerCase()).filter(Boolean)) : [];
+    let sizesARR = sizes ? (Array.isArray(sizes) ? sizes : sizes.split(",").map(s => s.trim().toUpperCase()).filter(Boolean)) : [];
     let tagsARR = tags ? (Array.isArray(tags) ? tags : tags.split(",").map(s => s.trim()).filter(Boolean)) : [];
 
-    if (!name || !price || !category) {
+    if (!name || price === undefined || price === "" || !category) {
       return resHandler(res, 400, "All required fields must be provided");
     }
 
@@ -99,7 +99,7 @@ exports.addProduct = async (req, res) => {
     }
 
     let brandId = null;
-    if (brand) {
+    if (brand && brand !== "null" && brand !== "none" && brand !== "") {
       const { Brand } = require("../models/brandModel");
       let brandDoc;
       if (isValidObjectId(brand)) {
@@ -151,18 +151,19 @@ exports.addProduct = async (req, res) => {
 
     let product = await Product.create({
       name: name.trim(),
-      description: description || "",
+      description: description ? description.trim() : "",
       price: Number(price),
-      discount: discount ? Number(discount) : 0,
+      discount: discount !== undefined && discount !== "" ? Math.max(0, Math.min(100, Number(discount) || 0)) : 0,
       colors: colorsARR,
       sizes: sizesARR,
       tags: tagsARR,
       productImgUrls: imageUrls,
       category: categoryDoc._id,
+      subcategory: subcategory ? String(subcategory).trim() : "",
       brand: brandId,
       isAvailable: req.body.isAvailable !== undefined ? (req.body.isAvailable === "true" || req.body.isAvailable === true) : true,
       isArchived: req.body.isArchived !== undefined ? (req.body.isArchived === "true" || req.body.isArchived === true) : false,
-      stock: stock ? Number(stock) : 0,
+      stock: stock !== undefined && stock !== "" ? Math.max(0, Number(stock) || 0) : 0,
       onSale: req.body.onSale !== undefined ? (req.body.onSale === "true" || req.body.onSale === true) : false,
     });
 
@@ -176,7 +177,7 @@ exports.addProduct = async (req, res) => {
 
 exports.editProduct = async (req, res) => {
   try {
-    const { name, description, price, discount, colors, sizes, tags, category, brand, stock, onSale, existingImages, productImgUrls, imageUrls } = req.body;
+    const { name, description, price, discount, colors, sizes, tags, category, subcategory, brand, stock, onSale, existingImages, productImgUrls, imageUrls, galleryManifest } = req.body;
     const { productId } = req.params;
 
     let product = await Product.findById(productId);
@@ -184,13 +185,9 @@ exports.editProduct = async (req, res) => {
       return resHandler(res, 404, "Product not found!");
     }
 
-    let colorsARR = colors !== undefined ? (Array.isArray(colors) ? colors : colors ? colors.split(",").map(s => s.trim()).filter(Boolean) : []) : product.colors;
-    let sizesARR = sizes !== undefined ? (Array.isArray(sizes) ? sizes : sizes ? sizes.split(",").map(s => s.trim()).filter(Boolean) : []) : product.sizes;
-    let tagsARR = tags !== undefined ? (Array.isArray(tags) ? tags : tags ? tags.split(",").map(s => s.trim()).filter(Boolean) : []) : product.tags;
-
     const isValidObjectId = (id) => typeof id === "string" && /^[0-9a-fA-F]{24}$/.test(id);
 
-    let categoryId = product.category;
+    // 1. Category
     if (category) {
       const { Category } = require("../models/categoryModel");
       let categoryDoc;
@@ -200,14 +197,19 @@ exports.editProduct = async (req, res) => {
         categoryDoc = await Category.findOne({ name: { $regex: new RegExp(`^${category}$`, 'i') } });
       }
       if (categoryDoc) {
-        categoryId = categoryDoc._id;
+        product.category = categoryDoc._id;
       }
     }
 
-    let brandId = product.brand;
+    // 2. Subcategory
+    if (subcategory !== undefined) {
+      product.subcategory = String(subcategory).trim();
+    }
+
+    // 3. Brand
     if (brand !== undefined) {
-      if (!brand || brand === "null" || brand === "") {
-        brandId = null;
+      if (!brand || brand === "null" || brand === "none" || brand === "") {
+        product.brand = null;
       } else {
         const { Brand } = require("../models/brandModel");
         let brandDoc;
@@ -217,25 +219,14 @@ exports.editProduct = async (req, res) => {
           brandDoc = await Brand.findOne({ name: { $regex: new RegExp(`^${brand}$`, 'i') } });
         }
         if (brandDoc) {
-          brandId = brandDoc._id;
+          product.brand = brandDoc._id;
+        } else {
+          product.brand = null;
         }
       }
     }
 
-    // Process retained existing images
-    let finalImages = [];
-    const rawExisting = existingImages !== undefined ? existingImages : (productImgUrls !== undefined ? productImgUrls : imageUrls);
-    if (rawExisting !== undefined) {
-      if (Array.isArray(rawExisting)) {
-        finalImages = rawExisting.filter(Boolean);
-      } else if (typeof rawExisting === "string" && rawExisting.trim()) {
-        finalImages = rawExisting.split(",").map(s => s.trim()).filter(Boolean);
-      }
-    } else {
-      finalImages = [...(product.productImgUrls || [])];
-    }
-
-    // Process new image files
+    // 4. Upload all incoming image files
     let files = [];
     if (Array.isArray(req.files)) {
       files = req.files;
@@ -249,25 +240,110 @@ exports.editProduct = async (req, res) => {
       (file) => file && (file.mimetype ? file.mimetype.startsWith("image/") : true)
     );
 
+    const uploadedUrls = [];
     for (const file of files) {
       const url = await uploadProductImage(file);
-      if (url) finalImages.push(url);
+      if (url) uploadedUrls.push(url);
     }
 
-    if (name) product.name = name.trim();
-    if (description !== undefined) product.description = description;
-    if (price !== undefined) product.price = Number(price);
-    if (discount !== undefined) product.discount = Number(discount);
-    if (colorsARR !== undefined) product.colors = colorsARR;
-    if (sizesARR !== undefined) product.sizes = sizesARR;
-    if (tagsARR !== undefined) product.tags = tagsARR;
-    if (categoryId) product.category = categoryId;
-    product.brand = brandId;
-    if (finalImages.length > 0) product.productImgUrls = finalImages;
-    if (stock !== undefined) product.stock = Number(stock);
-    if (onSale !== undefined) product.onSale = (onSale === "true" || onSale === true);
-    if (req.body.isAvailable !== undefined) product.isAvailable = (req.body.isAvailable === "true" || req.body.isAvailable === true);
-    if (req.body.isArchived !== undefined) product.isArchived = (req.body.isArchived === "true" || req.body.isArchived === true);
+    // 5. Build finalImages preserving exact slot order (Cover image at slot 0)
+    let finalImages = [];
+    if (galleryManifest) {
+      try {
+        const manifest = typeof galleryManifest === "string" ? JSON.parse(galleryManifest) : galleryManifest;
+        if (Array.isArray(manifest) && manifest.length > 0) {
+          let uploadIdx = 0;
+          for (const item of manifest) {
+            if (item && item.type === "existing" && item.url) {
+              finalImages.push(String(item.url).trim());
+            } else if (item && item.type === "new") {
+              if (uploadedUrls[uploadIdx]) {
+                finalImages.push(uploadedUrls[uploadIdx]);
+                uploadIdx++;
+              }
+            }
+          }
+          // Any remaining uploaded files appended
+          while (uploadIdx < uploadedUrls.length) {
+            finalImages.push(uploadedUrls[uploadIdx]);
+            uploadIdx++;
+          }
+        }
+      } catch (manifestErr) {
+        console.warn("⚠️ Failed to parse galleryManifest, falling back to existingImages:", manifestErr.message);
+      }
+    }
+
+    if (finalImages.length === 0) {
+      const rawExisting = existingImages !== undefined ? existingImages : (productImgUrls !== undefined ? productImgUrls : imageUrls);
+      if (rawExisting !== undefined) {
+        if (Array.isArray(rawExisting)) {
+          finalImages = rawExisting.map(s => String(s).trim()).filter(Boolean);
+        } else if (typeof rawExisting === "string" && rawExisting.trim()) {
+          finalImages = rawExisting.split(",").map(s => s.trim()).filter(Boolean);
+        }
+      } else if (uploadedUrls.length === 0) {
+        finalImages = [...(product.productImgUrls || [])];
+      }
+      finalImages.push(...uploadedUrls);
+    }
+
+    if (finalImages.length > 0) {
+      product.productImgUrls = finalImages;
+    }
+
+    // 6. Basic text & numeric fields
+    if (name !== undefined && name.trim()) {
+      product.name = name.trim();
+    }
+    if (description !== undefined) {
+      product.description = typeof description === "string" ? description.trim() : "";
+    }
+    if (price !== undefined && price !== "") {
+      product.price = Number(price);
+    }
+    if (discount !== undefined && discount !== "") {
+      product.discount = Math.max(0, Math.min(100, Number(discount) || 0));
+    }
+    if (stock !== undefined && stock !== "") {
+      product.stock = Math.max(0, Number(stock) || 0);
+    }
+
+    // 7. Arrays: colors, sizes, tags
+    if (colors !== undefined) {
+      if (Array.isArray(colors)) {
+        product.colors = colors.map(s => String(s).trim().toLowerCase()).filter(Boolean);
+      } else if (typeof colors === "string") {
+        product.colors = colors.split(",").map(s => s.trim().toLowerCase()).filter(Boolean);
+      }
+    }
+
+    if (sizes !== undefined) {
+      if (Array.isArray(sizes)) {
+        product.sizes = sizes.map(s => String(s).trim().toUpperCase()).filter(Boolean);
+      } else if (typeof sizes === "string") {
+        product.sizes = sizes.split(",").map(s => s.trim().toUpperCase()).filter(Boolean);
+      }
+    }
+
+    if (tags !== undefined) {
+      if (Array.isArray(tags)) {
+        product.tags = tags.map(s => String(s).trim()).filter(Boolean);
+      } else if (typeof tags === "string") {
+        product.tags = tags.split(",").map(s => s.trim()).filter(Boolean);
+      }
+    }
+
+    // 8. Booleans
+    if (onSale !== undefined) {
+      product.onSale = onSale === "true" || onSale === true;
+    }
+    if (req.body.isAvailable !== undefined) {
+      product.isAvailable = req.body.isAvailable === "true" || req.body.isAvailable === true;
+    }
+    if (req.body.isArchived !== undefined) {
+      product.isArchived = req.body.isArchived === "true" || req.body.isArchived === true;
+    }
 
     await product.save();
     return resHandler(res, 200, "Product updated successfully!", product);
@@ -316,7 +392,7 @@ exports.isAvailOrNot = async (req, res) => {
       product.isAvailable = false;
       await product.save();
 
-      return resHandler(res, 400, "Product not Available!", product);
+      return resHandler(res, 200, "Product is Unavailable!", product);
     }
   } catch (error) {
     console.error(error);
@@ -344,8 +420,8 @@ exports.getAllProducts = async (req, res) => {
     const products = await productsQuery.lean();
     const total = hasPagination && req.query.includeTotal !== "false" ? await Product.countDocuments(query) : products.length;
 
+    res.set("Cache-Control", "no-cache, no-store, must-revalidate");
     if (products.length > 0) {
-      res.set("Cache-Control", "public, max-age=60, stale-while-revalidate=300");
       resHandler(res, 200, "Products Found", hasPagination ? { items: products, page, limit, total, pages: Math.ceil(total / limit) } : products);
     } else {
       resHandler(res, 200, "No products found", []);
@@ -365,8 +441,8 @@ exports.getProductById = async (req, res) => {
       .populate("brand", "name")
       .lean();
 
+    res.set("Cache-Control", "no-cache, no-store, must-revalidate");
     if (product) {
-      res.set("Cache-Control", "public, max-age=60, stale-while-revalidate=300");
       return resHandler(res, 200, "Product Found!", product);
     } else {
       return resHandler(res, 404, "Product not Found!");

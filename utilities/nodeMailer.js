@@ -1,13 +1,22 @@
-const nodemailer = require("nodemailer");
+const sendEmail = require("./emailService");
 
-const transporter = nodemailer.createTransport({
-  host: process.env.BREVO_SMTP_HOST,
-  port: Number(process.env.BREVO_SMTP_PORT),
-  secure: false,
-  auth: {
-    user: process.env.BREVO_SMTP_USER,
-    pass: process.env.BREVO_SMTP_PASS,
+/**
+ * Universal Transporter Wrapper for legacy code.
+ */
+const transporter = {
+  sendMail: async (mailOptions) => {
+    const to = mailOptions.to;
+    const subject = mailOptions.subject;
+    const html = mailOptions.html || mailOptions.text;
+    const success = await sendEmail(to, subject, html, {
+      from: mailOptions.from,
+      headers: mailOptions.headers,
+    });
+    if (!success) {
+      throw new Error(sendEmail.getLastError());
+    }
+    return { messageId: "sent-via-enhanced-email-service" };
   },
-});
+};
 
 module.exports = transporter;

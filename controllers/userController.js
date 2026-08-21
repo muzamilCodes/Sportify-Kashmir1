@@ -2,7 +2,7 @@ const { User } = require("../models/userModel");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const sendEmail = require("../utilities/emailService");
-require('dotenv').config();
+require("dotenv").config();
 
 // ===================== REGISTER =====================
 exports.register = async (req, res) => {
@@ -47,7 +47,7 @@ exports.register = async (req, res) => {
     // Clean up any stale/incomplete unverified registrations for this email OR mobile
     await User.deleteMany({
       $or: [{ email: cleanEmail }, { mobile: cleanMobile }],
-      isVerified: false
+      isVerified: false,
     });
 
     const hashedPassword = await bcrypt.hash(password, 12);
@@ -71,13 +71,13 @@ exports.register = async (req, res) => {
 
     console.log(`🔑 [REGISTRATION OTP GENERATED] Email: ${targetUser.email} | OTP: ${otp}`);
 
-    // Try sending email (with error catching so request never freezes)
+    // Send registration OTP email with inbox-optimized template
     let emailSent = false;
     try {
       emailSent = await sendEmail(
         targetUser.email,
-        "Your OTP for Registration - Sportify Kashmir",
-        `<h2>Welcome to Sportify Kashmir!</h2><p>Your OTP is: <strong>${otp}</strong></p><p>Valid for 10 minutes.</p>`
+        "Your Verification OTP - Sportify Kashmir",
+        sendEmail.getOtpTemplate(otp, "Account Registration Verification", targetUser.username)
       );
     } catch (err) {
       console.error("Failed to send registration email:", err.message);
@@ -129,6 +129,7 @@ exports.register = async (req, res) => {
     });
   }
 };
+
 // ===================== LOGIN =====================
 exports.login = async (req, res) => {
   try {
@@ -164,7 +165,7 @@ exports.login = async (req, res) => {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
-      maxAge: 7 * 24 * 60 * 60 * 1000
+      maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
     return res.status(200).json({
@@ -177,8 +178,8 @@ exports.login = async (req, res) => {
         email: user.email,
         mobile: user.mobile,
         profilePic: user.profilePic,
-        isAdmin: user.isAdmin
-      }
+        isAdmin: user.isAdmin,
+      },
     });
 
   } catch (error) {
@@ -186,6 +187,7 @@ exports.login = async (req, res) => {
     return res.status(500).json({ success: false, message: "Server error" });
   }
 };
+
 // ===================== UPDATE PROFILE =====================
 exports.updateProfile = async (req, res) => {
   try {
@@ -200,7 +202,7 @@ exports.updateProfile = async (req, res) => {
     const updateData = {
       username: username || undefined,
       email: email || undefined,
-      mobile: mobile || undefined
+      mobile: mobile || undefined,
     };
 
     if (req.file) {
@@ -210,7 +212,7 @@ exports.updateProfile = async (req, res) => {
     }
 
     Object.keys(updateData).forEach(
-      key => updateData[key] === undefined && delete updateData[key]
+      (key) => updateData[key] === undefined && delete updateData[key]
     );
 
     const updatedUser = await User.findByIdAndUpdate(userId, updateData, { new: true }).select("-password");
@@ -218,7 +220,7 @@ exports.updateProfile = async (req, res) => {
     return res.status(200).json({
       success: true,
       message: "Profile updated",
-      user: updatedUser
+      user: updatedUser,
     });
 
   } catch (error) {
@@ -226,7 +228,6 @@ exports.updateProfile = async (req, res) => {
     return res.status(500).json({ success: false, message: "Server error" });
   }
 };
-
 
 // ===================== SEND OTP (for login) =====================
 exports.sendOTP = async (req, res) => {
@@ -249,8 +250,8 @@ exports.sendOTP = async (req, res) => {
 
     const emailSent = await sendEmail(
       email,
-      "Your OTP for Login",
-      `<p>Your OTP is: <strong>${otp}</strong></p><p>Valid for 10 minutes.</p>`
+      "Your Login OTP - Sportify Kashmir",
+      sendEmail.getOtpTemplate(otp, "Login Verification Code", user.username)
     );
 
     if (!emailSent) {
@@ -268,7 +269,6 @@ exports.sendOTP = async (req, res) => {
     return res.status(500).json({ message: "Server error" });
   }
 };
-
 
 // ===================== LOGOUT =====================
 exports.logout = async (req, res) => {
@@ -335,7 +335,7 @@ exports.verifyOTP = async (req, res) => {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
-      maxAge: 7 * 24 * 60 * 60 * 1000
+      maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
     return res.status(200).json({
@@ -348,7 +348,7 @@ exports.verifyOTP = async (req, res) => {
         email: user.email,
         mobile: user.mobile,
         profilePic: user.profilePic,
-        isAdmin: user.isAdmin
+        isAdmin: user.isAdmin,
       },
     });
 
@@ -383,8 +383,8 @@ exports.resendOTP = async (req, res) => {
 
     const emailSent = await sendEmail(
       cleanEmail,
-      "Resend OTP - Sportify Kashmir",
-      `<h2>Welcome to Sportify Kashmir!</h2><p>Your new OTP is: <strong>${otp}</strong></p><p>Valid for 10 minutes.</p>`
+      "Your New Verification OTP - Sportify Kashmir",
+      sendEmail.getOtpTemplate(otp, "Resend Verification Code", user.username)
     );
 
     if (!emailSent) {
@@ -402,8 +402,8 @@ exports.resendOTP = async (req, res) => {
     return res.status(500).json({ success: false, message: "Server error" });
   }
 };
-// ===================== VERIFY RESET OTP (for forgot password) =====================
 
+// ===================== VERIFY RESET OTP (for forgot password) =====================
 exports.verifyResetOTP = async (req, res) => {
   try {
     const { email, otp } = req.body;
@@ -420,6 +420,7 @@ exports.verifyResetOTP = async (req, res) => {
     return res.status(500).json({ success: false, message: "Server error" });
   }
 };
+
 // ===================== FORGOT PASSWORD =====================
 exports.forgotPass = async (req, res) => {
   try {
@@ -431,7 +432,11 @@ exports.forgotPass = async (req, res) => {
     user.otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
     await user.save();
     try {
-      const emailSent = await sendEmail(email, "Reset Password OTP", `<h2>Your OTP is ${otp}</h2><p>Valid for 10 minutes.</p>`);
+      const emailSent = await sendEmail(
+        email,
+        "Reset Password OTP - Sportify Kashmir",
+        sendEmail.getOtpTemplate(otp, "Password Reset Code", user.username)
+      );
       if (!emailSent) {
         return res.status(502).json({ success: false, message: "OTP could not be delivered. Please try again later.", emailError: sendEmail.getLastError() });
       }
@@ -446,6 +451,7 @@ exports.forgotPass = async (req, res) => {
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
+
 // ===================== CHANGE PASSWORD (via token) =====================
 exports.changePass = async (req, res) => {
   try {
@@ -461,7 +467,6 @@ exports.changePass = async (req, res) => {
       return res.status(400).json({ message: "Invalid or expired token" });
     }
 
-    // 🔥 FIXED
     const userId = decoded.userId;
 
     const user = await User.findById(userId);
@@ -483,6 +488,7 @@ exports.changePass = async (req, res) => {
     return res.status(500).json({ message: "Server error" });
   }
 };
+
 // ===================== CHANGE USERNAME / EMAIL (profile edit) =====================
 exports.changeUsername = async (req, res) => {
   try {
@@ -535,6 +541,7 @@ exports.verifyUser = async (req, res) => {
     return res.status(500).json({ message: "Server error" });
   }
 };
+
 // ===================== RESET PASSWORD (via OTP) =====================
 exports.resetPassword = async (req, res) => {
   try {
@@ -548,7 +555,6 @@ exports.resetPassword = async (req, res) => {
     }
     const hashedPassword = await bcrypt.hash(newPassword, 12);
     user.password = hashedPassword;
-    // Clear OTP fields to prevent reuse
     user.otp = null;
     user.otpExpiry = null;
     await user.save();
@@ -558,6 +564,7 @@ exports.resetPassword = async (req, res) => {
     return res.status(500).json({ success: false, message: "Server error" });
   }
 };
+
 // ===================== VERIFY ADMIN =====================
 exports.verifyAdmin = async (req, res) => {
   try {
@@ -650,7 +657,6 @@ exports.deleteMyAccount = async (req, res) => {
     if (!userId) return res.status(401).json({ success: false, message: "User ID missing" });
     const user = await User.findByIdAndDelete(userId);
     if (!user) return res.status(404).json({ success: false, message: "User not found" });
-    // Note: We might want to cascade delete orders, cart, etc. based on business logic.
     return res.status(200).json({ success: true, message: "Account deleted successfully" });
   } catch (error) {
     console.error(error);

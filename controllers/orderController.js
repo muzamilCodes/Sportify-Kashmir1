@@ -654,81 +654,48 @@ exports.createCODOrder = async (req, res) => {
   }
 };
 
-
-
 // Send email notification helper
 async function sendOrderEmail(order, userEmail, userName, status) {
   try {
-    const nodemailer = require("nodemailer");
-
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: {
-        user: process.env.SMTP_USERNAME || process.env.EMAIL_USER,
-        pass: process.env.SMTP_PASSWORD || process.env.EMAIL_PASS,
-      },
-    });
+    const sendEmail = require("../utilities/emailService");
 
     const statusMessages = {
       processing: {
         subject: "🔄 Order Being Processed - Sportify Kashmir",
         title: "Your Order is Being Processed!",
         message: `Your order #${order._id.toString().slice(-8)} has been received and is now being processed. We'll notify you once it's shipped.`,
-        button: "Track Order",
       },
       shipped: {
         subject: "🚚 Order Shipped - Sportify Kashmir",
         title: "Your Order Has Been Shipped!",
         message: `Great news! Your order #${order._id.toString().slice(-8)} has been shipped and is on its way to you.`,
-        button: "Track Order",
       },
       delivered: {
         subject: "✅ Order Delivered - Sportify Kashmir",
         title: "Order Delivered Successfully!",
         message: `Your order #${order._id.toString().slice(-8)} has been delivered. We hope you enjoy your purchase!`,
-        button: "View Order",
       },
       cancelled: {
         subject: "❌ Order Cancelled - Sportify Kashmir",
         title: "Order Cancelled",
         message: `Your order #${order._id.toString().slice(-8)} has been cancelled. If this was a mistake, please contact support.`,
-        button: "Contact Support",
       },
     };
 
     const msg = statusMessages[status];
     if (!msg) return;
 
-    const html = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 10px;">
-        <div style="text-align: center; margin-bottom: 20px;">
-          <h1 style="color: #f97316;">Sportify Kashmir</h1>
-        </div>
-        <div style="padding: 20px; background-color: #f9fafb; border-radius: 8px;">
-          <h2 style="color: #1f2937;">Hello ${userName || "Customer"},</h2>
-          <h3 style="color: ${msg.color};">${msg.title}</h3>
-          <p style="color: #4b5563; font-size: 16px; line-height: 1.5;">${msg.message}</p>
-          <div style="margin: 20px 0; padding: 15px; background-color: #fff; border-radius: 8px; border: 1px solid #e5e7eb;">
-            <p style="margin: 5px 0;"><strong>Order ID:</strong> #${order._id.toString().slice(-8)}</p>
-            <p style="margin: 5px 0;"><strong>Order Status:</strong> ${status.toUpperCase()}</p>
-            <p style="margin: 5px 0;"><strong>Total Amount:</strong> ₹${order.orderValue}</p>
-          </div>
-          <a href="${process.env.FRONTEND_URL}/orders/${order._id}" style="display: inline-block; background-color: #f97316; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin-top: 10px;">${msg.button}</a>
-          <p style="color: #6b7280; font-size: 14px; margin-top: 20px;">Thank you for shopping with Sportify Kashmir!</p>
-        </div>
-      </div>
-    `;
+    const html = sendEmail.getOrderStatusTemplate(
+      order,
+      msg.title,
+      msg.message,
+      `${process.env.FRONTEND_URL || "http://localhost:3000"}/orders/${order._id}`
+    );
 
-    await transporter.sendMail({
-      from: process.env.SMTP_USERNAME,
-      to: userEmail,
-      subject: msg.subject,
-      html: html,
-    });
-
+    await sendEmail(userEmail, msg.subject, html);
     console.log(`✅ Email sent to ${userEmail} for status: ${status}`);
   } catch (error) {
-    console.error("Email error:", error);
+    console.error("sendOrderEmail error:", error.message);
   }
 }
 
@@ -741,14 +708,12 @@ async function getUserDetails(order) {
     return {
       email: order.guestAddress.email,
       name: order.guestAddress.fullName,
-      mobile: order.guestAddress.mobileNumber
+      mobile: order.guestAddress.mobileNumber,
     };
   }
   return { email: null, name: null, mobile: null };
 }
 
-
-// Cancel order by user
 // Update order value (Admin only)
 exports.updateOrderValue = async (req, res) => {
   try {
@@ -758,7 +723,7 @@ exports.updateOrderValue = async (req, res) => {
     if (!newOrderValue || newOrderValue <= 0) {
       return res.status(400).json({
         success: false,
-        message: "Invalid order value"
+        message: "Invalid order value",
       });
     }
 
@@ -766,7 +731,7 @@ exports.updateOrderValue = async (req, res) => {
     if (!order) {
       return res.status(404).json({
         success: false,
-        message: "Order not found"
+        message: "Order not found",
       });
     }
 
@@ -774,7 +739,7 @@ exports.updateOrderValue = async (req, res) => {
     order.orderValue = newOrderValue;
     await order.save();
 
-    // Optional: Send email to user about price change
+    // Send email to user about price change
     const userDetails = await getUserDetails(order);
     if (userDetails.email) {
       await sendOrderPriceUpdateEmail(order, userDetails.email, userDetails.name, oldValue, newOrderValue);
@@ -783,13 +748,13 @@ exports.updateOrderValue = async (req, res) => {
     return res.status(200).json({
       success: true,
       message: "Order value updated successfully",
-      data: order
+      data: order,
     });
   } catch (error) {
     console.error("Update order value error:", error);
     return res.status(500).json({
       success: false,
-      message: error.message
+      message: error.message,
     });
   }
 };
@@ -797,33 +762,21 @@ exports.updateOrderValue = async (req, res) => {
 // Helper function for price update email
 async function sendOrderPriceUpdateEmail(order, userEmail, userName, oldValue, newValue) {
   try {
-    const nodemailer = require("nodemailer");
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: {
-        user: process.env.SMTP_USERNAME,
-        pass: process.env.SMTP_PASSWORD,
-      },
-    });
+    const sendEmail = require("../utilities/emailService");
 
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 10px;">
-        <h2 style="color: #f97316;">Order Price Updated</h2>
+        <h2 style="color: #ea580c;">Order Price Updated</h2>
         <p>Dear ${userName || "Customer"},</p>
         <p>The total amount for your order #${order._id.toString().slice(-8)} has been updated.</p>
         <p><strong>Old Amount:</strong> ₹${oldValue}</p>
         <p><strong>New Amount:</strong> ₹${newValue}</p>
         <p>Please check your order details for more information.</p>
-        <a href="${process.env.FRONTEND_URL}/orders/${order._id}" style="display: inline-block; background-color: #f97316; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">View Order</a>
+        <a href="${process.env.FRONTEND_URL || "http://localhost:3000"}/orders/${order._id}" style="display: inline-block; background: linear-gradient(135deg, #ea580c, #dc2626); color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">View Order</a>
       </div>
     `;
 
-    await transporter.sendMail({
-      from: process.env.SMTP_USERNAME,
-      to: userEmail,
-      subject: `Order Price Updated - #${order._id.toString().slice(-8)}`,
-      html: html,
-    });
+    await sendEmail(userEmail, `Order Price Updated - #${order._id.toString().slice(-8)}`, html);
   } catch (error) {
     console.error("Price update email error:", error);
   }
