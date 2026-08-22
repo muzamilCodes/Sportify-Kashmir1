@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import NextLink from "next/link";
+import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   Menu,
@@ -39,12 +39,6 @@ import ThemeToggle from "@/components/shared/ThemeToggle";
 import { useCartCount } from "@/components/providers/CartCountProvider";
 import { resolveProductImage } from "@/lib/imageHelper";
 import ProductImage from "@/components/ProductImage";
-
-// The header is mounted on every route. Prefetching every menu destination
-// from here creates a burst of RSC requests on initial load.
-function Link(props: React.ComponentProps<typeof NextLink>) {
-  return <NextLink prefetch={false} {...props} />;
-}
 
 const Cricket = ({ size = 24 }: { size?: number }) => (
   <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

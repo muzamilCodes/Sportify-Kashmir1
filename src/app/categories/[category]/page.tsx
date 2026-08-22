@@ -1,9 +1,9 @@
 "use client";
 
+import { Suspense, useEffect, useState } from "react";
 import { Filter, Grid, List, Search, ChevronDown, Heart, ShoppingCart, Star, SlidersHorizontal } from "lucide-react";
 import Link from "next/link";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import ProductCard from "@/components/ProductCard";
 import { cachedJson } from "@/lib/clientCache";
@@ -27,7 +27,7 @@ interface Product {
   subcategory?: string;
 }
 
-export default function CategoryPage() {
+function CategoryContent() {
   const params = useParams();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -513,5 +513,19 @@ export default function CategoryPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function CategoryPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-[var(--color-bg-primary)] p-8 flex items-center justify-center">
+          <div className="animate-spin w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full" />
+        </div>
+      }
+    >
+      <CategoryContent />
+    </Suspense>
   );
 }

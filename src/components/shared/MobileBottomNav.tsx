@@ -1,13 +1,9 @@
 "use client";
 
-import NextLink from "next/link";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Home, Grid3X3, ShoppingCart, Heart, User } from "lucide-react";
 import { useCartCount } from "@/components/providers/CartCountProvider";
-
-function Link(props: React.ComponentProps<typeof NextLink>) {
-  return <NextLink prefetch={false} {...props} />;
-}
 
 /**
  * MobileBottomNav
@@ -22,7 +18,6 @@ export default function MobileBottomNav() {
 
   // Hide on admin pages
   const isAdminPage = pathname.startsWith("/admin");
-
   if (isAdminPage) return null;
 
   const navItems = [
@@ -34,9 +29,7 @@ export default function MobileBottomNav() {
   ];
 
   return (
-    <nav
-      className="fixed bottom-0 left-0 right-0 z-50 md:hidden safe-bottom"
-    >
+    <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden safe-bottom">
       <div className="bg-[var(--color-bg-elevated)] border-t border-[var(--color-border-primary)] shadow-[0_-4px_20px_rgba(0,0,0,0.08)] dark:shadow-[0_-4px_20px_rgba(0,0,0,0.3)]">
         <div className="flex items-center justify-around px-2 py-1.5">
           {navItems.map((item) => {
