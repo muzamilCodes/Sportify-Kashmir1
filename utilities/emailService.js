@@ -192,7 +192,7 @@ class EnhancedEmailService {
   }
 
   // REST API HTTPS Fallback (Port 443 - NEVER blocked by cloud firewalls)
-  async sendViaRestApi(to, subject, html, from) {
+  async sendViaRestApi(to, subject, html, from, failures = []) {
     // 1. Brevo REST API (Primary - 100% Free, sends to ANY recipient email)
     if (process.env.BREVO_API_KEY) {
       try {
@@ -215,10 +215,13 @@ class EnhancedEmailService {
           return true;
         } else {
           const errData = await res.json().catch(() => ({}));
-          console.warn(`⚠️ [REST-EMAIL] Brevo returned status ${res.status}:`, JSON.stringify(errData));
+          const errMsg = `Brevo-REST-${res.status}: ${errData.message || JSON.stringify(errData)}`;
+          console.warn(`⚠️ [REST-EMAIL] ${errMsg}`);
+          failures.push(errMsg);
         }
       } catch (e) {
         console.warn("[REST-EMAIL] Brevo failed:", e.message);
+        failures.push(`Brevo-REST-Network: ${e.message}`);
       }
     }
 
@@ -243,10 +246,13 @@ class EnhancedEmailService {
           return true;
         } else {
           const errData = await res.json().catch(() => ({}));
-          console.warn(`⚠️ [REST-EMAIL] Resend returned status ${res.status}:`, JSON.stringify(errData));
+          const errMsg = `Resend-REST-${res.status}: ${errData.message || JSON.stringify(errData)}`;
+          console.warn(`⚠️ [REST-EMAIL] ${errMsg}`);
+          failures.push(errMsg);
         }
       } catch (e) {
         console.warn("[REST-EMAIL] Resend failed:", e.message);
+        failures.push(`Resend-REST-Network: ${e.message}`);
       }
     }
 
@@ -265,7 +271,7 @@ class EnhancedEmailService {
 
     // First attempt REST API if available (fastest on live cloud)
     if (process.env.RESEND_API_KEY || process.env.BREVO_API_KEY) {
-      const restOk = await this.sendViaRestApi(cleanTo, subject, html, options.from);
+      const restOk = await this.sendViaRestApi(cleanTo, subject, html, options.from, failures);
       if (restOk) return true;
     }
 
