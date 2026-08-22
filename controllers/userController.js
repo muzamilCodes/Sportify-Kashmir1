@@ -76,7 +76,7 @@ exports.register = async (req, res) => {
     try {
       emailSent = await sendEmail(
         targetUser.email,
-        "Your Verification OTP - Sportify Kashmir",
+        `[${otp}] is your Sportify Kashmir Verification Code`,
         sendEmail.getOtpTemplate(otp, "Account Registration Verification", targetUser.username)
       );
     } catch (err) {
@@ -250,7 +250,7 @@ exports.sendOTP = async (req, res) => {
 
     const emailSent = await sendEmail(
       email,
-      "Your Login OTP - Sportify Kashmir",
+      `[${otp}] is your Sportify Kashmir Login Code`,
       sendEmail.getOtpTemplate(otp, "Login Verification Code", user.username)
     );
 
@@ -383,7 +383,7 @@ exports.resendOTP = async (req, res) => {
 
     const emailSent = await sendEmail(
       cleanEmail,
-      "Your New Verification OTP - Sportify Kashmir",
+      `[${otp}] is your New Sportify Kashmir Code`,
       sendEmail.getOtpTemplate(otp, "Resend Verification Code", user.username)
     );
 
@@ -434,7 +434,7 @@ exports.forgotPass = async (req, res) => {
     try {
       const emailSent = await sendEmail(
         email,
-        "Reset Password OTP - Sportify Kashmir",
+        `[${otp}] is your Sportify Kashmir Password Reset Code`,
         sendEmail.getOtpTemplate(otp, "Password Reset Code", user.username)
       );
       if (!emailSent) {

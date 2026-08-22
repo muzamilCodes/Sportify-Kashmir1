@@ -202,12 +202,19 @@ class EnhancedEmailService {
           headers: {
             "api-key": process.env.BREVO_API_KEY,
             "Content-Type": "application/json",
+            "accept": "application/json",
           },
           body: JSON.stringify({
             sender: { name: "Sportify Kashmir", email: senderEmail },
             to: [{ email: to }],
             subject: subject,
             htmlContent: html,
+            headers: {
+              "X-Priority": "1",
+              "X-MSMail-Priority": "High",
+              "Importance": "High",
+              "X-Mailer": "SportifyKashmir-AuthEngine",
+            },
           }),
         });
         if (res.ok) {
