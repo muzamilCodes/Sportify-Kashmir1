@@ -188,6 +188,9 @@ class EnhancedEmailService {
         if (res.ok) {
           console.log(`✅ [EMAIL-DELIVERY-SUCCESS] Sent via [Resend-REST-API] to: ${to}`);
           return true;
+        } else {
+          const errData = await res.json().catch(() => ({}));
+          console.warn(`⚠️ [REST-EMAIL] Resend returned status ${res.status}:`, JSON.stringify(errData));
         }
       } catch (e) {
         console.warn("[REST-EMAIL] Resend failed:", e.message);
@@ -213,6 +216,9 @@ class EnhancedEmailService {
         if (res.ok) {
           console.log(`✅ [EMAIL-DELIVERY-SUCCESS] Sent via [Brevo-REST-API] to: ${to}`);
           return true;
+        } else {
+          const errData = await res.json().catch(() => ({}));
+          console.warn(`⚠️ [REST-EMAIL] Brevo returned status ${res.status}:`, JSON.stringify(errData));
         }
       } catch (e) {
         console.warn("[REST-EMAIL] Brevo failed:", e.message);
