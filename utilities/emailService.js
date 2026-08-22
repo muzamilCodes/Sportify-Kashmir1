@@ -118,7 +118,31 @@ class EnhancedEmailService {
       }
     }
 
-    // 4. Hostinger SMTP (Fallback)
+    // 4. Brevo SMTP (Port 587 / 465)
+    const brevoKey = process.env.BREVO_API_KEY || process.env.BREVO_SMTP_PASS;
+    const brevoEmail = process.env.BREVO_SENDER_EMAIL || process.env.BREVO_SMTP_USER || "warmuzamil68@gmail.com";
+    if (brevoKey) {
+      try {
+        this.transporters.push({
+          name: "Brevo-SMTP-587",
+          from: `"Sportify Kashmir" <${brevoEmail}>`,
+          transporter: nodemailer.createTransport({
+            host: "smtp-relay.brevo.com",
+            port: 587,
+            secure: false,
+            auth: { user: brevoEmail, pass: brevoKey },
+            tls: { rejectUnauthorized: false },
+            connectionTimeout: 5000,
+            greetingTimeout: 5000,
+            socketTimeout: 8000,
+          }),
+        });
+      } catch (e) {
+        console.warn("[EMAIL-INIT] Failed to init Brevo SMTP:", e.message);
+      }
+    }
+
+    // 5. Hostinger SMTP (Fallback)
     const hostingerUser = process.env.EMAIL_USER;
     const hostingerPass = process.env.EMAIL_PASS;
     if (hostingerUser && hostingerPass) {
@@ -142,7 +166,7 @@ class EnhancedEmailService {
       }
     }
 
-    // 5. Custom SMTP (Host & Port from environment)
+    // 6. Custom SMTP (Host & Port from environment)
     if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS && process.env.SMTP_HOST !== "smtp.gmail.com") {
       try {
         this.transporters.push({
@@ -169,7 +193,36 @@ class EnhancedEmailService {
 
   // REST API HTTPS Fallback (Port 443 - NEVER blocked by cloud firewalls)
   async sendViaRestApi(to, subject, html, from) {
-    // 1. Resend API
+    // 1. Brevo REST API (Primary - 100% Free, sends to ANY recipient email)
+    if (process.env.BREVO_API_KEY) {
+      try {
+        const senderEmail = process.env.BREVO_SENDER_EMAIL || process.env.SMTP_USER || "warmuzamil68@gmail.com";
+        const res = await fetch("https://api.brevo.com/v3/smtp/email", {
+          method: "POST",
+          headers: {
+            "api-key": process.env.BREVO_API_KEY,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            sender: { name: "Sportify Kashmir", email: senderEmail },
+            to: [{ email: to }],
+            subject: subject,
+            htmlContent: html,
+          }),
+        });
+        if (res.ok) {
+          console.log(`✅ [EMAIL-DELIVERY-SUCCESS] Sent via [Brevo-REST-API] to: ${to}`);
+          return true;
+        } else {
+          const errData = await res.json().catch(() => ({}));
+          console.warn(`⚠️ [REST-EMAIL] Brevo returned status ${res.status}:`, JSON.stringify(errData));
+        }
+      } catch (e) {
+        console.warn("[REST-EMAIL] Brevo failed:", e.message);
+      }
+    }
+
+    // 2. Resend REST API (Secondary fallback)
     if (process.env.RESEND_API_KEY) {
       try {
         const res = await fetch("https://api.resend.com/emails", {
@@ -194,34 +247,6 @@ class EnhancedEmailService {
         }
       } catch (e) {
         console.warn("[REST-EMAIL] Resend failed:", e.message);
-      }
-    }
-
-    // 2. Brevo API
-    if (process.env.BREVO_API_KEY) {
-      try {
-        const res = await fetch("https://api.brevo.com/v3/smtp/email", {
-          method: "POST",
-          headers: {
-            "api-key": process.env.BREVO_API_KEY,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            sender: { name: "Sportify Kashmir", email: process.env.BREVO_SENDER_EMAIL || process.env.SMTP_USER || "warmuzamil68@gmail.com" },
-            to: [{ email: to }],
-            subject: subject,
-            htmlContent: html,
-          }),
-        });
-        if (res.ok) {
-          console.log(`✅ [EMAIL-DELIVERY-SUCCESS] Sent via [Brevo-REST-API] to: ${to}`);
-          return true;
-        } else {
-          const errData = await res.json().catch(() => ({}));
-          console.warn(`⚠️ [REST-EMAIL] Brevo returned status ${res.status}:`, JSON.stringify(errData));
-        }
-      } catch (e) {
-        console.warn("[REST-EMAIL] Brevo failed:", e.message);
       }
     }
 
