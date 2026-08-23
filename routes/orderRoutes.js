@@ -30,6 +30,10 @@ router.get("/user-orders", authorize, controller.getUserOrders);
 router.get("/fetchAllOrders", admin, controller.fetchAllOrders);
 router.get("/fetchOrderById/:orderId", authorize, controller.fetchOrderById);
 
+// ✅ Order delete / remove routes (User & Admin)
+router.delete("/delete/:orderId", authorize, controller.deleteOrder);
+router.delete("/:orderId", authorize, controller.deleteOrder);
+
 // ✅ Admin only - update order value (make sure this controller exists)
 router.put("/update-value/:orderId", admin, controller.updateOrderValue);
 

@@ -1040,3 +1040,51 @@ exports.verifyDeliveryRejectionOtp = async (req, res) => {
     return res.status(500).json({ success: false, message: error.message || "Failed to verify rejection OTP" });
   }
 };
+
+// ✅ Delete or Permanently Remove Order (User or Admin)
+exports.deleteOrder = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const actingUser = await User.findById(req.userId).select("isAdmin");
+    if (!actingUser) {
+      return res.status(401).json({ success: false, message: "Authentication required" });
+    }
+
+    const order = await Order.findById(orderId);
+    if (!order) {
+      return res.status(404).json({ success: false, message: "Order not found" });
+    }
+
+    // Ensure customer can only delete their own order (or admin can delete any)
+    if (!actingUser.isAdmin && order.userId && String(order.userId) !== String(req.userId)) {
+      return res.status(403).json({ success: false, message: "You can only remove your own orders" });
+    }
+
+    // If order was pending, confirmed, or processing, release inventory
+    if (["pending", "confirmed", "processing"].includes(order.orderStatus)) {
+      try {
+        await releaseOrderInventory(order);
+      } catch (err) {
+        console.warn("Failed to release inventory during order deletion:", err);
+      }
+    }
+
+    // Delete the order
+    await Order.findByIdAndDelete(orderId);
+
+    // Pull order from user document
+    if (order.userId) {
+      await User.findByIdAndUpdate(order.userId, {
+        $pull: { orders: order._id },
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Order removed successfully",
+    });
+  } catch (error) {
+    console.error("deleteOrder error:", error);
+    return res.status(500).json({ success: false, message: error.message || "Failed to remove order" });
+  }
+};
