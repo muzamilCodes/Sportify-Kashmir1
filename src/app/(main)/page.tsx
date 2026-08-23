@@ -16,6 +16,7 @@ import ProductCard from "@/components/ProductCard";
 import RecentlyViewed from "@/components/RecentlyViewed";
 import { ProductGridSkeleton } from "@/components/shared/SkeletonLoaders";
 import { resolveProductImage } from "@/lib/imageHelper";
+import HeroCarousel from "@/components/HeroCarousel";
 
 interface Product {
   _id: string;
@@ -40,6 +41,7 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true);
   const [visibleProducts, setVisibleProducts] = useState(10);
   const [wishlist, setWishlist] = useState<string[]>([]);
+  const [storeBanner, setStoreBanner] = useState<string | null>(null);
 
   const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000").replace(/\/$/, "");
 
@@ -56,6 +58,19 @@ export default function HomePage() {
 
   useEffect(() => {
     fetchProducts();
+    // Fetch public store settings for hero promo banner
+    fetch(`${API_URL}/admin/public/settings`)
+      .then((r) => r.json())
+      .then((res) => {
+        if (res.success && res.data?.bannerUrl) {
+          const bUrl = res.data.bannerUrl.startsWith("http") || res.data.bannerUrl.startsWith("data:")
+            ? res.data.bannerUrl
+            : `${API_URL}${res.data.bannerUrl}`;
+          setStoreBanner(bUrl);
+        }
+      })
+      .catch(() => {});
+
     const savedWishlist = localStorage.getItem("wishlist");
     if (savedWishlist) {
       try {
@@ -157,56 +172,8 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-[var(--color-bg-primary)]">
-      {/* Hero Section: Main Heading 30–36px */}
-      <section className="relative min-h-[65vh] flex items-center justify-center overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-orange-50 via-white to-red-50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800"></div>
-        <div className="absolute top-20 left-10 w-72 h-72 bg-orange-200 dark:bg-orange-500/10 rounded-full mix-blend-multiply dark:mix-blend-normal filter blur-3xl opacity-30 animate-pulse"></div>
-        <div className="absolute bottom-20 right-10 w-96 h-96 bg-red-200 dark:bg-red-500/10 rounded-full mix-blend-multiply dark:mix-blend-normal filter blur-3xl opacity-30 animate-pulse delay-1000"></div>
-
-        <div className="container mx-auto px-4 relative z-10 py-12 md:py-16">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
-            {/* Left: Text Content */}
-            <div className="text-center lg:text-left max-w-xl mx-auto lg:mx-0">
-              <h1 className="text-[28px] sm:text-[32px] md:text-[36px] font-extrabold mb-4 leading-tight tracking-tight text-gray-900 dark:text-white">
-                Elevate Your{" "}
-                <span className="bg-gradient-to-r from-orange-500 via-red-500 to-pink-500 bg-clip-text text-transparent">
-                  Game in Kashmir
-                </span>
-              </h1>
-              <p className="text-[14px] sm:text-[16px] mb-6 text-gray-600 dark:text-gray-300 leading-relaxed">
-                Premium sports gear & equipment delivered across Kashmir with unmatched speed. 100% authentic products guaranteed.
-              </p>
-              <div className="flex flex-wrap justify-center lg:justify-start gap-3">
-                <Link href="/products" className="bg-gradient-to-r from-orange-500 to-red-500 text-white px-6 py-2.5 rounded-full text-[14px] sm:text-[15px] font-semibold shadow-md hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5">
-                  Shop Collection
-                </Link>
-                <Link href="/sale" className="bg-white dark:bg-gray-800 border border-orange-200 dark:border-gray-700 text-orange-600 dark:text-orange-400 px-6 py-2.5 rounded-full text-[14px] sm:text-[15px] font-semibold hover:border-orange-500 transition-all duration-200">
-                  View Sale Deals
-                </Link>
-              </div>
-            </div>
-
-            {/* Right: Image Content */}
-            <div className="relative flex justify-center">
-              <div className="relative w-full max-w-md aspect-square">
-                <div className="absolute inset-0 bg-gradient-to-tr from-orange-200 to-pink-200 dark:from-orange-500/20 dark:to-pink-500/20 rounded-[60%_40%_30%_70%/60%_30%_70%_40%] animate-spin-slow opacity-60"></div>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img 
-                  src="/hero-sports.png" 
-                  alt="Sportify Kashmir Premium Sports Equipment" 
-                  width={480}
-                  height={480}
-                  loading="eager"
-                  decoding="async"
-                  // @ts-ignore
-                  fetchPriority="high"
-                  className="absolute inset-0 w-full h-full object-contain drop-shadow-xl hover:scale-105 transition-transform duration-500"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* ─── Animated Full-Width Hero Carousel (3 Slides, Right to Left) ─── */}
+      <HeroCarousel />
 
       <div className="container mx-auto px-3 sm:px-4 py-8">
         {/* Featured Products Section: Section Heading 24–28px */}

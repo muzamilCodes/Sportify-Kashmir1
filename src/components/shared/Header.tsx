@@ -255,12 +255,27 @@ export default function Header() {
   const [imageError, setImageError] = useState(false);
   const [quickBuyProducts, setQuickBuyProducts] = useState<any[]>([]);
   const [addingCartId, setAddingCartId] = useState<string | null>(null);
+  const [storeSettings, setStoreSettings] = useState<{
+    logoUrl?: string;
+    announcementText?: string;
+  } | null>(null);
 
   const userMenuRef = useRef<HTMLDivElement>(null);
   const searchContainerRef = useRef<HTMLDivElement>(null);
   const sideDrawerRef = useRef<HTMLDivElement>(null);
 
   const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000").replace(/\/$/, "");
+
+  useEffect(() => {
+    fetch(`${API_URL}/admin/public/settings`)
+      .then((r) => r.json())
+      .then((res) => {
+        if (res.success && res.data) {
+          setStoreSettings(res.data);
+        }
+      })
+      .catch(() => {});
+  }, [API_URL]);
 
   useEffect(() => {
     setImageError(false);
@@ -437,6 +452,13 @@ export default function Header() {
 
   return (
     <header suppressHydrationWarning className="sticky top-0 z-50 shadow-md">
+      {/* ── Top Announcement Bar (Dynamic from /admin/settings) ── */}
+      {storeSettings?.announcementText && (
+        <div className="bg-gradient-to-r from-orange-600 via-amber-600 to-red-600 text-white text-[11px] sm:text-xs font-semibold py-1 px-4 text-center tracking-wide flex items-center justify-center gap-2 shadow-xs">
+          <span>{storeSettings.announcementText}</span>
+        </div>
+      )}
+
       {/* ═══════════════════════════════════════════════════════════════════════
           ROW 1: Amazon-Style Main Header Bar (#131921 Navy/Black)
       ═══════════════════════════════════════════════════════════════════════ */}
@@ -457,17 +479,31 @@ export default function Header() {
               href="/"
               className="flex items-center gap-1.5 px-1 sm:px-2 py-1 rounded-xs hover:outline-1 hover:outline-white shrink-0 group"
             >
-              <div className="w-7 h-7 sm:w-8 sm:h-8 bg-gradient-to-tr from-amber-500 via-orange-500 to-red-500 rounded-lg flex items-center justify-center shadow-xs">
-                <Trophy size={16} className="text-white" />
-              </div>
-              <div className="flex flex-col leading-none">
-                <span className="text-sm sm:text-lg font-black tracking-tight text-white flex items-center">
-                  sportify<span className="text-amber-400 font-bold text-xs sm:text-sm">.in</span>
-                </span>
-                <span className="text-[8px] sm:text-[9px] text-gray-300 font-semibold tracking-wider uppercase -mt-0.5">
-                  Kashmir
-                </span>
-              </div>
+              {storeSettings?.logoUrl ? (
+                <img
+                  src={
+                    storeSettings.logoUrl.startsWith("http") || storeSettings.logoUrl.startsWith("data:")
+                      ? storeSettings.logoUrl
+                      : `${API_URL}${storeSettings.logoUrl}`
+                  }
+                  alt="Sportify Kashmir"
+                  className="h-7 sm:h-8 max-w-[120px] sm:max-w-[150px] object-contain"
+                />
+              ) : (
+                <>
+                  <div className="w-7 h-7 sm:w-8 sm:h-8 bg-gradient-to-tr from-amber-500 via-orange-500 to-red-500 rounded-lg flex items-center justify-center shadow-xs">
+                    <Trophy size={16} className="text-white" />
+                  </div>
+                  <div className="flex flex-col leading-none">
+                    <span className="text-sm sm:text-lg font-black tracking-tight text-white flex items-center">
+                      sportify<span className="text-amber-400 font-bold text-xs sm:text-sm">.in</span>
+                    </span>
+                    <span className="text-[8px] sm:text-[9px] text-gray-300 font-semibold tracking-wider uppercase -mt-0.5">
+                      Kashmir
+                    </span>
+                  </div>
+                </>
+              )}
             </Link>
           </div>
 
