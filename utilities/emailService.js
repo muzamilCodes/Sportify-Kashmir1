@@ -459,6 +459,188 @@ class EnhancedEmailService {
       </html>
     `;
   }
+  /**
+   * 4-Digit Delivery Rejection OTP Template (Flipkart Style)
+   */
+  getDeliveryRejectionOtpTemplate(otp, order, customerName = "Customer", reason = "") {
+    const orderId = order?._id ? order._id.toString().slice(-8) : "N/A";
+    const totalAmount = order?.orderValue ? Number(order.orderValue).toFixed(2) : "0.00";
+    const reasonText = reason || "Customer declined delivery at doorstep";
+
+    return `
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Delivery Rejection OTP - Sportify Kashmir</title>
+      </head>
+      <body style="margin: 0; padding: 0; background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+        <table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #f8fafc; padding: 30px 10px;">
+          <tr>
+            <td align="center">
+              <table border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 580px; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.06); border: 1px solid #e2e8f0;">
+                <!-- Header -->
+                <tr>
+                  <td style="background: linear-gradient(135deg, #ea580c 0%, #dc2626 100%); padding: 30px 24px; text-align: center;">
+                    <h1 style="color: #ffffff; margin: 0; font-size: 26px; font-weight: 800; letter-spacing: 0.5px;">Sportify Kashmir</h1>
+                    <p style="color: rgba(255,255,255,0.9); margin: 6px 0 0 0; font-size: 13px; font-weight: 500;">Delivery Verification Security</p>
+                  </td>
+                </tr>
+
+                <!-- Content -->
+                <tr>
+                  <td style="padding: 32px 28px; text-align: center;">
+                    <div style="display: inline-block; background-color: #fee2e2; color: #dc2626; font-size: 12px; font-weight: 700; padding: 4px 12px; border-radius: 20px; text-transform: uppercase; margin-bottom: 16px;">
+                      ⚠️ Action Required: Rejection Code
+                    </div>
+
+                    <h2 style="color: #0f172a; margin: 0 0 10px 0; font-size: 22px; font-weight: 700;">Delivery Rejection OTP</h2>
+                    <p style="color: #475569; margin: 0 0 20px 0; font-size: 14px; line-height: 1.6;">
+                      Hi <strong>${customerName}</strong>, a request has been made to reject and cancel delivery for Order <strong>#${orderId}</strong>.
+                    </p>
+
+                    <!-- Order Summary Pill -->
+                    <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px 18px; margin-bottom: 24px; text-align: left;">
+                      <table border="0" cellpadding="0" cellspacing="0" width="100%">
+                        <tr>
+                          <td style="color: #64748b; font-size: 13px;">Order ID:</td>
+                          <td align="right" style="color: #0f172a; font-weight: 700; font-size: 13px;">#${orderId}</td>
+                        </tr>
+                        <tr>
+                          <td style="color: #64748b; font-size: 13px; padding-top: 4px;">Order Value:</td>
+                          <td align="right" style="color: #ea580c; font-weight: 700; font-size: 13px; padding-top: 4px;">₹${totalAmount}</td>
+                        </tr>
+                        <tr>
+                          <td style="color: #64748b; font-size: 13px; padding-top: 4px;">Reason:</td>
+                          <td align="right" style="color: #dc2626; font-weight: 600; font-size: 13px; padding-top: 4px;">${reasonText}</td>
+                        </tr>
+                      </table>
+                    </div>
+
+                    <!-- OTP Box -->
+                    <div style="background: #fff7ed; border: 2px dashed #f97316; border-radius: 14px; padding: 18px 24px; margin: 0 auto 20px auto; display: inline-block;">
+                      <div style="font-size: 11px; font-weight: 700; color: #9a3412; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 1px;">4-Digit Verification OTP</div>
+                      <span style="font-family: 'Courier New', Courier, monospace; font-size: 42px; font-weight: 900; color: #ea580c; letter-spacing: 14px; margin-left: 14px; display: inline-block;">${otp}</span>
+                    </div>
+
+                    <!-- Security Alert -->
+                    <div style="background-color: #fef2f2; border-left: 4px solid #ef4444; border-radius: 8px; padding: 12px 16px; margin: 0 auto 24px auto; text-align: left;">
+                      <p style="color: #991b1b; font-size: 13px; font-weight: 600; margin: 0 0 4px 0;">⏰ Valid for 5 Minutes Only</p>
+                      <p style="color: #7f1d1d; font-size: 12px; margin: 0; line-height: 1.5;">
+                        • Share this 4-digit code with the delivery executive <strong>ONLY</strong> if you want to decline/reject this order.<br>
+                        • If you did <strong>NOT</strong> request to reject this delivery, do not share this code and accept your package normally.
+                      </p>
+                    </div>
+
+                    <div style="height: 1px; background-color: #e2e8f0; margin: 24px 0;"></div>
+
+                    <p style="color: #94a3b8; font-size: 12px; margin: 0; line-height: 1.4;">
+                      Sportify Kashmir • Sports Excellence Delivered Across Kashmir Valley
+                    </p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+      </body>
+      </html>
+    `;
+  }
+
+  /**
+   * Delivery Rejection Confirmed Template
+   */
+  getDeliveryRejectionConfirmedTemplate(order, customerName = "Customer", reason = "") {
+    const orderId = order?._id ? order._id.toString().slice(-8) : "N/A";
+    const totalAmount = order?.orderValue ? Number(order.orderValue).toFixed(2) : "0.00";
+    const reasonText = reason || "Customer declined delivery at doorstep";
+    const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
+
+    return `
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Order Rejected at Delivery - Sportify Kashmir</title>
+      </head>
+      <body style="margin: 0; padding: 0; background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+        <table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #f8fafc; padding: 30px 10px;">
+          <tr>
+            <td align="center">
+              <table border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 580px; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.06); border: 1px solid #e2e8f0;">
+                <!-- Header -->
+                <tr>
+                  <td style="background: linear-gradient(135deg, #64748b 0%, #334155 100%); padding: 30px 24px; text-align: center;">
+                    <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: 800;">Sportify Kashmir</h1>
+                    <p style="color: rgba(255,255,255,0.9); margin: 6px 0 0 0; font-size: 13px;">Delivery Status Update</p>
+                  </td>
+                </tr>
+
+                <!-- Content -->
+                <tr>
+                  <td style="padding: 32px 28px;">
+                    <div style="display: inline-block; background-color: #fee2e2; color: #dc2626; font-size: 12px; font-weight: 700; padding: 4px 12px; border-radius: 20px; text-transform: uppercase; margin-bottom: 16px;">
+                      Order Rejected at Delivery
+                    </div>
+
+                    <h2 style="color: #0f172a; margin: 0 0 12px 0; font-size: 20px; font-weight: 700;">Delivery Successfully Rejected & Cancelled</h2>
+                    <p style="color: #475569; margin: 0 0 20px 0; font-size: 14px; line-height: 1.6;">
+                      Hi <strong>${customerName}</strong>, as per your OTP verification with the delivery executive, Order <strong>#${orderId}</strong> has been cancelled and marked as <strong>Rejected at Delivery</strong>.
+                    </p>
+
+                    <!-- Details Box -->
+                    <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px; margin-bottom: 24px;">
+                      <table border="0" cellpadding="0" cellspacing="0" width="100%">
+                        <tr>
+                          <td style="padding: 6px 0; color: #64748b; font-size: 13px;">Order ID:</td>
+                          <td align="right" style="padding: 6px 0; color: #0f172a; font-weight: 700; font-size: 13px;">#${orderId}</td>
+                        </tr>
+                        <tr>
+                          <td style="padding: 6px 0; color: #64748b; font-size: 13px;">Order Value:</td>
+                          <td align="right" style="padding: 6px 0; color: #0f172a; font-weight: 700; font-size: 13px;">₹${totalAmount}</td>
+                        </tr>
+                        <tr>
+                          <td style="padding: 6px 0; color: #64748b; font-size: 13px;">Rejection Reason:</td>
+                          <td align="right" style="padding: 6px 0; color: #dc2626; font-weight: 600; font-size: 13px;">${reasonText}</td>
+                        </tr>
+                        <tr>
+                          <td style="padding: 6px 0; color: #64748b; font-size: 13px;">Verification Method:</td>
+                          <td align="right" style="padding: 6px 0; color: #16a34a; font-weight: 600; font-size: 13px;">4-Digit Customer OTP Verified</td>
+                        </tr>
+                      </table>
+                    </div>
+
+                    ${order?.paymentMethod !== 'cod' && order?.paymentStatus === 'paid' ? `
+                    <div style="background-color: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 10px; padding: 14px; margin-bottom: 24px;">
+                      <p style="color: #065f46; font-size: 13px; font-weight: 600; margin: 0 0 4px 0;">💳 Prepaid Refund Notice</p>
+                      <p style="color: #047857; font-size: 12px; margin: 0; line-height: 1.5;">
+                        Since this was a prepaid order, our finance team will initiate your refund to the original payment method within 3-5 business days.
+                      </p>
+                    </div>
+                    ` : ''}
+
+                    <div style="text-align: center; margin-bottom: 24px;">
+                      <a href="${frontendUrl}/orders/${order?._id || ''}" style="background: linear-gradient(135deg, #ea580c 0%, #dc2626 100%); color: #ffffff; text-decoration: none; padding: 12px 28px; border-radius: 8px; font-weight: 700; font-size: 14px; display: inline-block;">View Order Details</a>
+                    </div>
+
+                    <div style="height: 1px; background-color: #e2e8f0; margin: 24px 0;"></div>
+
+                    <p style="color: #94a3b8; font-size: 12px; text-align: center; margin: 0;">
+                      Sportify Kashmir • Handwara, Qalamabad • Support: +91 9682645127
+                    </p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+      </body>
+      </html>
+    `;
+  }
 }
 
 const serviceInstance = new EnhancedEmailService();
@@ -471,6 +653,8 @@ const sendEmail = async (to, subject, html, options) => {
 sendEmail.getLastError = () => serviceInstance.lastError || "Unknown email error";
 sendEmail.getOtpTemplate = (otp, purpose, userName) => serviceInstance.getOtpTemplate(otp, purpose, userName);
 sendEmail.getOrderStatusTemplate = (order, title, message, actionUrl) => serviceInstance.getOrderStatusTemplate(order, title, message, actionUrl);
+sendEmail.getDeliveryRejectionOtpTemplate = (otp, order, customerName, reason) => serviceInstance.getDeliveryRejectionOtpTemplate(otp, order, customerName, reason);
+sendEmail.getDeliveryRejectionConfirmedTemplate = (order, customerName, reason) => serviceInstance.getDeliveryRejectionConfirmedTemplate(order, customerName, reason);
 sendEmail.getConfig = () => ({
   providersConfigured: serviceInstance.transporters.map((t) => t.name),
   sesConfigured: Boolean(process.env.AWS_SES_ACCESS_KEY && process.env.AWS_SES_SECRET_KEY),

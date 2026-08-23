@@ -188,6 +188,21 @@ exports.updateOrderStatus = async (req, res, orderStatus) => {
       });
     }
 
+    // 🔒 Permanent Lock: Status of delivered and cancelled orders cannot be modified!
+    if (currentStatus === "delivered") {
+      return res.status(400).json({
+        success: false,
+        message: "This order is already delivered. Its status cannot be changed.",
+      });
+    }
+
+    if (currentStatus === "cancelled") {
+      return res.status(400).json({
+        success: false,
+        message: "This order is already cancelled. Its status cannot be changed.",
+      });
+    }
+
     if (normalizedStatus === "cancelled") {
       await releaseOrderInventory(order);
     }
@@ -781,3 +796,247 @@ async function sendOrderPriceUpdateEmail(order, userEmail, userName, oldValue, n
     console.error("Price update email error:", error);
   }
 }
+
+function maskEmail(email) {
+  if (!email || !email.includes("@")) return email || "";
+  const [local, domain] = email.split("@");
+  if (local.length <= 2) return `${local[0]}*@${domain}`;
+  return `${local.slice(0, 2)}***${local.slice(-1)}@${domain}`;
+}
+
+/**
+ * 4-Digit Delivery Rejection OTP System (Flipkart Style)
+ * 1. Generate & send 4-digit OTP to customer's registered email
+ */
+exports.sendDeliveryRejectionOtp = async (req, res) => {
+  try {
+    const sendEmail = require("../utilities/emailService");
+    const crypto = require("crypto");
+    const { orderId } = req.params;
+    const { reason } = req.body || {};
+
+    const order = await Order.findById(orderId)
+      .populate("userId", "username email mobile")
+      .populate("shippingAddress", "firstName lastName email mobile");
+
+    if (!order) {
+      return res.status(404).json({ success: false, message: "Order not found" });
+    }
+
+    const currentStatus = normalizeOrderStatus(order.orderStatus);
+    if (currentStatus === "delivered") {
+      return res.status(400).json({ success: false, message: "Cannot reject an order that has already been delivered" });
+    }
+    if (currentStatus === "cancelled" && order.rejectionDetails?.isRejected) {
+      return res.status(400).json({ success: false, message: "Order is already rejected" });
+    }
+
+    // Generate cryptographically secure 4-digit numeric OTP (1000 - 9999)
+    const rejectionCode = crypto.randomInt(1000, 10000).toString();
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes validity
+
+    order.rejectionOtp = {
+      code: rejectionCode,
+      expiresAt: expiresAt,
+      attempts: 0,
+      isUsed: false,
+      requestedAt: new Date(),
+      reason: reason || "Customer declined delivery at doorstep",
+    };
+
+    await order.save();
+
+    // Determine recipient details
+    const customerEmail =
+      order.shippingAddress?.email ||
+      order.guestAddress?.email ||
+      order.userId?.email;
+
+    const customerName =
+      order.shippingAddress?.firstName ||
+      order.guestAddress?.fullName ||
+      order.userId?.username ||
+      "Customer";
+
+    if (!customerEmail) {
+      return res.status(400).json({
+        success: false,
+        message: "No customer email found for this order to send the rejection OTP",
+      });
+    }
+
+    const emailHtml = sendEmail.getDeliveryRejectionOtpTemplate(
+      rejectionCode,
+      order,
+      customerName,
+      order.rejectionOtp.reason
+    );
+
+    const emailSent = await sendEmail(
+      customerEmail,
+      `🔐 Delivery Rejection OTP (${rejectionCode}) for Order #${order._id.toString().slice(-8)}`,
+      emailHtml,
+      { priority: "high" }
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "4-digit rejection OTP sent successfully to customer's email",
+      expiresAt: expiresAt,
+      maskedEmail: maskEmail(customerEmail),
+      emailDelivered: Boolean(emailSent),
+    });
+  } catch (error) {
+    console.error("sendDeliveryRejectionOtp error:", error);
+    return res.status(500).json({ success: false, message: error.message || "Failed to send rejection OTP" });
+  }
+};
+
+/**
+ * 4-Digit Delivery Rejection OTP System (Flipkart Style)
+ * 2. Verify 4-digit OTP provided by customer to delivery partner
+ */
+exports.verifyDeliveryRejectionOtp = async (req, res) => {
+  try {
+    const sendEmail = require("../utilities/emailService");
+    const { orderId } = req.params;
+    const { otp, rejectionReason } = req.body || {};
+
+    if (!otp || String(otp).trim().length !== 4) {
+      return res.status(400).json({ success: false, message: "Please provide a valid 4-digit OTP" });
+    }
+
+    const order = await Order.findById(orderId)
+      .populate("userId", "username email mobile")
+      .populate("shippingAddress", "firstName lastName email mobile");
+
+    if (!order) {
+      return res.status(404).json({ success: false, message: "Order not found" });
+    }
+
+    const currentStatus = normalizeOrderStatus(order.orderStatus);
+    if (currentStatus === "delivered") {
+      return res.status(400).json({ success: false, message: "Cannot reject an order that has already been delivered" });
+    }
+
+    if (!order.rejectionOtp || !order.rejectionOtp.code) {
+      return res.status(400).json({
+        success: false,
+        message: "No rejection OTP has been requested for this order. Please request an OTP first.",
+      });
+    }
+
+    if (order.rejectionOtp.isUsed) {
+      return res.status(400).json({
+        success: false,
+        message: "This rejection OTP has already been used. Please request a new OTP if needed.",
+      });
+    }
+
+    // Check expiration (5 min)
+    if (new Date() > new Date(order.rejectionOtp.expiresAt)) {
+      return res.status(400).json({
+        success: false,
+        message: "Rejection OTP has expired (5-minute limit). Please generate a new OTP.",
+        expired: true,
+      });
+    }
+
+    // Check attempt limit (max 3)
+    if (order.rejectionOtp.attempts >= 3) {
+      return res.status(400).json({
+        success: false,
+        message: "Maximum OTP attempts exceeded (3 attempts). Please generate a new OTP.",
+        attemptsExceeded: true,
+      });
+    }
+
+    // Compare OTP
+    const cleanInputOtp = String(otp).trim();
+    const cleanStoredOtp = String(order.rejectionOtp.code).trim();
+
+    if (cleanInputOtp !== cleanStoredOtp) {
+      order.rejectionOtp.attempts = (order.rejectionOtp.attempts || 0) + 1;
+      await order.save();
+
+      const remaining = Math.max(0, 3 - order.rejectionOtp.attempts);
+      return res.status(400).json({
+        success: false,
+        message:
+          remaining > 0
+            ? `Invalid 4-digit OTP. ${remaining} attempt(s) remaining.`
+            : "Invalid OTP. Maximum attempts exceeded. Please generate a new OTP.",
+        remainingAttempts: remaining,
+        attemptsExceeded: remaining === 0,
+      });
+    }
+
+    // OTP is valid! Mark as used and cancel/reject the order
+    order.rejectionOtp.isUsed = true;
+    order.orderStatus = "cancelled";
+
+    const finalReason =
+      rejectionReason ||
+      order.rejectionOtp.reason ||
+      "Customer refused delivery at doorstep";
+
+    order.rejectionDetails = {
+      isRejected: true,
+      rejectedAt: new Date(),
+      reason: finalReason,
+      rejectedWithOtp: true,
+      rejectedByRole: "delivery_partner",
+    };
+
+    order.statusHistory = Array.isArray(order.statusHistory) ? order.statusHistory : [];
+    order.statusHistory.push({
+      status: "cancelled",
+      changedAt: new Date(),
+      changedByRole: "admin",
+      changedByUser: req.userId,
+      note: `Rejected at Delivery: ${finalReason} (Verified with 4-digit Customer OTP)`,
+    });
+
+    // Release reserved inventory
+    await releaseOrderInventory(order);
+    await order.save();
+
+    // Send Rejection Confirmation Email to customer
+    const customerEmail =
+      order.shippingAddress?.email ||
+      order.guestAddress?.email ||
+      order.userId?.email;
+
+    const customerName =
+      order.shippingAddress?.firstName ||
+      order.guestAddress?.fullName ||
+      order.userId?.username ||
+      "Customer";
+
+    if (customerEmail) {
+      try {
+        const confirmHtml = sendEmail.getDeliveryRejectionConfirmedTemplate(
+          order,
+          customerName,
+          finalReason
+        );
+        await sendEmail(
+          customerEmail,
+          `❌ Order #${order._id.toString().slice(-8)} Marked as Rejected at Delivery`,
+          confirmHtml
+        );
+      } catch (e) {
+        console.warn("Failed to send rejection confirmation email:", e.message);
+      }
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Order successfully rejected and cancelled with verified 4-digit OTP",
+      order,
+    });
+  } catch (error) {
+    console.error("verifyDeliveryRejectionOtp error:", error);
+    return res.status(500).json({ success: false, message: error.message || "Failed to verify rejection OTP" });
+  }
+};

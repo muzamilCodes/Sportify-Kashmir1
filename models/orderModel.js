@@ -72,6 +72,24 @@ const orderSchema = new mongoose.Schema(
         error: { type: String, default: "" },
       },
     ],
+
+    // 4-Digit Delivery Rejection OTP System (Flipkart Style)
+    rejectionOtp: {
+      code: { type: String },
+      expiresAt: { type: Date },
+      attempts: { type: Number, default: 0 },
+      isUsed: { type: Boolean, default: false },
+      requestedAt: { type: Date },
+      reason: { type: String, default: "" },
+    },
+
+    rejectionDetails: {
+      isRejected: { type: Boolean, default: false },
+      rejectedAt: { type: Date },
+      reason: { type: String, default: "" },
+      rejectedWithOtp: { type: Boolean, default: false },
+      rejectedByRole: { type: String, default: "delivery_partner" },
+    },
   },
   { timestamps: true }
 );

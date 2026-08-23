@@ -21,6 +21,10 @@ router.put("/out_for_delivery/:orderId", admin, (req, res) => controller.updateO
 router.put("/delivered/:orderId", admin, (req, res) => controller.updateOrderStatus(req, res, "delivered"));
 router.put("/cancelled/:orderId", authorize, (req, res) => controller.updateOrderStatus(req, res, "cancelled"));
 
+// ✅ Delivery Rejection 4-digit OTP System (Flipkart style)
+router.post("/delivery-rejection/send-otp/:orderId", authorize, controller.sendDeliveryRejectionOtp);
+router.post("/delivery-rejection/verify-otp/:orderId", authorize, controller.verifyDeliveryRejectionOtp);
+
 // ✅ Order fetch routes
 router.get("/user-orders", authorize, controller.getUserOrders);
 router.get("/fetchAllOrders", admin, controller.fetchAllOrders);
