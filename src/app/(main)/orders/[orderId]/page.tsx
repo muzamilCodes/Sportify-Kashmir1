@@ -19,6 +19,7 @@ import {
   Loader2,
   XCircle,
   AlertCircle,
+  Trash2,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { generateAndDownloadInvoice } from "@/lib/invoice";
@@ -176,6 +177,8 @@ export default function OrderDetailPage() {
     return () => clearInterval(interval);
   }, [orderId]);
 
+  const [removing, setRemoving] = useState(false);
+
   const cancelOrder = async () => {
     if (!confirm("Are you sure you want to cancel this order?")) return;
     setCancelling(true);
@@ -196,6 +199,30 @@ export default function OrderDetailPage() {
       toast.error("Something went wrong");
     } finally {
       setCancelling(false);
+    }
+  };
+
+  const handleRemoveOrder = async () => {
+    if (!confirm("Are you sure you want to permanently remove/delete this order from your history?")) return;
+    setRemoving(true);
+    const toastId = toast.loading("Removing order...");
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_URL}/orders/delete/${orderId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success("Order removed successfully!", { id: toastId });
+        router.push("/orders");
+      } else {
+        toast.error(data.message || "Failed to remove order", { id: toastId });
+      }
+    } catch (error) {
+      toast.error("Failed to remove order", { id: toastId });
+    } finally {
+      setRemoving(false);
     }
   };
 
@@ -547,25 +574,45 @@ export default function OrderDetailPage() {
             </div>
           </div>
 
-          {/* Cancel Button & Actions */}
-          <div className="p-6 bg-gray-50 flex flex-wrap gap-4 justify-between items-center">
-            {canCancel() && (
+          {/* Cancel, Remove & Shopping Actions */}
+          <div className="p-6 bg-gray-50 dark:bg-gray-800/60 flex flex-wrap gap-3 justify-between items-center border-t border-gray-100 dark:border-gray-700">
+            <div className="flex flex-wrap items-center gap-3">
+              {canCancel() && (
+                <button
+                  type="button"
+                  onClick={cancelOrder}
+                  disabled={cancelling}
+                  className="flex items-center gap-2 px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-bold text-xs transition disabled:opacity-50 cursor-pointer shadow-xs"
+                >
+                  {cancelling ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <XCircle className="w-4 h-4" />
+                  )}
+                  <span>Cancel Order</span>
+                </button>
+              )}
+
+              {/* Remove / Delete Order Button */}
               <button
-                onClick={cancelOrder}
-                disabled={cancelling}
-                className="flex items-center gap-2 px-5 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-lg font-medium transition disabled:opacity-50"
+                type="button"
+                onClick={handleRemoveOrder}
+                disabled={removing}
+                className="flex items-center gap-2 px-5 py-2.5 bg-red-50 dark:bg-red-950/30 hover:bg-red-600 text-red-600 hover:text-white border border-red-200 dark:border-red-800 rounded-xl font-bold text-xs transition-all disabled:opacity-50 cursor-pointer shadow-xs"
               >
-                {cancelling ? (
+                {removing ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
-                  <XCircle className="w-4 h-4" />
+                  <Trash2 className="w-4 h-4" />
                 )}
-                Cancel Order
+                <span>Remove Order</span>
               </button>
-            )}
+            </div>
+
             <Link href="/products">
-              <button className="flex items-center gap-2 px-5 py-2.5 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-medium transition">
-                <Home className="w-4 h-4" /> Continue Shopping
+              <button className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white rounded-xl font-bold text-xs shadow-md transition cursor-pointer">
+                <Home className="w-4 h-4" />
+                <span>Continue Shopping</span>
               </button>
             </Link>
           </div>

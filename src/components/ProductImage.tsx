@@ -56,8 +56,7 @@ function ProductImageComponent({
       width={!isFill ? width || 300 : undefined}
       height={!isFill ? height || 300 : undefined}
       loading={priority ? "eager" : loading || "lazy"}
-      // @ts-expect-error fetchpriority is valid in modern browsers
-      fetchpriority={priority ? "high" : "auto"}
+      fetchPriority={priority ? "high" : "auto"}
       decoding="async"
       referrerPolicy="no-referrer"
       className={`${isFill ? "absolute inset-0 w-full h-full" : ""} ${className}`}

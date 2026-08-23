@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Package, Loader2, Calendar, IndianRupee, Truck, Clock, CheckCircle, XCircle, ChevronRight, Download } from "lucide-react";
+import { Package, Loader2, Calendar, IndianRupee, Truck, Clock, CheckCircle, XCircle, ChevronRight, Download, Trash2 } from "lucide-react";
 import toast from "react-hot-toast";
 import { generateAndDownloadInvoice } from "@/lib/invoice";
 import { resolveProductImage } from "@/lib/imageHelper";
@@ -96,6 +96,36 @@ export default function OrdersPage() {
       toast.error("Failed to load orders");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const handleDeleteOrder = async (orderId: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!confirm("Are you sure you want to permanently remove/delete this order from your account history?")) {
+      return;
+    }
+    setDeletingId(orderId);
+    const toastId = toast.loading("Removing order...");
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_URL}/orders/delete/${orderId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success("Order removed successfully!", { id: toastId });
+        setOrders((prev) => prev.filter((o) => o._id !== orderId));
+      } else {
+        toast.error(data.message || "Failed to remove order", { id: toastId });
+      }
+    } catch {
+      toast.error("Failed to remove order", { id: toastId });
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -223,16 +253,31 @@ export default function OrdersPage() {
                       <p className="font-medium text-gray-800 truncate">{productName}</p>
                       <p className="text-sm text-gray-500">{order.products?.length || 1} item(s)</p>
                     </div>
-                    <div className="flex items-center gap-2 ml-auto">
+                    <div className="flex items-center gap-2 ml-auto flex-wrap">
                       <button
+                        type="button"
+                        onClick={(e) => handleDeleteOrder(order._id, e)}
+                        disabled={deletingId === order._id}
+                        className="flex items-center gap-1 text-xs font-semibold bg-red-50 hover:bg-red-600 text-red-600 hover:text-white px-3 py-2 rounded-full transition border border-red-200 cursor-pointer disabled:opacity-50"
+                        title="Remove/Delete order from history"
+                      >
+                        {deletingId === order._id ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Trash2 className="w-3.5 h-3.5" />
+                        )}
+                        <span>Remove</span>
+                      </button>
+                      <button
+                        type="button"
                         onClick={() => generateAndDownloadInvoice(order as any)}
-                        className="flex items-center gap-1 text-xs font-semibold bg-orange-50 hover:bg-orange-100 text-orange-600 px-3.5 py-2 rounded-full transition border border-orange-200"
+                        className="flex items-center gap-1 text-xs font-semibold bg-orange-50 hover:bg-orange-100 text-orange-600 px-3.5 py-2 rounded-full transition border border-orange-200 cursor-pointer"
                         title="Download Tax Invoice Receipt"
                       >
                         <Download className="w-3.5 h-3.5" /> Invoice
                       </button>
                       <Link href={`/orders/${order._id}`}>
-                        <button className="flex items-center gap-1 text-sm bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded-full transition font-medium">
+                        <button className="flex items-center gap-1 text-sm bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded-full transition font-medium cursor-pointer">
                           View Details <ChevronRight className="w-4 h-4" />
                         </button>
                       </Link>

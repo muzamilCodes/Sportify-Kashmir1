@@ -9,6 +9,7 @@ import {
   User,
   ShoppingCart,
   ChevronDown,
+  ChevronRight,
   Heart,
   LogOut,
   Home,
@@ -34,6 +35,15 @@ import {
   Loader2,
   Tag,
   Download,
+  MapPin,
+  Flame,
+  Crown,
+  Building2,
+  CreditCard,
+  Wallet,
+  Phone,
+  Gift,
+  Check,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import ThemeToggle from "@/components/shared/ThemeToggle";
@@ -58,67 +68,204 @@ const getProfileImageUrl = (profilePic: string | undefined) => {
   return `${API_URL}/uploads/${profilePic}`;
 };
 
-const SPORTS_CATEGORIES = [
-  { name: "Football", href: "/categories/football", icon: <Goal size={18} />, color: "from-blue-500 to-indigo-600" },
-  { name: "Cricket", href: "/categories/cricket", icon: <Cricket size={18} />, color: "from-green-500 to-emerald-600" },
-  { name: "Badminton", href: "/categories/badminton", icon: <Activity size={18} />, color: "from-red-400 to-orange-500" },
-  { name: "Basketball", href: "/categories/basketball", icon: <Activity size={18} />, color: "from-orange-500 to-red-600" },
-  { name: "Volleyball", href: "/categories/volleyball", icon: <Activity size={18} />, color: "from-yellow-400 to-orange-500" },
-  { name: "Tennis", href: "/categories/tennis", icon: <Activity size={18} />, color: "from-green-400 to-lime-500" },
-  { name: "Gym & Fitness", href: "/categories/gym-fitness", icon: <Dumbbell size={18} />, color: "from-slate-600 to-gray-800" },
-  { name: "Running", href: "/categories/running", icon: <Activity size={18} />, color: "from-cyan-400 to-blue-500" },
-  { name: "Cycling", href: "/categories/cycling", icon: <Bike size={18} />, color: "from-emerald-400 to-teal-600" },
-  { name: "Swimming", href: "/categories/swimming", icon: <Waves size={18} />, color: "from-blue-400 to-cyan-500" },
-  { name: "Indoor Games", href: "/categories/indoor-games", icon: <Gamepad2 size={18} />, color: "from-purple-500 to-pink-600" },
-  { name: "Sports Wear", href: "/categories/sports-wear", icon: <Shirt size={18} />, color: "from-pink-500 to-rose-600" },
-  { name: "Sports Shoes", href: "/categories/sports-shoes", icon: <Tent size={18} />, color: "from-orange-400 to-red-500" },
-  { name: "Accessories", href: "/categories/accessories", icon: <Pocket size={18} />, color: "from-gray-500 to-slate-700" },
-  { name: "Cups & Trophies", href: "/categories/cups-trophies", icon: <Trophy size={18} />, color: "from-yellow-500 to-amber-600" },
+const SEARCH_CATEGORIES = [
+  { id: "all", label: "All Sports" },
+  { id: "cricket", label: "Cricket Willow" },
+  { id: "football", label: "Football" },
+  { id: "badminton", label: "Badminton" },
+  { id: "gym", label: "Gym & Fitness" },
+  { id: "shoes", label: "Sports Shoes" },
+  { id: "wear", label: "Jerseys & Wear" },
+  { id: "tennis", label: "Tennis & TT" },
+  { id: "basketball", label: "Basketball & Volleyball" },
+  { id: "trophies", label: "Trophies & Awards" },
+  { id: "accessories", label: "Accessories" },
 ];
 
-const MAIN_NAV = [
-  { href: "/", label: "Home", icon: <Home size={18} /> },
-  { href: "/products", label: "Shop All", icon: <ShoppingBag size={18} /> },
-  { href: "/sports", label: "Sports", icon: <Activity size={18} /> },
-  { href: "/new-arrivals", label: "New Arrivals", icon: <Sparkles size={18} /> },
-  { href: "/categories", label: "Categories", icon: <Trophy size={18} /> },
-  { href: "/brands", label: "Brands", icon: <Award size={18} /> },
-  { href: "/blog", label: "Blog", icon: <FileText size={18} /> },
-  { href: "/sale", label: "Deals", icon: <Percent size={18} /> },
-  { href: "/about", label: "About", icon: <Info size={18} /> },
-  { href: "/faq", label: "FAQ", icon: <Info size={18} /> },
-  { href: "/contact", label: "Contact", icon: <Mail size={20} /> },
+export interface SubCategory {
+  title: string;
+  query: string;
+}
+
+export interface SportCategory {
+  id: string;
+  name: string;
+  href: string;
+  icon: any;
+  subcategories: SubCategory[];
+}
+
+const DETAILED_SPORTS_CATEGORIES: SportCategory[] = [
+  {
+    id: "cricket",
+    name: "Cricket Willow & Gear",
+    href: "/products?search=cricket",
+    icon: <Cricket size={18} />,
+    subcategories: [
+      { title: "Kashmir Willow Bats (Sangam/Anantnag)", query: "kashmir willow" },
+      { title: "English Willow Grade 1 & 2 Bats", query: "english willow" },
+      { title: "Leather Match & Alum Balls (4-Piece)", query: "cricket leather ball" },
+      { title: "Heavy Tennis & Wind Cricket Balls", query: "tennis cricket ball" },
+      { title: "Batting Pads & Legguards", query: "batting pads" },
+      { title: "Batting & Wicket Keeping Gloves", query: "batting gloves" },
+      { title: "Helmets, Thigh & Chest Guards", query: "cricket helmet guard" },
+      { title: "Full Team Cricket Kit Bags", query: "cricket kit bag" },
+      { title: "Wooden Stumps, Bails & Grips", query: "cricket stumps grip" },
+    ],
+  },
+  {
+    id: "football",
+    name: "Football & Team Sports",
+    href: "/products?search=football",
+    icon: <Goal size={18} />,
+    subcategories: [
+      { title: "FIFA Standard Match Footballs (Size 5)", query: "match football" },
+      { title: "Training & Street Turf Balls", query: "training football" },
+      { title: "Studs & Hard Ground Football Cleats", query: "football studs" },
+      { title: "Pro Goalkeeper Gloves with Finger-Save", query: "goalkeeper gloves" },
+      { title: "Shin Guards, Ankle Sleeves & Socks", query: "shin guard football" },
+      { title: "Custom Team Football Jerseys & Shorts", query: "football jersey" },
+      { title: "Agility Ladders, Cones & Goal Nets", query: "football training cones" },
+    ],
+  },
+  {
+    id: "badminton",
+    name: "Badminton & Racket Sports",
+    href: "/products?search=badminton",
+    icon: <Activity size={18} />,
+    subcategories: [
+      { title: "Carbon Graphite Rackets (Attack/Control)", query: "badminton racket" },
+      { title: "Feather Shuttlecocks (Duck/Goose)", query: "feather shuttlecock" },
+      { title: "Nylon Durable Shuttles (Mavis 350)", query: "nylon shuttlecock" },
+      { title: "Non-Marking Badminton Court Shoes", query: "badminton court shoes" },
+      { title: "3-Zip & 6-Racket Thermo Kit Bags", query: "badminton kit bag" },
+      { title: "High-Tension Strings, Grips & Nets", query: "badminton grip string" },
+    ],
+  },
+  {
+    id: "gym-fitness",
+    name: "Gym & Fitness Training",
+    href: "/products?search=gym",
+    icon: <Dumbbell size={18} />,
+    subcategories: [
+      { title: "Rubber Hex Dumbbells & Plate Sets", query: "dumbbell weight" },
+      { title: "Latex Resistance Bands & Pull-up Tubes", query: "resistance band" },
+      { title: "High-Density Yoga Mats & Rollers", query: "yoga mat" },
+      { title: "Leather Weightlifting Belts & Wrist Wraps", query: "gym belt wrist wrap" },
+      { title: "Stainless Steel Shakers & Sipper Bottles", query: "gym shaker bottle" },
+      { title: "Pushup Bars, Ab Rollers & Skipping Ropes", query: "skipping rope ab roller" },
+      { title: "Home Gym Adjustable Benches", query: "gym bench" },
+    ],
+  },
+  {
+    id: "sports-wear",
+    name: "Sports Wear & Team Apparel",
+    href: "/products?search=wear",
+    icon: <Shirt size={18} />,
+    subcategories: [
+      { title: "Dri-FIT Moisture-Wicking T-Shirts", query: "athletic tshirt" },
+      { title: "Full Tracksuits & Training Pants", query: "tracksuit trackpants" },
+      { title: "Compression Inner Sleeves & Tights", query: "compression wear" },
+      { title: "Quick-Dry Sports Shorts & Bibs", query: "sports shorts" },
+      { title: "Kashmir Winter Windcheaters & Hoodies", query: "sports hoodie windcheater" },
+      { title: "Custom Sublimation Team Uniforms", query: "team jersey uniform" },
+    ],
+  },
+  {
+    id: "sports-shoes",
+    name: "Sports Shoes & Spikes",
+    href: "/products?search=shoes",
+    icon: <Tent size={18} />,
+    subcategories: [
+      { title: "Cricket Full Metal & Rubber Spikes", query: "cricket spike shoes" },
+      { title: "Football Studs & Turf Boots", query: "football turf studs" },
+      { title: "Running & Marathon Shoes", query: "running shoes" },
+      { title: "Indoor Badminton Non-Marking Shoes", query: "non marking shoes" },
+      { title: "Gym & Cross-Training Trainers", query: "training gym shoes" },
+    ],
+  },
+  {
+    id: "tennis-tt",
+    name: "Tennis & Table Tennis",
+    href: "/products?search=tennis",
+    icon: <Activity size={18} />,
+    subcategories: [
+      { title: "Lawn Tennis Rackets & Pressurized Balls", query: "lawn tennis racket" },
+      { title: "Table Tennis ITTF Approved Bats", query: "table tennis bat" },
+      { title: "3-Star Table Tennis Balls (Pack of 6/12)", query: "table tennis balls" },
+      { title: "Foldable TT Tables, Posts & Nets", query: "table tennis net" },
+    ],
+  },
+  {
+    id: "basketball-volleyball",
+    name: "Basketball & Volleyball",
+    href: "/products?search=basketball",
+    icon: <Activity size={18} />,
+    subcategories: [
+      { title: "Official Size 7 & 6 Basketballs", query: "basketball" },
+      { title: "Soft-Touch Match Volleyballs (PVA)", query: "volleyball" },
+      { title: "Spring-Loaded Basketball Hoops & Nets", query: "basketball hoop net" },
+      { title: "Knee Pads, Ankle Braces & Supports", query: "knee support brace" },
+    ],
+  },
+  {
+    id: "trophies-awards",
+    name: "Trophies, Medals & Cups",
+    href: "/products?search=trophy",
+    icon: <Trophy size={18} />,
+    subcategories: [
+      { title: "Cricket Tournament Championship Cups", query: "cricket trophy cup" },
+      { title: "Gold, Silver & Bronze Die-Cast Medals", query: "tournament medals" },
+      { title: "Custom Wooden & Acrylic Winner Shields", query: "award shield" },
+      { title: "Man of the Match & Best Bowler Statues", query: "sports statue trophy" },
+    ],
+  },
+  {
+    id: "bags-accessories",
+    name: "Sports Bags & Accessories",
+    href: "/products?search=accessories",
+    icon: <Pocket size={18} />,
+    subcategories: [
+      { title: "Heavy Duty Wheelie Kit Bags", query: "wheelie kit bag" },
+      { title: "Multi-Compartment Gym Duffle Bags", query: "gym duffle bag" },
+      { title: "Hydration Stainless Steel Flasks", query: "sports water bottle" },
+      { title: "Sweatbands, Wristbands & Sports Caps", query: "sports wristband cap" },
+      { title: "Coaching Whistles, Stopwatches & Counters", query: "stopwatch whistle" },
+    ],
+  },
 ];
 
 export default function Header() {
   const router = useRouter();
   const pathname = usePathname();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isSideDrawerOpen, setIsSideDrawerOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [isLangMenuOpen, setIsLangMenuOpen] = useState(false);
+  const [expandedCategoryId, setExpandedCategoryId] = useState<string | null>("cricket");
   const { cartCount } = useCartCount();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedSearchCat, setSelectedSearchCat] = useState("all");
   const [searchSuggestions, setSearchSuggestions] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
   const [imageError, setImageError] = useState(false);
-  const [mounted, setMounted] = useState(false);
+  const [quickBuyProducts, setQuickBuyProducts] = useState<any[]>([]);
+  const [addingCartId, setAddingCartId] = useState<string | null>(null);
 
   const userMenuRef = useRef<HTMLDivElement>(null);
   const searchContainerRef = useRef<HTMLDivElement>(null);
+  const sideDrawerRef = useRef<HTMLDivElement>(null);
 
   const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000").replace(/\/$/, "");
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   useEffect(() => {
     setImageError(false);
   }, [user?.profilePic, user?._id]);
 
+  // Click outside handlers
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
@@ -127,18 +274,24 @@ export default function Header() {
       if (searchContainerRef.current && !searchContainerRef.current.contains(event.target as Node)) {
         setShowSuggestions(false);
       }
+      if (sideDrawerRef.current && !sideDrawerRef.current.contains(event.target as Node)) {
+        setIsSideDrawerOpen(false);
+      }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // Lock body scroll when side drawer is open
   useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 50);
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+    if (isSideDrawerOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "unset";
+    }
+  }, [isSideDrawerOpen]);
 
-  // Smart search suggestions effect
+  // Smart search suggestions
   useEffect(() => {
     const query = searchQuery.trim();
     if (query.length < 2) {
@@ -150,7 +303,8 @@ export default function Header() {
     setIsSearching(true);
     const timeout = setTimeout(async () => {
       try {
-        const res = await fetch(`${API_URL}/product/getAll?search=${encodeURIComponent(query)}&limit=6`);
+        const catFilter = selectedSearchCat !== "all" ? `&category=${selectedSearchCat}` : "";
+        const res = await fetch(`${API_URL}/product/getAll?search=${encodeURIComponent(query)}${catFilter}&limit=6`);
         const data = await res.json();
         if (data.success && data.data) {
           const items = Array.isArray(data.data) ? data.data : data.data.items || [];
@@ -160,7 +314,7 @@ export default function Header() {
           setSearchSuggestions([]);
         }
       } catch (err) {
-        console.error("Search suggestion error:", err);
+        console.error("Search error:", err);
         setSearchSuggestions([]);
       } finally {
         setIsSearching(false);
@@ -168,22 +322,21 @@ export default function Header() {
     }, 250);
 
     return () => clearTimeout(timeout);
-  }, [searchQuery]);
+  }, [searchQuery, selectedSearchCat, API_URL]);
 
   // Auth checking
   useEffect(() => {
     const checkAuth = () => {
       const token = localStorage.getItem("token");
       const userData = localStorage.getItem("user");
-      
+
       if (token && userData) {
         try {
           const parsedUser = JSON.parse(userData);
           setUser(parsedUser);
           setIsLoggedIn(true);
           setImageError(false);
-        } catch (e) {
-          console.error("Error parsing user data:", e);
+        } catch {
           setIsLoggedIn(false);
           setUser(null);
         }
@@ -192,58 +345,18 @@ export default function Header() {
         setUser(null);
       }
     };
-    
+
     checkAuth();
-    
+
     window.addEventListener("authUpdated", checkAuth);
     window.addEventListener("userUpdated", checkAuth);
-    window.addEventListener("popstate", checkAuth);
     return () => {
       window.removeEventListener("authUpdated", checkAuth);
       window.removeEventListener("userUpdated", checkAuth);
-      window.removeEventListener("popstate", checkAuth);
     };
   }, [pathname]);
 
-  // Verify token
-  useEffect(() => {
-    const verifyToken = async () => {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        setIsLoggedIn(false);
-        setUser(null);
-        return;
-      }
-      
-      try {
-        const response = await fetch(`${API_URL}/user/verify`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const result = await response.json();
-        
-        if (result.payload) {
-          setUser(result.payload);
-          setIsLoggedIn(true);
-          localStorage.setItem("user", JSON.stringify(result.payload));
-        } else {
-          localStorage.removeItem("token");
-          localStorage.removeItem("user");
-          setIsLoggedIn(false);
-          setUser(null);
-        }
-      } catch (error) {
-        console.error("Error verifying user:", error);
-      }
-    };
-    
-    if (localStorage.getItem("token")) {
-      verifyToken();
-    }
-  }, [API_URL]);
-
-  const [quickBuyProducts, setQuickBuyProducts] = useState<any[]>([]);
-  const [addingCartId, setAddingCartId] = useState<string | null>(null);
-
+  // Load quick buy products
   useEffect(() => {
     async function loadQuickBuy() {
       try {
@@ -297,7 +410,8 @@ export default function Header() {
     const query = searchQuery.trim();
     if (query) {
       setShowSuggestions(false);
-      router.push(`/products?search=${encodeURIComponent(query)}`);
+      const catParam = selectedSearchCat !== "all" ? `&category=${selectedSearchCat}` : "";
+      router.push(`/products?search=${encodeURIComponent(query)}${catParam}`);
       setIsMenuOpen(false);
     }
   };
@@ -310,89 +424,109 @@ export default function Header() {
     setUser(null);
     setIsUserMenuOpen(false);
     toast.success("Logged out successfully");
+    window.dispatchEvent(new Event("authUpdated"));
     router.push("/login");
+  };
+
+  const toggleCategoryAccordion = (categoryId: string) => {
+    setExpandedCategoryId((prev) => (prev === categoryId ? null : categoryId));
   };
 
   const profileImageUrl = getProfileImageUrl(user?.profilePic);
 
   return (
-    <header
-      suppressHydrationWarning
-      className={`sticky top-0 z-50 transition-all duration-300 ${
-        scrolled
-          ? "shadow-xl bg-white/95 dark:bg-gray-900/95 backdrop-blur-md"
-          : "shadow-lg bg-white dark:bg-gray-900"
-      }`}
-    >
-      {/* Top Banner */}
-      <div className="bg-gradient-to-r from-orange-600 via-red-600 to-pink-600 text-white text-center py-2 px-4 text-xs font-semibold tracking-wide shadow-inner">
-        <div className="flex items-center justify-center gap-3 sm:gap-6 flex-wrap">
-          <span className="flex items-center gap-1.5 hover:opacity-90 transition-opacity">
-            <span>🚚</span> Free Shipping on orders above ₹999
-          </span>
-          <span className="hidden md:inline text-white/40">|</span>
-          <span className="flex items-center gap-1.5 hover:opacity-90 transition-opacity">
-            <span>⚡</span> Kashmir&apos;s Fastest Sports Delivery
-          </span>
-          <span className="hidden md:inline text-white/40">|</span>
-          <span className="flex items-center gap-1.5 hover:opacity-90 transition-opacity">
-            <span>🏆</span> 100% Authentic Products
-          </span>
-        </div>
-      </div>
-
-      <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between h-16">
-          {/* Logo */}
-          <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="w-10 h-10 bg-gradient-to-br from-orange-500 via-red-500 to-pink-500 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow">
-              <Trophy className="w-6 h-6 text-white" />
+    <header suppressHydrationWarning className="sticky top-0 z-50 shadow-md">
+      {/* ═══════════════════════════════════════════════════════════════════════
+          ROW 1: Amazon-Style Main Header Bar (#131921 Navy/Black)
+      ═══════════════════════════════════════════════════════════════════════ */}
+      <div className="bg-[#131921] text-white px-2 sm:px-4 py-1.5 sm:py-2">
+        <div className="max-w-[1500px] mx-auto flex items-center justify-between gap-2 sm:gap-4">
+          {/* ── 1. Logo ── */}
+          <Link
+            href="/"
+            className="flex items-center gap-1.5 px-2 py-1.5 rounded-xs hover:outline-1 hover:outline-white shrink-0 group"
+          >
+            <div className="w-8 h-8 bg-gradient-to-tr from-amber-500 via-orange-500 to-red-500 rounded-lg flex items-center justify-center shadow-xs">
+              <Trophy size={18} className="text-white" />
             </div>
-            <div>
-              <h1 className="text-xl font-bold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">
-                Sportify <span className="text-gray-900 dark:text-white">Kashmir</span>
-              </h1>
-              <p className="text-xs text-gray-500 dark:text-gray-400 -mt-1">Sports Excellence Delivered</p>
+            <div className="flex flex-col leading-none">
+              <span className="text-base sm:text-lg font-black tracking-tight text-white flex items-center">
+                sportify<span className="text-amber-400 font-bold text-sm">.in</span>
+              </span>
+              <span className="text-[9px] text-gray-300 font-semibold tracking-wider uppercase -mt-0.5">
+                Kashmir
+              </span>
             </div>
           </Link>
 
-          {/* Desktop Search with Smart Suggestions */}
-          <div className="hidden lg:block flex-1 max-w-2xl mx-6 relative" ref={searchContainerRef}>
-            <form onSubmit={handleSearch} className="relative">
-              <Search className="absolute left-3.5 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+          {/* ── 2. Deliver To Location Button ── */}
+          <Link
+            href={isLoggedIn ? "/profile?tab=addresses" : "/login"}
+            className="hidden md:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xs hover:outline-1 hover:outline-white shrink-0 text-left"
+          >
+            <MapPin size={16} className="text-white shrink-0 mt-2" />
+            <div className="flex flex-col leading-tight">
+              <span className="text-[11px] text-gray-300 font-normal truncate max-w-[120px]">
+                Deliver to {isLoggedIn && user ? (user.username || "User") : "Kashmir"}
+              </span>
+              <span className="text-xs font-bold text-white whitespace-nowrap">
+                Srinagar 190009
+              </span>
+            </div>
+          </Link>
+
+          {/* ── 3. Amazon-Style Search Bar ── */}
+          <div className="flex-1 max-w-3xl relative mx-1 sm:mx-2" ref={searchContainerRef}>
+            <form onSubmit={handleSearch} className="flex h-10 rounded-md overflow-hidden shadow-sm">
+              {/* Category Select Pill */}
+              <div className="relative hidden sm:flex items-center bg-[#f3f3f3] text-gray-800 border-r border-gray-300 hover:bg-[#e6e6e6] transition cursor-pointer">
+                <select
+                  value={selectedSearchCat}
+                  onChange={(e) => setSelectedSearchCat(e.target.value)}
+                  className="h-full px-2.5 text-xs font-semibold bg-transparent appearance-none cursor-pointer outline-none pr-6 text-gray-800"
+                >
+                  {SEARCH_CATEGORIES.map((c) => (
+                    <option key={c.id} value={c.id} className="text-gray-900 bg-white">
+                      {c.label}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown size={12} className="absolute right-1.5 text-gray-600 pointer-events-none" />
+              </div>
+
+              {/* Input */}
               <input
                 id="header-search-desktop"
                 name="search"
                 type="text"
-                placeholder="Search sports gear, shoes, jerseys, equipment..."
+                placeholder="Search Kashmir willow bats, match footballs, gym gear, jerseys..."
                 value={searchQuery}
-                aria-label="Search sports gear, shoes, jerseys, equipment"
                 onFocus={() => {
                   if (searchQuery.trim().length >= 2) setShowSuggestions(true);
                 }}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-28 py-2.5 text-sm border-2 border-gray-200 dark:border-gray-700 rounded-full focus:outline-none focus:border-orange-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 transition-colors"
+                className="flex-1 px-3.5 text-sm text-gray-900 bg-white placeholder-gray-500 outline-none"
               />
+
+              {/* Amber Search Submit Button */}
               <button
                 type="submit"
                 aria-label="Submit search"
-                className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-gradient-to-r from-orange-500 to-red-500 text-white px-4 py-1.5 rounded-full text-xs font-semibold hover:shadow-md transition-shadow flex items-center gap-1 cursor-pointer"
+                className="w-11 sm:w-12 bg-[#febd69] hover:bg-[#f3a847] text-gray-900 flex items-center justify-center transition cursor-pointer shrink-0"
               >
-                {isSearching ? <Loader2 size={13} className="animate-spin" /> : "Search"}
+                {isSearching ? <Loader2 size={18} className="animate-spin" /> : <Search size={19} />}
               </button>
             </form>
 
-            {/* Suggestions Popup */}
+            {/* Smart Search Suggestions Dropdown */}
             {showSuggestions && searchSuggestions.length > 0 && (
-              <div className="absolute left-0 right-0 top-full mt-2 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-150">
-                <div className="p-2 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between text-xs text-gray-500 font-semibold px-3">
+              <div className="absolute left-0 right-0 top-full mt-1 bg-white text-gray-900 rounded-md shadow-2xl border border-gray-200 overflow-hidden z-50">
+                <div className="p-2 border-b border-gray-100 bg-gray-50 flex items-center justify-between text-xs text-gray-500 font-semibold px-3">
                   <span>Search Suggestions</span>
                   <span className="text-[11px] font-normal">{searchSuggestions.length} items found</span>
                 </div>
-                <div className="max-h-80 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-700/50">
+                <div className="max-h-80 overflow-y-auto divide-y divide-gray-100">
                   {searchSuggestions.map((item) => {
-                    const img = item.productImgUrls?.[0] || item.images?.[0];
-                    const imgSrc = img ? resolveProductImage(img) : "/placeholder.svg";
                     const hasDiscount = item.discount && item.discount > 0;
                     const finalPrice = hasDiscount ? item.price - (item.price * item.discount) / 100 : item.price;
 
@@ -401,19 +535,19 @@ export default function Header() {
                         key={item._id}
                         href={`/product/${item._id}`}
                         onClick={() => setShowSuggestions(false)}
-                        className="flex items-center gap-3 p-2.5 hover:bg-orange-50/70 dark:hover:bg-orange-950/30 transition-colors group"
+                        className="flex items-center gap-3 p-2.5 hover:bg-orange-50 transition group"
                       >
-                        <div className="relative w-11 h-11 rounded-lg overflow-hidden bg-gray-50 dark:bg-gray-700 shrink-0 border border-gray-100 dark:border-gray-600 flex items-center justify-center">
+                        <div className="relative w-10 h-10 rounded-md overflow-hidden bg-gray-50 shrink-0 border border-gray-200 flex items-center justify-center p-1">
                           <ProductImage
                             product={item}
                             alt={item.name}
-                            fill
-                            sizes="44px"
+                            width={40}
+                            height={40}
                             className="object-contain"
                           />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate group-hover:text-orange-600 transition-colors">
+                          <p className="text-xs font-semibold text-gray-900 truncate group-hover:text-orange-600">
                             {item.name}
                           </p>
                           <div className="flex items-center gap-2 mt-0.5">
@@ -425,141 +559,121 @@ export default function Header() {
                                 ₹{item.price}
                               </span>
                             )}
-                            {item.category && (
-                              <span className="text-[10px] text-gray-500 bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded">
-                                {typeof item.category === "object" ? item.category.name : item.category}
-                              </span>
-                            )}
                           </div>
                         </div>
                       </Link>
                     );
                   })}
                 </div>
-                <button
-                  type="button"
-                  onClick={handleSearch}
-                  className="w-full py-2 bg-gray-50 dark:bg-gray-750 hover:bg-orange-50 dark:hover:bg-gray-700 text-xs font-semibold text-orange-600 text-center transition-colors border-t border-gray-100 dark:border-gray-700"
-                >
-                  View all results for &quot;{searchQuery}&quot; →
-                </button>
               </div>
             )}
           </div>
 
-          {/* User Actions */}
-          <div className="flex items-center gap-2">
-            {/* Theme Toggle */}
-            <ThemeToggle />
+          {/* ── 4. Right Section Actions ── */}
+          <div className="flex items-center gap-0.5 sm:gap-1.5 shrink-0">
+            {/* Language Flag (Desktop) */}
+            <div className="relative hidden xl:flex">
+              <button
+                type="button"
+                onClick={() => setIsLangMenuOpen(!isLangMenuOpen)}
+                className="flex items-center gap-1 px-2 py-1.5 rounded-xs hover:outline-1 hover:outline-white text-xs font-bold"
+              >
+                <span>🇮🇳</span>
+                <span>EN</span>
+                <ChevronDown size={10} className="text-gray-400" />
+              </button>
+            </div>
 
-            {/* Wishlist - Desktop */}
-            <Link href="/wishlist" className="hidden md:flex relative p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition group" aria-label="Wishlist">
-              <Heart className="text-gray-700 dark:text-gray-300 group-hover:text-orange-500 transition" size={22} />
-            </Link>
-
-            {/* Cart */}
-            <Link href="/cart" className="relative p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition group" aria-label="Shopping Cart">
-              <ShoppingCart className="text-gray-700 dark:text-gray-300 group-hover:text-orange-500 transition" size={24} />
-              {cartCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center animate-scale-in">
-                  {cartCount}
-                </span>
-              )}
-            </Link>
-
-            {/* User Account Dropdown (Amazon-style Mega Dropdown) */}
+            {/* ── 5. Account & Lists Dropdown (Amazon-Style) ── */}
             <div className="relative" ref={userMenuRef}>
               <button
+                type="button"
                 onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                className="flex items-center gap-2 py-1 px-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition cursor-pointer border border-transparent hover:border-gray-200 dark:hover:border-gray-700"
-                aria-label="Account and lists menu"
-                aria-expanded={isUserMenuOpen}
+                className="flex items-center gap-1.5 px-2 py-1.5 rounded-xs hover:outline-1 hover:outline-white text-left cursor-pointer"
+                aria-label="Account and lists"
               >
                 {isLoggedIn && profileImageUrl && !imageError ? (
                   <img
                     src={profileImageUrl}
                     alt="Profile"
-                    className="w-9 h-9 rounded-full object-cover border-2 border-orange-500 shrink-0"
+                    className="w-7 h-7 rounded-full object-cover border border-amber-400 shrink-0"
                     onError={() => setImageError(true)}
                   />
                 ) : (
-                  <div className="w-9 h-9 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center shrink-0">
-                    <User className="text-gray-600 dark:text-gray-300" size={18} />
-                  </div>
+                  <User size={16} className="text-gray-300 shrink-0 sm:hidden" />
                 )}
-                <div className="hidden md:flex flex-col text-left leading-tight">
-                  <span className="text-[11px] text-gray-500 dark:text-gray-400 font-normal truncate max-w-[120px]">
+                <div className="hidden sm:flex flex-col leading-tight">
+                  <span className="text-[11px] text-gray-300 font-normal truncate max-w-[110px]">
                     Hello, {isLoggedIn && user ? (user.username || user.email?.split("@")[0]) : "sign in"}
                   </span>
-                  <span className="text-xs font-bold text-gray-900 dark:text-white flex items-center gap-0.5">
+                  <span className="text-xs font-bold text-white flex items-center gap-0.5 whitespace-nowrap">
                     Account & Lists
-                    <ChevronDown size={13} className={`text-gray-500 transition-transform ${isUserMenuOpen ? "rotate-180" : ""}`} />
+                    <ChevronDown size={11} className={`text-gray-400 transition-transform ${isUserMenuOpen ? "rotate-180" : ""}`} />
                   </span>
                 </div>
               </button>
 
-              {/* Amazon Mega Dropdown Menu */}
+              {/* Mega Dropdown Menu */}
               <div
-                className={`absolute right-0 top-full mt-2 w-[92vw] sm:w-[580px] lg:w-[680px] bg-white dark:bg-gray-850 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 transition-all duration-200 z-50 overflow-hidden ${
+                className={`fixed sm:absolute left-2.5 right-2.5 sm:left-auto sm:right-0 top-14 sm:top-full mt-1 w-auto sm:w-[580px] lg:w-[660px] max-h-[82vh] overflow-y-auto overscroll-contain bg-white text-gray-900 rounded-lg shadow-2xl border border-gray-200 transition-all duration-200 z-50 ${
                   isUserMenuOpen ? "opacity-100 visible translate-y-0" : "opacity-0 invisible -translate-y-2 pointer-events-none"
                 }`}
               >
-                {/* ─── Top Bar: Profile Strip ─── */}
-                <div className="px-4 py-2.5 bg-gray-50 dark:bg-gray-800/80 border-b border-gray-100 dark:border-gray-700/80 flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300">
+                {/* Top Profile Strip */}
+                <div className="px-4 py-2.5 bg-gray-50 border-b border-gray-100 flex items-center justify-between sticky top-0 z-10">
+                  <div className="flex items-center gap-2 text-xs text-gray-600">
                     <span>Who is shopping?</span>
                     {isLoggedIn && user ? (
-                      <span className="font-bold text-gray-900 dark:text-white flex items-center gap-1.5">
-                        <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" />
+                      <span className="font-bold text-gray-900 flex items-center gap-1.5 truncate max-w-[180px]">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
                         {user.username || user.email}
                       </span>
                     ) : (
-                      <span className="font-medium text-gray-500">Guest Customer</span>
+                      <span className="font-medium text-gray-500">Guest</span>
                     )}
                   </div>
                   <Link
                     href={isLoggedIn ? "/profile" : "/login"}
                     onClick={() => setIsUserMenuOpen(false)}
-                    className="text-xs font-bold text-orange-600 dark:text-orange-400 hover:text-orange-700 flex items-center gap-0.5 hover:underline"
+                    className="text-xs font-bold text-orange-600 hover:text-orange-700 hover:underline"
                   >
                     {isLoggedIn ? "Manage Profile ›" : "Sign In ›"}
                   </Link>
                 </div>
 
-                {/* ─── 3-Column Grid ─── */}
-                <div className="grid grid-cols-1 sm:grid-cols-12 divide-y sm:divide-y-0 sm:divide-x divide-gray-100 dark:divide-gray-700/60 p-4 gap-4">
-                  {/* Column 1: Buy It Again (sm:col-span-5) */}
+                {/* 3-Column Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-12 divide-y sm:divide-y-0 sm:divide-x divide-gray-100 p-4 gap-4 text-xs">
+                  {/* Col 1: Buy It Again */}
                   <div className="sm:col-span-5 pr-0 sm:pr-2">
-                    <div className="flex items-center justify-between pb-1.5 mb-2 border-b border-gray-100 dark:border-gray-700">
-                      <h4 className="text-xs font-extrabold text-gray-900 dark:text-white uppercase tracking-wider">
+                    <div className="flex items-center justify-between pb-1.5 mb-2 border-b border-gray-100">
+                      <h4 className="font-extrabold text-gray-900 uppercase tracking-wider">
                         Buy it again
                       </h4>
                       <Link
                         href="/products"
                         onClick={() => setIsUserMenuOpen(false)}
-                        className="text-[11px] text-orange-600 dark:text-orange-400 font-semibold hover:underline"
+                        className="text-[11px] text-orange-600 font-semibold hover:underline"
                       >
                         View All
                       </Link>
                     </div>
-
                     <div className="space-y-2.5">
                       {quickBuyProducts.length > 0 ? (
                         quickBuyProducts.map((prod) => (
                           <div
                             key={prod._id}
-                            className="flex items-center gap-2.5 p-1.5 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800/60 transition group"
+                            className="flex items-center gap-2.5 p-1.5 rounded-lg hover:bg-gray-50 transition group"
                           >
                             <Link
                               href={`/product/${prod._id}`}
                               onClick={() => setIsUserMenuOpen(false)}
-                              className="relative w-12 h-12 rounded-lg bg-gray-100 dark:bg-gray-750 shrink-0 overflow-hidden border border-gray-200 dark:border-gray-700 flex items-center justify-center p-1"
+                              className="w-11 h-11 rounded-md bg-gray-50 shrink-0 border border-gray-200 flex items-center justify-center p-1"
                             >
                               <ProductImage
                                 product={prod}
                                 alt={prod.name}
-                                width={48}
-                                height={48}
+                                width={44}
+                                height={44}
                                 className="object-contain"
                               />
                             </Link>
@@ -568,18 +682,18 @@ export default function Header() {
                                 href={`/product/${prod._id}`}
                                 onClick={() => setIsUserMenuOpen(false)}
                               >
-                                <p className="text-xs font-semibold text-gray-900 dark:text-gray-100 truncate group-hover:text-orange-600 transition">
+                                <p className="font-semibold text-gray-900 truncate group-hover:text-orange-600">
                                   {prod.name}
                                 </p>
                               </Link>
-                              <p className="text-xs font-bold text-orange-600 dark:text-orange-400">
+                              <p className="font-bold text-orange-600">
                                 ₹{Math.round(prod.discount ? prod.price - (prod.price * prod.discount) / 100 : prod.price).toLocaleString("en-IN")}
                               </p>
                               <button
                                 type="button"
                                 onClick={(e) => handleQuickAddToCart(prod._id, e)}
                                 disabled={addingCartId === prod._id}
-                                className="mt-1 px-2.5 py-0.5 text-[11px] font-bold rounded-md bg-amber-400 hover:bg-amber-500 text-gray-900 transition flex items-center gap-1 shadow-xs cursor-pointer disabled:opacity-50"
+                                className="mt-1 px-2 py-0.5 text-[10px] font-bold rounded bg-amber-400 hover:bg-amber-500 text-gray-900 transition flex items-center gap-1 shadow-xs cursor-pointer"
                               >
                                 {addingCartId === prod._id ? (
                                   <Loader2 size={10} className="animate-spin" />
@@ -592,98 +706,69 @@ export default function Header() {
                           </div>
                         ))
                       ) : (
-                        <div className="text-center py-4 text-xs text-gray-500">
-                          <ShoppingBag size={20} className="mx-auto mb-1 text-gray-400" />
+                        <div className="text-center py-4 text-gray-400">
                           <span>No past orders yet</span>
                         </div>
                       )}
                     </div>
                   </div>
 
-                  {/* Column 2: Your Lists (sm:col-span-3) */}
-                  <div className="sm:col-span-3 px-0 sm:px-2 pt-3 sm:pt-0">
-                    <h4 className="text-xs font-extrabold text-gray-900 dark:text-white uppercase tracking-wider pb-1.5 mb-2 border-b border-gray-100 dark:border-gray-700">
+                  {/* Col 2: Your Lists */}
+                  <div className="sm:col-span-3 px-0 sm:px-2 pt-2 sm:pt-0">
+                    <h4 className="font-extrabold text-gray-900 uppercase tracking-wider pb-1.5 mb-2 border-b border-gray-100">
                       Your Lists
                     </h4>
-                    <ul className="space-y-2 text-xs font-medium text-gray-700 dark:text-gray-300">
+                    <ul className="space-y-2 font-medium text-gray-700">
                       <li>
-                        <Link
-                          href="/wishlist"
-                          onClick={() => setIsUserMenuOpen(false)}
-                          className="flex items-center gap-1.5 py-1 hover:text-orange-600 transition"
-                        >
-                          <Heart size={13} className="text-orange-500 shrink-0" />
-                          <span>Your Wishlist</span>
+                        <Link href="/wishlist" onClick={() => setIsUserMenuOpen(false)} className="hover:text-orange-600 flex items-center gap-1.5">
+                          <Heart size={13} className="text-orange-500" />
+                          <span>Wishlist</span>
                         </Link>
                       </li>
                       <li>
-                        <Link
-                          href="/categories"
-                          onClick={() => setIsUserMenuOpen(false)}
-                          className="flex items-center gap-1.5 py-1 hover:text-orange-600 transition"
-                        >
-                          <Award size={13} className="text-orange-500 shrink-0" />
-                          <span>Sports Showroom</span>
+                        <Link href="/wholesale" onClick={() => setIsUserMenuOpen(false)} className="hover:text-orange-600 flex items-center gap-1.5">
+                          <Building2 size={13} className="text-orange-500" />
+                          <span>Academy Wholesale</span>
                         </Link>
                       </li>
                       <li>
-                        <Link
-                          href="/products"
-                          onClick={() => setIsUserMenuOpen(false)}
-                          className="flex items-center gap-1.5 py-1 hover:text-orange-600 transition"
-                        >
-                          <Tag size={13} className="text-orange-500 shrink-0" />
-                          <span>Special Deals</span>
+                        <Link href="/products" onClick={() => setIsUserMenuOpen(false)} className="hover:text-orange-600 flex items-center gap-1.5">
+                          <Tag size={13} className="text-orange-500" />
+                          <span>Deals & Sale</span>
                         </Link>
                       </li>
                     </ul>
                   </div>
 
-                  {/* Column 3: Your Account (sm:col-span-4) */}
-                  <div className="sm:col-span-4 pl-0 sm:pl-2 pt-3 sm:pt-0">
-                    <h4 className="text-xs font-extrabold text-gray-900 dark:text-white uppercase tracking-wider pb-1.5 mb-2 border-b border-gray-100 dark:border-gray-700">
+                  {/* Col 3: Your Account */}
+                  <div className="sm:col-span-4 pl-0 sm:pl-2 pt-2 sm:pt-0">
+                    <h4 className="font-extrabold text-gray-900 uppercase tracking-wider pb-1.5 mb-2 border-b border-gray-100">
                       Your Account
                     </h4>
                     {isLoggedIn && user ? (
-                      <ul className="space-y-2 text-xs font-medium text-gray-700 dark:text-gray-300">
+                      <ul className="space-y-2 font-medium text-gray-700">
                         {user?.isAdmin && (
                           <li>
-                            <Link
-                              href="/admin"
-                              onClick={() => setIsUserMenuOpen(false)}
-                              className="flex items-center gap-1.5 py-1 text-orange-600 font-bold hover:underline"
-                            >
-                              <span>⭐ Admin Dashboard</span>
+                            <Link href="/admin" onClick={() => setIsUserMenuOpen(false)} className="text-orange-600 font-bold hover:underline">
+                              ⭐ Admin Dashboard
                             </Link>
                           </li>
                         )}
                         <li>
-                          <Link
-                            href="/profile"
-                            onClick={() => setIsUserMenuOpen(false)}
-                            className="flex items-center gap-1.5 py-1 hover:text-orange-600 transition"
-                          >
-                            <User size={13} className="text-gray-500 shrink-0" />
+                          <Link href="/profile" onClick={() => setIsUserMenuOpen(false)} className="hover:text-orange-600 flex items-center gap-1.5">
+                            <User size={13} className="text-gray-500" />
                             <span>Your Account</span>
                           </Link>
                         </li>
                         <li>
-                          <Link
-                            href="/orders"
-                            onClick={() => setIsUserMenuOpen(false)}
-                            className="flex items-center gap-1.5 py-1 hover:text-orange-600 transition"
-                          >
-                            <ClipboardList size={13} className="text-gray-500 shrink-0" />
+                          <Link href="/orders" onClick={() => setIsUserMenuOpen(false)} className="hover:text-orange-600 flex items-center gap-1.5">
+                            <ClipboardList size={13} className="text-gray-500" />
                             <span>Your Orders</span>
                           </Link>
                         </li>
                         <li>
-                          <Link
-                            href="/profile?tab=addresses"
-                            onClick={() => setIsUserMenuOpen(false)}
-                            className="flex items-center gap-1.5 py-1 hover:text-orange-600 transition"
-                          >
-                            <MapPin size={13} className="text-gray-500 shrink-0" />
+                          <Link href="/address" onClick={() => setIsUserMenuOpen(false)} className="hover:text-orange-600 flex items-center gap-1.5">
+                            <MapPin size={13} className="text-gray-500" />
                             <span>Your Addresses</span>
                           </Link>
                         </li>
@@ -694,39 +779,35 @@ export default function Header() {
                               setIsUserMenuOpen(false);
                               window.dispatchEvent(new CustomEvent("show-pwa-install"));
                             }}
-                            className="flex items-center gap-1.5 py-1 text-orange-600 hover:underline cursor-pointer"
+                            className="text-orange-600 hover:underline flex items-center gap-1.5 cursor-pointer"
                           >
-                            <Download size={13} className="shrink-0" />
+                            <Download size={13} />
                             <span>Install App</span>
                           </button>
                         </li>
-                        <li className="pt-2 border-t border-gray-100 dark:border-gray-700">
+                        <li className="pt-2 border-t border-gray-100">
                           <button
                             type="button"
                             onClick={handleLogout}
-                            className="flex items-center gap-1.5 py-1 text-red-600 hover:text-red-700 font-bold transition cursor-pointer"
+                            className="text-red-600 hover:text-red-700 font-bold flex items-center gap-1.5 cursor-pointer"
                           >
-                            <LogOut size={13} className="shrink-0" />
+                            <LogOut size={13} />
                             <span>Sign Out</span>
                           </button>
                         </li>
                       </ul>
                     ) : (
-                      <div className="space-y-2.5">
+                      <div className="space-y-2">
                         <Link
                           href="/login"
                           onClick={() => setIsUserMenuOpen(false)}
-                          className="block w-full py-2 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white text-center rounded-xl font-bold text-xs shadow-md transition"
+                          className="block w-full py-2 bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-500 hover:to-orange-600 text-gray-900 font-bold text-center rounded shadow-xs"
                         >
                           Sign In
                         </Link>
                         <p className="text-[11px] text-gray-500 text-center">
                           New customer?{" "}
-                          <Link
-                            href="/signup"
-                            onClick={() => setIsUserMenuOpen(false)}
-                            className="text-orange-600 font-bold hover:underline"
-                          >
+                          <Link href="/signup" onClick={() => setIsUserMenuOpen(false)} className="text-orange-600 font-bold hover:underline">
                             Start here.
                           </Link>
                         </p>
@@ -737,107 +818,460 @@ export default function Header() {
               </div>
             </div>
 
-            {/* Mobile Menu Button */}
-            <button
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-              aria-label={isMenuOpen ? "Close navigation menu" : "Open navigation menu"}
-              aria-expanded={isMenuOpen}
-              className="p-2 lg:hidden rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition"
+            {/* ── 6. Returns & Orders Button ── */}
+            <Link
+              href="/orders"
+              className="hidden md:flex flex-col leading-tight px-2 py-1.5 rounded-xs hover:outline-1 hover:outline-white text-left shrink-0"
             >
-              {isMenuOpen ? <X size={24} className="text-gray-700 dark:text-gray-300" /> : <Menu size={24} className="text-gray-700 dark:text-gray-300" />}
+              <span className="text-[11px] text-gray-300 font-normal">Returns</span>
+              <span className="text-xs font-bold text-white whitespace-nowrap">& Orders</span>
+            </Link>
+
+            {/* ── 7. Cart Button ── */}
+            <Link
+              href="/cart"
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-xs hover:outline-1 hover:outline-white shrink-0 relative"
+              aria-label="Shopping cart"
+            >
+              <div className="relative">
+                <ShoppingCart size={26} className="text-white" />
+                <span className="absolute -top-1.5 left-3 bg-[#f08804] text-gray-900 text-xs font-black rounded-full h-4 min-w-4 px-1 flex items-center justify-center leading-none">
+                  {cartCount}
+                </span>
+              </div>
+              <span className="hidden md:inline text-xs font-bold text-white mt-2">Cart</span>
+            </Link>
+
+            {/* Theme Toggle */}
+            <div className="pl-1">
+              <ThemeToggle />
+            </div>
+
+            {/* Mobile Hamburger Toggle Button */}
+            <button
+              type="button"
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              className="lg:hidden p-1.5 text-white hover:text-amber-400 transition"
+              aria-label="Toggle navigation menu"
+            >
+              {isMenuOpen ? <X size={22} /> : <Menu size={22} />}
             </button>
           </div>
         </div>
+      </div>
 
-        {/* Desktop Navigation */}
-        <nav className="hidden lg:flex items-center justify-between py-2 border-t border-gray-200 dark:border-gray-700" aria-label="Main Navigation">
-          <div className="flex items-center gap-1">
-            {MAIN_NAV.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
-                  pathname === item.href
-                    ? "bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-md"
-                    : "text-gray-700 dark:text-gray-300 hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-500/10"
-                }`}
-              >
-                {item.icon}
-                {item.label}
-              </Link>
-            ))}
+      {/* ═══════════════════════════════════════════════════════════════════════
+          ROW 2: Amazon-Style Sub-Navigation Bar (#232f3e Navy)
+      ═══════════════════════════════════════════════════════════════════════ */}
+      <div className="bg-[#232f3e] text-white px-2 sm:px-4 py-1.5 text-xs font-medium border-t border-[#37475a] overflow-x-auto scrollbar-none">
+        <div className="max-w-[1500px] mx-auto flex items-center justify-between gap-4">
+          <div className="flex items-center gap-1 sm:gap-2 whitespace-nowrap">
+            {/* ☰ All Drawer Button */}
+            <button
+              type="button"
+              onClick={() => setIsSideDrawerOpen(true)}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-xs hover:outline-1 hover:outline-white font-bold text-white cursor-pointer"
+            >
+              <Menu size={16} />
+              <span>All</span>
+            </button>
+
+            {/* AI Assistant Badge */}
+            <Link
+              href="/products"
+              className="flex items-center gap-1 px-2 py-1 rounded-full bg-gradient-to-r from-orange-500/20 to-amber-500/20 border border-orange-400/40 text-amber-300 font-bold hover:bg-orange-500/30 transition"
+            >
+              <Sparkles size={13} className="text-amber-400" />
+              <span>⚡ Kashmir Express</span>
+            </Link>
+
+            {/* Sports Links */}
+            <Link href="/products?search=cricket" className="px-2 py-1 rounded-xs hover:outline-1 hover:outline-white">
+              Cricket Willow
+            </Link>
+            <Link href="/products?search=football" className="px-2 py-1 rounded-xs hover:outline-1 hover:outline-white">
+              Football
+            </Link>
+            <Link href="/products?search=badminton" className="px-2 py-1 rounded-xs hover:outline-1 hover:outline-white">
+              Badminton
+            </Link>
+            <Link href="/products?search=gym" className="px-2 py-1 rounded-xs hover:outline-1 hover:outline-white">
+              Gym & Fitness
+            </Link>
+            <Link href="/products" className="px-2 py-1 rounded-xs hover:outline-1 hover:outline-white">
+              Buy Again
+            </Link>
+            <Link href="/profile" className="px-2 py-1 rounded-xs hover:outline-1 hover:outline-white">
+              Sportify Prime
+            </Link>
+            <Link href="/wholesale" className="px-2 py-1 rounded-xs hover:outline-1 hover:outline-white font-bold text-amber-300">
+              Academy Wholesale
+            </Link>
+            <Link href="/contact" className="px-2 py-1 rounded-xs hover:outline-1 hover:outline-white">
+              Customer Service
+            </Link>
           </div>
-        </nav>
 
-        {/* Mobile Menu */}
-        <div className={`lg:hidden overflow-hidden transition-all duration-300 ${
-          isMenuOpen ? "max-h-[80vh] opacity-100" : "max-h-0 opacity-0"
-        }`}>
-          <div className="py-4 border-t border-gray-200 dark:border-gray-700 overflow-y-auto max-h-[70vh]">
-            <form onSubmit={handleSearch} className="mb-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
-                <input
-                  id="header-search-mobile"
-                  name="search"
-                  type="text"
-                  placeholder="Search products..."
-                  value={searchQuery}
-                  aria-label="Search products"
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-28 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400"
-                />
-                <button
-                  type="submit"
-                  aria-label="Submit search"
-                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg bg-gradient-to-r from-orange-500 to-red-500 px-3 py-1.5 text-xs font-semibold text-white shadow-md cursor-pointer"
-                >
-                  Search
-                </button>
-              </div>
-            </form>
-            <div className="space-y-1">
-              {MAIN_NAV.map((item) => (
-                <Link key={item.href} href={item.href} className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition text-gray-700 dark:text-gray-300" onClick={() => setIsMenuOpen(false)}>
-                  {item.icon}
-                  <span>{item.label}</span>
-                </Link>
-              ))}
-            </div>
-            <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-              <h3 className="font-semibold text-gray-900 dark:text-white mb-3 px-3">Sports Categories</h3>
-              <div className="grid grid-cols-2 gap-2">
-                {SPORTS_CATEGORIES.map((category) => (
-                  <Link key={category.name} href={category.href} className="flex items-center gap-2 px-3 py-2.5 bg-gray-50 dark:bg-gray-800 rounded-xl hover:bg-orange-50 dark:hover:bg-orange-500/10 transition text-gray-700 dark:text-gray-300" onClick={() => setIsMenuOpen(false)}>
-                    {category.icon}
-                    <span className="text-sm font-medium">{category.name}</span>
-                  </Link>
-                ))}
-              </div>
-            </div>
-            {!isLoggedIn && (
-              <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 space-y-2">
-                <Link href="/login" className="block w-full text-center bg-orange-500 text-white py-2.5 rounded-xl font-medium" onClick={() => setIsMenuOpen(false)}>Login</Link>
-                <Link href="/signup" className="block w-full text-center border border-orange-500 text-orange-500 py-2.5 rounded-xl font-medium" onClick={() => setIsMenuOpen(false)}>Create Account</Link>
-              </div>
-            )}
-
-            <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-              <button
-                type="button"
-                onClick={() => {
-                  setIsMenuOpen(false);
-                  window.dispatchEvent(new CustomEvent("show-pwa-install"));
-                }}
-                className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-orange-500 to-red-500 text-white py-3 rounded-xl font-semibold text-sm shadow-md hover:shadow-lg transition-all"
-              >
-                <Download size={16} />
-                Install Sportify App (PWA)
-              </button>
-            </div>
+          {/* Right Banner Promo Tag */}
+          <div className="hidden xl:flex items-center gap-2 text-[11px] font-bold text-amber-400 shrink-0">
+            <span>🏆 KASHMIR&apos;S #1 SPORTS HUB</span>
+            <span className="text-white/40">|</span>
+            <span className="text-gray-200">100% Genuine Handcrafted Willow</span>
           </div>
         </div>
       </div>
+
+      {/* ═══════════════════════════════════════════════════════════════════════
+          DRAWER: Amazon-Style Full "All" Left Side-Drawer with Sub-Categories
+      ═══════════════════════════════════════════════════════════════════════ */}
+      {isSideDrawerOpen && (
+        <div className="fixed inset-0 z-50 flex">
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity"
+            onClick={() => setIsSideDrawerOpen(false)}
+          />
+
+          {/* Drawer Sheet */}
+          <div
+            ref={sideDrawerRef}
+            className="relative w-[88vw] sm:w-[420px] max-w-md bg-white text-gray-900 h-full shadow-2xl z-10 flex flex-col animate-in slide-in-from-left duration-250"
+          >
+            {/* Header */}
+            <div className="bg-[#232f3e] text-white p-4 flex items-center justify-between sticky top-0 z-20">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center">
+                  <User size={20} className="text-white" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-base">
+                    Hello, {isLoggedIn && user ? (user.username || "User") : "Sign In"}
+                  </h3>
+                  <p className="text-xs text-gray-300">Browse All Sports & Sub-Categories</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsSideDrawerOpen(false)}
+                className="p-1 rounded hover:bg-white/10 text-white cursor-pointer"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Content List */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-6 text-sm divide-y divide-gray-100">
+              {/* Section 1: Trending */}
+              <div>
+                <h4 className="font-extrabold text-gray-900 text-xs uppercase tracking-wider mb-2.5">
+                  Trending in Kashmir
+                </h4>
+                <ul className="space-y-1 text-gray-700 font-medium">
+                  <li>
+                    <Link
+                      href="/products?search=kashmir+willow"
+                      onClick={() => setIsSideDrawerOpen(false)}
+                      className="block py-2 px-2.5 rounded-lg hover:bg-orange-50 hover:text-orange-600 transition"
+                    >
+                      🔥 Handcrafted Kashmir Willow Bats
+                    </Link>
+                  </li>
+                  <li>
+                    <Link
+                      href="/products"
+                      onClick={() => setIsSideDrawerOpen(false)}
+                      className="block py-2 px-2.5 rounded-lg hover:bg-orange-50 hover:text-orange-600 transition"
+                    >
+                      ⚡ 24h Express Delivery Gear
+                    </Link>
+                  </li>
+                  <li>
+                    <Link
+                      href="/wholesale"
+                      onClick={() => setIsSideDrawerOpen(false)}
+                      className="block py-2 px-2.5 rounded-lg hover:bg-orange-50 hover:text-orange-600 text-orange-600 font-bold transition"
+                    >
+                      🏫 Academy & Club Bulk Wholesale (25% OFF)
+                    </Link>
+                  </li>
+                </ul>
+              </div>
+
+              {/* Section 2: Shop by Sport (WITH EXPANDABLE SUBCATEGORIES) */}
+              <div className="pt-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="font-extrabold text-gray-900 text-xs uppercase tracking-wider">
+                    Shop by Sport & Sub-Categories
+                  </h4>
+                  <span className="text-[11px] text-gray-400 font-normal">Click to expand</span>
+                </div>
+
+                <div className="space-y-2">
+                  {DETAILED_SPORTS_CATEGORIES.map((cat) => {
+                    const isExpanded = expandedCategoryId === cat.id;
+
+                    return (
+                      <div
+                        key={cat.id}
+                        className="rounded-xl border border-gray-200 overflow-hidden bg-gray-50/70 transition"
+                      >
+                        {/* Category Header Row */}
+                        <div className="flex items-center justify-between p-2.5 bg-white hover:bg-orange-50/50 cursor-pointer transition">
+                          <Link
+                            href={cat.href}
+                            onClick={() => setIsSideDrawerOpen(false)}
+                            className="flex items-center gap-2.5 font-bold text-gray-900 hover:text-orange-600 flex-1 min-w-0"
+                          >
+                            <span className="text-orange-500 shrink-0">{cat.icon}</span>
+                            <span className="truncate">{cat.name}</span>
+                          </Link>
+                          <button
+                            type="button"
+                            onClick={() => toggleCategoryAccordion(cat.id)}
+                            className="p-1 text-gray-500 hover:text-orange-600 rounded cursor-pointer"
+                            aria-label="Toggle subcategories"
+                          >
+                            <ChevronDown
+                              size={16}
+                              className={`transition-transform duration-200 ${isExpanded ? "rotate-180 text-orange-600" : ""}`}
+                            />
+                          </button>
+                        </div>
+
+                        {/* Subcategories List */}
+                        {isExpanded && (
+                          <div className="px-3 py-2 bg-gray-50 border-t border-gray-100 space-y-1.5 animate-in slide-in-from-top-1 duration-150">
+                            {cat.subcategories.map((sub) => (
+                              <Link
+                                key={sub.title}
+                                href={`/products?search=${encodeURIComponent(sub.query)}`}
+                                onClick={() => setIsSideDrawerOpen(false)}
+                                className="flex items-center justify-between py-1.5 px-2 rounded-lg text-xs font-medium text-gray-700 hover:text-orange-600 hover:bg-white transition group"
+                              >
+                                <span className="truncate">{sub.title}</span>
+                                <ChevronRight size={12} className="text-gray-400 group-hover:text-orange-500 shrink-0 ml-1" />
+                              </Link>
+                            ))}
+                            <Link
+                              href={cat.href}
+                              onClick={() => setIsSideDrawerOpen(false)}
+                              className="block pt-1 pb-0.5 text-[11px] font-bold text-orange-600 hover:underline px-2"
+                            >
+                              Explore all {cat.name} →
+                            </Link>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Section 3: Programs & Features */}
+              <div className="pt-4">
+                <h4 className="font-extrabold text-gray-900 text-xs uppercase tracking-wider mb-2.5">
+                  Programs & Features
+                </h4>
+                <ul className="space-y-1 text-gray-700 font-medium">
+                  <li>
+                    <Link
+                      href="/wholesale"
+                      onClick={() => setIsSideDrawerOpen(false)}
+                      className="block py-2 px-2.5 rounded-lg hover:bg-gray-100 hover:text-orange-600 font-bold text-orange-600"
+                    >
+                      🏫 Academy Wholesale & Institutional Supply
+                    </Link>
+                  </li>
+                  <li>
+                    <Link
+                      href="/profile"
+                      onClick={() => setIsSideDrawerOpen(false)}
+                      className="block py-2 px-2.5 rounded-lg hover:bg-gray-100 hover:text-orange-600"
+                    >
+                      Sportify Prime Membership
+                    </Link>
+                  </li>
+                  <li>
+                    <Link
+                      href="/contact"
+                      onClick={() => setIsSideDrawerOpen(false)}
+                      className="block py-2 px-2.5 rounded-lg hover:bg-gray-100 hover:text-orange-600"
+                    >
+                      Customer Support
+                    </Link>
+                  </li>
+                </ul>
+              </div>
+
+              {/* Section 4: Help & Settings */}
+              <div className="pt-4">
+                <h4 className="font-extrabold text-gray-900 text-xs uppercase tracking-wider mb-2.5">
+                  Help & Settings
+                </h4>
+                <ul className="space-y-1 text-gray-700 font-medium">
+                  <li>
+                    <Link
+                      href="/profile"
+                      onClick={() => setIsSideDrawerOpen(false)}
+                      className="block py-2 px-2.5 rounded-lg hover:bg-gray-100 hover:text-orange-600"
+                    >
+                      Your Account
+                    </Link>
+                  </li>
+                  <li>
+                    <Link
+                      href="/orders"
+                      onClick={() => setIsSideDrawerOpen(false)}
+                      className="block py-2 px-2.5 rounded-lg hover:bg-gray-100 hover:text-orange-600"
+                    >
+                      Your Orders
+                    </Link>
+                  </li>
+                  <li>
+                    {isLoggedIn ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsSideDrawerOpen(false);
+                          handleLogout();
+                        }}
+                        className="w-full text-left py-2 px-2.5 text-red-600 font-bold hover:bg-red-50 rounded-lg cursor-pointer"
+                      >
+                        Sign Out
+                      </button>
+                    ) : (
+                      <Link
+                        href="/login"
+                        onClick={() => setIsSideDrawerOpen(false)}
+                        className="block py-2 px-2.5 text-orange-600 font-bold hover:bg-orange-50 rounded-lg"
+                      >
+                        Sign In
+                      </Link>
+                    )}
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══════════════════════════════════════════════════════════════════════
+          MOBILE MENU (When mobile hamburger toggle is clicked)
+      ═══════════════════════════════════════════════════════════════════════ */}
+      {isMenuOpen && (
+        <div className="lg:hidden bg-[#131921] text-white p-4 border-t border-gray-700 max-h-[85vh] overflow-y-auto">
+          {/* Mobile User Banner */}
+          <div className="p-3 bg-[#232f3e] rounded-xl mb-4 flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              {isLoggedIn && profileImageUrl && !imageError ? (
+                <img src={profileImageUrl} alt="Profile" className="w-9 h-9 rounded-full object-cover border border-amber-400" />
+              ) : (
+                <div className="w-9 h-9 bg-gray-700 rounded-full flex items-center justify-center">
+                  <User size={18} className="text-white" />
+                </div>
+              )}
+              <div>
+                <p className="font-bold text-sm text-white">
+                  {isLoggedIn && user ? user.username : "Guest"}
+                </p>
+                <p className="text-xs text-gray-300">Deliver to Srinagar 190009</p>
+              </div>
+            </div>
+            <Link
+              href={isLoggedIn ? "/profile" : "/login"}
+              onClick={() => setIsMenuOpen(false)}
+              className="text-xs font-bold text-amber-400 hover:underline"
+            >
+              {isLoggedIn ? "Manage ›" : "Sign In ›"}
+            </Link>
+          </div>
+
+          {/* Quick Links Grid */}
+          <div className="grid grid-cols-2 gap-2 mb-4">
+            <Link
+              href="/orders"
+              onClick={() => setIsMenuOpen(false)}
+              className="p-3 bg-[#232f3e] rounded-xl text-center font-bold text-xs hover:bg-gray-700"
+            >
+              📦 Your Orders
+            </Link>
+            <Link
+              href="/wholesale"
+              onClick={() => setIsMenuOpen(false)}
+              className="p-3 bg-gradient-to-r from-orange-600/30 to-amber-600/30 border border-orange-500/40 rounded-xl text-center font-bold text-xs text-amber-300"
+            >
+              🏫 Academy Wholesale
+            </Link>
+            <Link
+              href="/wishlist"
+              onClick={() => setIsMenuOpen(false)}
+              className="p-3 bg-[#232f3e] rounded-xl text-center font-bold text-xs hover:bg-gray-700"
+            >
+              ❤️ Your Wishlist
+            </Link>
+            <Link
+              href="/cart"
+              onClick={() => setIsMenuOpen(false)}
+              className="p-3 bg-[#232f3e] rounded-xl text-center font-bold text-xs hover:bg-gray-700"
+            >
+              🛒 Your Cart ({cartCount})
+            </Link>
+          </div>
+
+          {/* Sports Categories with Sub-Categories Accordion */}
+          <h4 className="font-bold text-xs text-gray-400 uppercase tracking-wider mb-2">
+            Sports & Sub-Categories
+          </h4>
+          <div className="space-y-1.5 mb-4">
+            {DETAILED_SPORTS_CATEGORIES.map((cat) => {
+              const isExpanded = expandedCategoryId === cat.id;
+
+              return (
+                <div key={cat.id} className="bg-[#232f3e] rounded-xl overflow-hidden">
+                  <div
+                    onClick={() => toggleCategoryAccordion(cat.id)}
+                    className="flex items-center justify-between p-3 cursor-pointer"
+                  >
+                    <div className="flex items-center gap-2 text-xs font-bold text-white">
+                      <span className="text-amber-400">{cat.icon}</span>
+                      <span>{cat.name}</span>
+                    </div>
+                    <ChevronDown size={14} className={`text-gray-400 transition-transform ${isExpanded ? "rotate-180 text-amber-400" : ""}`} />
+                  </div>
+                  {isExpanded && (
+                    <div className="p-2.5 pt-0 space-y-1 border-t border-gray-700/50">
+                      {cat.subcategories.map((sub) => (
+                        <Link
+                          key={sub.title}
+                          href={`/products?search=${encodeURIComponent(sub.query)}`}
+                          onClick={() => setIsMenuOpen(false)}
+                          className="block py-1.5 px-2 rounded text-[11px] text-gray-300 hover:text-amber-300 hover:bg-gray-700/50"
+                        >
+                          • {sub.title}
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Install PWA Button */}
+          <button
+            type="button"
+            onClick={() => {
+              setIsMenuOpen(false);
+              window.dispatchEvent(new CustomEvent("show-pwa-install"));
+            }}
+            className="w-full py-3 bg-gradient-to-r from-amber-400 to-orange-500 text-gray-900 font-bold rounded-xl text-xs flex items-center justify-center gap-2 shadow-md cursor-pointer"
+          >
+            <Download size={15} />
+            <span>Install Sportify App (PWA)</span>
+          </button>
+        </div>
+      )}
     </header>
   );
 }
