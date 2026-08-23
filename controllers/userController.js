@@ -52,10 +52,11 @@ exports.register = async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 12);
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const profilePic = req.file
-      ? (req.file.filename
-          ? `/uploads/${req.file.filename}`
-          : `data:${req.file.mimetype};base64,${req.file.buffer.toString("base64")}`)
+    const uploadedFile = req.file || (Array.isArray(req.files) ? req.files[0] : (req.files?.profilePicture?.[0] || req.files?.profilePic?.[0]));
+    const profilePic = uploadedFile
+      ? (uploadedFile.filename
+          ? `/uploads/${uploadedFile.filename}`
+          : `data:${uploadedFile.mimetype};base64,${uploadedFile.buffer.toString("base64")}`)
       : undefined;
 
     const targetUser = await User.create({

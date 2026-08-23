@@ -26,10 +26,10 @@ router.get("/test-env", (req, res) => {
   });
 });
 
-router.post("/register", upload.single('profilePicture'), controller.register);
+router.post("/register", upload.any(), controller.register);
 router.post("/login", controller.login);
-router.post("/logout",controller.logout);
-router.post("/update-profile", authorize, upload.single("profilePic"), controller.updateProfile);
+router.post("/logout", controller.logout);
+router.post("/update-profile", authorize, upload.any(), controller.updateProfile);
 
 router.post("/send-otp", controller.sendOTP);
 router.post("/verify-otp", controller.verifyOTP);
@@ -39,7 +39,7 @@ router.post("/reset-password", controller.resetPassword);
 router.post("/forgot-password", controller.forgotPass);
 router.post("/forgot-pass", controller.forgotPass);
 router.post("/change/password", controller.changePass);
-router.post("/edit/user", authorize, upload.single("profilePic"), controller.changeUsername);
+router.post("/edit/user", authorize, upload.any(), controller.changeUsername);
 
 router.get("/verify" ,  authorize, controller.verifyUser )
 router.get("/verify/admin" ,  authorize, controller.verifyAdmin )

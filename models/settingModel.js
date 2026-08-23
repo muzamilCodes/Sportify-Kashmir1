@@ -16,7 +16,7 @@ const settingSchema = new mongoose.Schema(
     },
     siteAddress: {
       type: String,
-      default: "Handwara, Qalamabad",
+      default: "Handwara, Qalamabad, Kashmir 193221",
     },
     currency: {
       type: String,
@@ -33,6 +33,22 @@ const settingSchema = new mongoose.Schema(
     maintenanceMode: {
       type: Boolean,
       default: false,
+    },
+    logoUrl: {
+      type: String,
+      default: "",
+    },
+    bannerUrl: {
+      type: String,
+      default: "",
+    },
+    faviconUrl: {
+      type: String,
+      default: "/logo.png",
+    },
+    announcementText: {
+      type: String,
+      default: "⚡ Free Express Delivery on Kashmir orders above ₹999 | 100% Genuine Handcrafted Willow",
     },
   },
   { timestamps: true }

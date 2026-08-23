@@ -446,7 +446,11 @@ exports.updateStoreSettings = async (req, res) => {
       currency,
       timezone,
       freeShippingThreshold,
-      maintenanceMode
+      maintenanceMode,
+      logoUrl,
+      bannerUrl,
+      faviconUrl,
+      announcementText,
     } = req.body;
 
     let setting = await Setting.findOne();
@@ -460,8 +464,30 @@ exports.updateStoreSettings = async (req, res) => {
     if (siteAddress !== undefined) setting.siteAddress = siteAddress;
     if (currency !== undefined) setting.currency = currency;
     if (timezone !== undefined) setting.timezone = timezone;
-    if (freeShippingThreshold !== undefined) setting.freeShippingThreshold = freeShippingThreshold;
-    if (maintenanceMode !== undefined) setting.maintenanceMode = maintenanceMode;
+    if (freeShippingThreshold !== undefined) setting.freeShippingThreshold = Number(freeShippingThreshold);
+    if (maintenanceMode !== undefined) setting.maintenanceMode = maintenanceMode === "true" || maintenanceMode === true;
+    if (announcementText !== undefined) setting.announcementText = announcementText;
+    if (logoUrl !== undefined) setting.logoUrl = logoUrl;
+    if (bannerUrl !== undefined) setting.bannerUrl = bannerUrl;
+    if (faviconUrl !== undefined) setting.faviconUrl = faviconUrl;
+
+    // Check if multipart files were uploaded
+    if (req.files) {
+      const filesArray = Array.isArray(req.files) ? req.files : Object.values(req.files).flat();
+      for (const file of filesArray) {
+        const fileUrl = file.filename
+          ? `/uploads/${file.filename}`
+          : `data:${file.mimetype};base64,${file.buffer.toString("base64")}`;
+
+        if (file.fieldname === "logo" || file.fieldname === "logoUrl") {
+          setting.logoUrl = fileUrl;
+        } else if (file.fieldname === "banner" || file.fieldname === "bannerUrl") {
+          setting.bannerUrl = fileUrl;
+        } else if (file.fieldname === "favicon" || file.fieldname === "faviconUrl") {
+          setting.faviconUrl = fileUrl;
+        }
+      }
+    }
 
     await setting.save();
 

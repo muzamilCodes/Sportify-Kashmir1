@@ -15,8 +15,11 @@ router.put("/inventory/stock/:productId", authorize, admin, adminController.upda
 // Admin analytics & reports route
 router.get("/reports", authorize, admin, adminController.getReportsData);
 
+const upload = require("../middlewares/multer");
+
 // Admin store settings routes
+router.get("/public/settings", adminController.getStoreSettings);
 router.get("/settings", authorize, admin, adminController.getStoreSettings);
-router.post("/settings", authorize, admin, adminController.updateStoreSettings);
+router.post("/settings", authorize, admin, upload.any(), adminController.updateStoreSettings);
 
 module.exports = router;
