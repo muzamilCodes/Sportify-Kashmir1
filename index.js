@@ -132,6 +132,9 @@ app.use("/stock-notifications", require("./routes/stockNotificationRoutes"));
 app.use("/category", require("./routes/categoryRoutes"));
 app.use("/brand", require("./routes/brandRoutes"));
 app.use("/orders", require("./routes/orderRoutes"));
+app.use("/category", require("./routes/categoryRoutes"));
+app.use("/brand", require("./routes/brandRoutes"));
+app.use("/orders", require("./routes/orderRoutes"));
 app.use("/addresses", require("./routes/addressRoutes"));
 app.use("/cart", require("./routes/cartRoutes"));
 app.use("/api/payment", require("./routes/paymentRoutes"));
@@ -140,6 +143,7 @@ app.use("/admin", require("./routes/adminRoutes"));
 app.use("/contact", require("./routes/contactRoutes"));
 app.use("/posts", require("./routes/postRoutes"));
 app.use("/coupon", require("./routes/couponRoutes"));
+app.use("/banners", require("./routes/bannerRoutes"));
 
 
 // Health check
