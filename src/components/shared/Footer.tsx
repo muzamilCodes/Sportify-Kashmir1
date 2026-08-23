@@ -1,3 +1,5 @@
+"use client";
+
 import {
   CreditCard,
   Facebook,
@@ -13,6 +15,7 @@ import {
   Headphones,
   Clock,
   Award,
+  Download,
 } from "lucide-react";
 import NextLink from "next/link";
 
@@ -129,8 +132,8 @@ export default function Footer() {
 
           {/* Sports Categories */}
           <div>
-              <h4 className="text-base font-bold mb-2 flex items-center gap-2">
-                <span className="w-1.5 h-5 bg-orange-500 rounded"></span>
+            <h4 className="text-base font-bold mb-2 flex items-center gap-2">
+              <span className="w-1.5 h-5 bg-orange-500 rounded"></span>
               Shop by Sport
             </h4>
             <ul className="space-y-1">
@@ -149,7 +152,7 @@ export default function Footer() {
 
           {/* Quick Links */}
           <div>
-              <h4 className="text-base font-bold mb-2 flex items-center gap-2">
+            <h4 className="text-base font-bold mb-2 flex items-center gap-2">
               <span className="w-1.5 h-5 bg-orange-500 rounded"></span>
               Quick Links
             </h4>
@@ -164,12 +167,22 @@ export default function Footer() {
                   </Link>
                 </li>
               ))}
+              <li>
+                <button
+                  type="button"
+                  onClick={() => window.dispatchEvent(new CustomEvent("show-pwa-install"))}
+                  className="flex items-center gap-1.5 text-orange-400 hover:text-orange-300 font-medium transition cursor-pointer"
+                >
+                  <Download size={14} />
+                  Install App (PWA)
+                </button>
+              </li>
             </ul>
           </div>
 
           {/* Contact Info - Handwara Address */}
           <div>
-              <h4 className="text-base font-bold mb-2 flex items-center gap-2">
+            <h4 className="text-base font-bold mb-2 flex items-center gap-2">
               <span className="w-1.5 h-5 bg-orange-500 rounded"></span>
               Contact Us
             </h4>

@@ -2,37 +2,20 @@
 
 import { useEffect } from "react";
 
+/**
+ * PWARegister
+ * Registers the Service Worker (/sw.js) for offline caching and PWA installation.
+ * Keeps Service Worker active so browsers detect PWA installability.
+ */
 export default function PWARegister() {
   useEffect(() => {
     if (typeof window === "undefined" || !("serviceWorker" in navigator)) return;
 
-    const isLocalhost =
-      window.location.hostname === "localhost" ||
-      window.location.hostname === "127.0.0.1" ||
-      window.location.hostname.endsWith(".local");
-
-    // In development or on localhost: unregister any active service worker and clear caches to prevent stale cache on refresh
-    if (process.env.NODE_ENV === "development" || isLocalhost) {
-      navigator.serviceWorker.getRegistrations().then((registrations) => {
-        for (const registration of registrations) {
-          registration.unregister();
-        }
-      });
-      if ("caches" in window) {
-        caches.keys().then((keys) => {
-          for (const key of keys) {
-            caches.delete(key);
-          }
-        });
-      }
-      return;
-    }
-
-    // In production on live domain: register service worker safely
     const register = () => {
       navigator.serviceWorker
-        .register("/sw.js")
+        .register("/sw.js", { scope: "/" })
         .then((registration) => {
+          // Check for worker updates
           registration.addEventListener("updatefound", () => {
             const worker = registration.installing;
             worker?.addEventListener("statechange", () => {
@@ -42,12 +25,18 @@ export default function PWARegister() {
             });
           });
         })
-        .catch(() => undefined);
+        .catch((err) => {
+          console.debug("Service Worker registration skipped/failed:", err);
+        });
     };
 
-    if (document.readyState === "complete") register();
-    else window.addEventListener("load", register, { once: true });
+    if (document.readyState === "complete") {
+      register();
+    } else {
+      window.addEventListener("load", register, { once: true });
+    }
   }, []);
 
   return null;
 }
+

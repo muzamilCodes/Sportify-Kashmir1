@@ -33,6 +33,7 @@ import {
   Percent,
   Loader2,
   Tag,
+  Download,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import ThemeToggle from "@/components/shared/ThemeToggle";
@@ -467,6 +468,20 @@ export default function Header() {
                       <Heart size={18} className="text-gray-500 dark:text-gray-400" />
                       <div><div className="font-medium text-gray-900 dark:text-white">Wishlist</div><div className="text-xs text-gray-500 dark:text-gray-400">Saved items</div></div>
                     </Link>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsUserMenuOpen(false);
+                        window.dispatchEvent(new CustomEvent("show-pwa-install"));
+                      }}
+                      className="flex items-center gap-3 w-full text-left px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition border-t border-gray-100 dark:border-gray-700 text-gray-700 dark:text-gray-300"
+                    >
+                      <Download size={18} className="text-orange-500" />
+                      <div>
+                        <div className="font-medium text-gray-900 dark:text-white">Install App</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">Install web app to device</div>
+                      </div>
+                    </button>
                     <button onClick={handleLogout} className="flex items-center gap-3 w-full text-left px-4 py-3 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition rounded-b-2xl border-t border-gray-100 dark:border-gray-700">
                       <LogOut size={18} />
                       <div><div className="font-medium">Logout</div><div className="text-xs text-red-500">Sign out</div></div>
@@ -478,10 +493,24 @@ export default function Header() {
                       <div className="font-medium text-gray-900 dark:text-white">Login</div>
                       <div className="text-xs text-gray-500 dark:text-gray-400">Sign in to your account</div>
                     </Link>
-                    <Link href="/signup" className="block px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-b-2xl" onClick={() => setIsUserMenuOpen(false)}>
+                    <Link href="/signup" className="block px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-100 dark:border-gray-700" onClick={() => setIsUserMenuOpen(false)}>
                       <div className="font-medium text-gray-900 dark:text-white">Create Account</div>
                       <div className="text-xs text-gray-500 dark:text-gray-400">Register now</div>
                     </Link>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsUserMenuOpen(false);
+                        window.dispatchEvent(new CustomEvent("show-pwa-install"));
+                      }}
+                      className="flex items-center gap-3 w-full text-left px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition rounded-b-2xl text-gray-700 dark:text-gray-300"
+                    >
+                      <Download size={18} className="text-orange-500" />
+                      <div>
+                        <div className="font-medium text-gray-900 dark:text-white">Install App</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">Install web app to device</div>
+                      </div>
+                    </button>
                   </>
                 )}
               </div>
@@ -562,6 +591,20 @@ export default function Header() {
                 <Link href="/signup" className="block w-full text-center border border-orange-500 text-orange-500 py-2.5 rounded-xl font-medium" onClick={() => setIsMenuOpen(false)}>Create Account</Link>
               </div>
             )}
+
+            <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsMenuOpen(false);
+                  window.dispatchEvent(new CustomEvent("show-pwa-install"));
+                }}
+                className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-orange-500 to-red-500 text-white py-3 rounded-xl font-semibold text-sm shadow-md hover:shadow-lg transition-all"
+              >
+                <Download size={16} />
+                Install Sportify App (PWA)
+              </button>
+            </div>
           </div>
         </div>
       </div>

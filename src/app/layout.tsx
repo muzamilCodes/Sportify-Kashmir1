@@ -19,6 +19,18 @@ export const metadata: Metadata = {
     "Kashmir's premier destination for sports gear, equipment, and athletic apparel. Cricket, Football, Basketball, Tennis, and more. Free shipping on orders above ₹999.",
   keywords:
     "sports equipment, cricket gear, football accessories, athletic wear, Kashmir sports, sportify kashmir, sports shop kashmir",
+  icons: {
+    icon: [
+      { url: "/favicon.png", type: "image/png" },
+      { url: "/icons/icon-192x192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icons/icon-512x512.png", sizes: "512x512", type: "image/png" },
+      { url: "/favicon.ico", sizes: "any" },
+    ],
+    shortcut: "/favicon.png",
+    apple: [
+      { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+    ],
+  },
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
@@ -71,7 +83,8 @@ export default function RootLayout({
   return (
     <html lang="en" className={inter.variable} suppressHydrationWarning>
       <head>
-        <link rel="icon" href="/favicon.ico" />
+        <link rel="icon" href="/favicon.png" type="image/png" />
+        <link rel="shortcut icon" href="/favicon.ico" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <link rel="manifest" href="/manifest.json" />
         <link rel="preconnect" href="https://res.cloudinary.com" crossOrigin="anonymous" />

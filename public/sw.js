@@ -54,6 +54,16 @@ self.addEventListener('fetch', (event) => {
   // Skip non-http(s)
   if (!url.protocol.startsWith('http')) return;
 
+  // Bypass Next.js hot module reload & dev requests to prevent dev cache issues
+  if (
+    url.pathname.includes('/_next/webpack-hmr') ||
+    url.pathname.includes('hot-update') ||
+    url.pathname.includes('/_next/data/') ||
+    url.searchParams.has('__rsc')
+  ) {
+    return;
+  }
+
   // Strategy 1: Page navigation requests → Network-First with offline fallback
   if (request.mode === 'navigate') {
     event.respondWith(navigationHandler(request));
