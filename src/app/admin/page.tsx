@@ -200,12 +200,12 @@ export default function AdminDashboard() {
   ];
 
   const orderStats = [
-    { title: "Pending", value: stats.pendingOrders, icon: <Clock className="w-5 h-5" />, color: "orange" },
-    { title: "Confirmed", value: stats.confirmedOrders, icon: <CheckCircle className="w-5 h-5" />, color: "blue" },
-    { title: "Shipped", value: stats.shippedOrders, icon: <Truck className="w-5 h-5" />, color: "purple" },
-    { title: "Out for Delivery", value: stats.outForDeliveryOrders, icon: <Truck className="w-5 h-5" />, color: "indigo" },
-    { title: "Delivered", value: stats.deliveredOrders, icon: <CheckCircle className="w-5 h-5" />, color: "green" },
-    { title: "Cancelled", value: stats.cancelledOrders, icon: <XCircle className="w-5 h-5" />, color: "red" },
+    { title: "Pending", status: "pending", value: stats.pendingOrders, icon: <Clock className="w-5 h-5" />, color: "orange" },
+    { title: "Confirmed", status: "confirmed", value: stats.confirmedOrders, icon: <CheckCircle className="w-5 h-5" />, color: "blue" },
+    { title: "Shipped", status: "shipped", value: stats.shippedOrders, icon: <Truck className="w-5 h-5" />, color: "purple" },
+    { title: "Out for Delivery", status: "out_for_delivery", value: stats.outForDeliveryOrders, icon: <Truck className="w-5 h-5" />, color: "indigo" },
+    { title: "Delivered", status: "delivered", value: stats.deliveredOrders, icon: <CheckCircle className="w-5 h-5" />, color: "green" },
+    { title: "Cancelled", status: "cancelled", value: stats.cancelledOrders, icon: <XCircle className="w-5 h-5" />, color: "red" },
   ];
 
   if (loading) {
@@ -270,49 +270,55 @@ export default function AdminDashboard() {
         ))}
       </div>
 
+      {/* Order Status Breakdown (Clickable) */}
       <div className="mb-8 bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl rounded-2xl shadow-xl border border-white dark:border-gray-700 p-6">
         <div className="flex items-center justify-between mb-5">
           <div>
             <h3 className="text-base font-bold text-gray-900 dark:text-white">Order Status Breakdown</h3>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Live order counts across the full lifecycle.</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Live order counts across the full lifecycle • Click any status to view orders</p>
           </div>
-          <Link href="/admin/orders" className="text-xs font-bold text-orange-500 hover:text-orange-700">
-            Open orders
+          <Link href="/admin/orders" className="text-xs font-bold text-orange-500 hover:text-orange-700 flex items-center gap-1 group">
+            Open all orders
+            <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
           </Link>
         </div>
         <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
           {orderStats.map((item) => (
-            <div key={item.title} className="rounded-xl border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 shadow-sm">
+            <Link
+              key={item.title}
+              href={`/admin/orders?status=${item.status}`}
+              className="group rounded-xl border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 shadow-sm hover:shadow-lg hover:-translate-y-1 hover:border-orange-300 dark:hover:border-orange-500/40 transition-all duration-200 block cursor-pointer"
+            >
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">{item.title}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 font-medium group-hover:text-orange-600 transition-colors">{item.title}</p>
                   <p className="mt-1 text-2xl font-extrabold text-gray-900 dark:text-white">{item.value}</p>
                 </div>
                 <div
-                  className={`w-11 h-11 rounded-xl flex items-center justify-center text-white ${
+                  className={`w-11 h-11 rounded-xl flex items-center justify-center text-white shadow-md group-hover:scale-110 transition-transform ${
                     item.color === "orange"
-                      ? "bg-orange-500"
+                      ? "bg-orange-500 shadow-orange-500/20"
                       : item.color === "blue"
-                      ? "bg-blue-500"
+                      ? "bg-blue-500 shadow-blue-500/20"
                       : item.color === "purple"
-                      ? "bg-purple-500"
+                      ? "bg-purple-500 shadow-purple-500/20"
                       : item.color === "indigo"
-                      ? "bg-indigo-500"
+                      ? "bg-indigo-500 shadow-indigo-500/20"
                       : item.color === "green"
-                      ? "bg-green-500"
-                      : "bg-red-500"
+                      ? "bg-green-500 shadow-green-500/20"
+                      : "bg-red-500 shadow-red-500/20"
                   }`}
                 >
                   {item.icon}
                 </div>
               </div>
-            </div>
+            </Link>
           ))}
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-6">
-        {/* Today's Overview */}
+        {/* Today's Overview (Clickable) */}
         <div className="lg:col-span-5 bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl rounded-2xl shadow-xl border border-white dark:border-gray-700 p-6">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-base font-bold text-gray-900 dark:text-white">Today's Activity</h3>
@@ -322,7 +328,10 @@ export default function AdminDashboard() {
           </div>
           
           <div className="space-y-4">
-            <div className="group flex justify-between items-center p-4 bg-gradient-to-r from-orange-50 dark:from-orange-500/5 to-transparent hover:from-orange-100/50 dark:hover:from-orange-500/10 rounded-xl border border-transparent hover:border-orange-100 dark:hover:border-orange-500/20 transition-all cursor-pointer">
+            <Link
+              href="/admin/orders?filter=today"
+              className="group flex justify-between items-center p-4 bg-gradient-to-r from-blue-50 dark:from-blue-500/5 to-transparent hover:from-blue-100/50 dark:hover:from-blue-500/10 rounded-xl border border-transparent hover:border-blue-200 dark:hover:border-blue-500/30 transition-all cursor-pointer block"
+            >
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-white dark:bg-gray-700 rounded-lg shadow-sm border border-blue-100 dark:border-blue-500/30 flex items-center justify-center group-hover:scale-110 transition-transform">
                   <ShoppingBag className="w-5 h-5 text-blue-500 dark:text-blue-400" />
@@ -332,12 +341,15 @@ export default function AdminDashboard() {
                   <p className="text-xl font-extrabold text-gray-900 dark:text-white">{stats.todayOrders}</p>
                 </div>
               </div>
-              <Link href="/admin/orders" className="text-blue-500 dark:text-blue-400 hover:text-blue-700 bg-white dark:bg-gray-700 p-1.5 rounded-full shadow-sm">
+              <div className="text-blue-500 dark:text-blue-400 group-hover:text-blue-700 bg-white dark:bg-gray-700 p-1.5 rounded-full shadow-sm group-hover:translate-x-1 transition-all">
                 <ChevronRight className="w-4 h-4" />
-              </Link>
-            </div>
+              </div>
+            </Link>
 
-            <div className="group flex justify-between items-center p-4 bg-gradient-to-r from-orange-50 dark:from-orange-500/5 to-transparent hover:from-orange-100/50 dark:hover:from-orange-500/10 rounded-xl border border-transparent hover:border-orange-100 dark:hover:border-orange-500/20 transition-all cursor-pointer">
+            <Link
+              href="/admin/orders?status=pending"
+              className="group flex justify-between items-center p-4 bg-gradient-to-r from-orange-50 dark:from-orange-500/5 to-transparent hover:from-orange-100/50 dark:hover:from-orange-500/10 rounded-xl border border-transparent hover:border-orange-200 dark:hover:border-orange-500/30 transition-all cursor-pointer block"
+            >
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-white dark:bg-gray-700 rounded-lg shadow-sm border border-orange-100 dark:border-orange-500/30 flex items-center justify-center group-hover:scale-110 transition-transform">
                   <Clock className="w-5 h-5 text-orange-500 dark:text-orange-400" />
@@ -347,12 +359,15 @@ export default function AdminDashboard() {
                   <p className="text-xl font-extrabold text-gray-900 dark:text-white">{stats.pendingOrders}</p>
                 </div>
               </div>
-              <Link href="/admin/orders?status=pending" className="text-orange-500 dark:text-orange-400 hover:text-orange-700 bg-white dark:bg-gray-700 p-1.5 rounded-full shadow-sm">
+              <div className="text-orange-500 dark:text-orange-400 group-hover:text-orange-700 bg-white dark:bg-gray-700 p-1.5 rounded-full shadow-sm group-hover:translate-x-1 transition-all">
                 <ChevronRight className="w-4 h-4" />
-              </Link>
-            </div>
+              </div>
+            </Link>
 
-            <div className="group flex justify-between items-center p-4 bg-gradient-to-r from-green-50 dark:from-green-500/5 to-transparent hover:from-green-100/50 dark:hover:from-green-500/10 rounded-xl border border-transparent hover:border-green-100 dark:hover:border-green-500/20 transition-all">
+            <Link
+              href="/admin/orders?status=delivered"
+              className="group flex justify-between items-center p-4 bg-gradient-to-r from-green-50 dark:from-green-500/5 to-transparent hover:from-green-100/50 dark:hover:from-green-500/10 rounded-xl border border-transparent hover:border-green-200 dark:hover:border-green-500/30 transition-all cursor-pointer block"
+            >
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-white dark:bg-gray-700 rounded-lg shadow-sm border border-green-100 dark:border-green-500/30 flex items-center justify-center group-hover:scale-110 transition-transform">
                   <IndianRupee className="w-5 h-5 text-green-500 dark:text-green-400" />
@@ -362,7 +377,10 @@ export default function AdminDashboard() {
                   <p className="text-xl font-extrabold text-gray-900 dark:text-white">₹{(stats.todayRevenue || 0).toLocaleString("en-IN")}</p>
                 </div>
               </div>
-            </div>
+              <div className="text-green-500 dark:text-green-400 group-hover:text-green-700 bg-white dark:bg-gray-700 p-1.5 rounded-full shadow-sm group-hover:translate-x-1 transition-all">
+                <ChevronRight className="w-4 h-4" />
+              </div>
+            </Link>
           </div>
         </div>
 
