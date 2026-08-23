@@ -15,6 +15,58 @@ connectDb();
 
 // Middlewares
 app.disable("x-powered-by");
+
+// ✅ CORS configuration (MUST be first middleware so all requests & preflights pass)
+const configuredFrontendOrigins = [
+  process.env.FRONTEND_URL,
+  ...(process.env.FRONTEND_URLS || '').split(','),
+  process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null,
+].filter(Boolean);
+
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://localhost:3001',
+  'http://localhost:4000',
+  'https://sportify-kashmir1.vercel.app',
+  ...configuredFrontendOrigins,
+].filter(Boolean);
+
+const corsOptions = {
+  origin: function(origin, callback) {
+    if (!origin) return callback(null, true);
+    
+    const cleanOrigin = origin.replace(/\/$/, "");
+    const isAllowed = allowedOrigins.some(o => {
+      const cleanO = o ? o.replace(/\/$/, "") : "";
+      return cleanOrigin === cleanO;
+    });
+
+    if (
+      isAllowed || 
+      cleanOrigin.startsWith('http://localhost:') || 
+      cleanOrigin.startsWith('http://127.0.0.1:') ||
+      cleanOrigin.startsWith('http://10.') ||
+      cleanOrigin.startsWith('http://192.168.') ||
+      cleanOrigin.startsWith('http://172.') ||
+      cleanOrigin.endsWith('.vercel.app') ||
+      cleanOrigin.endsWith('.onrender.com') ||
+      cleanOrigin === 'https://sportify-kashmir1.vercel.app'
+    ) {
+      callback(null, true);
+    } else {
+      console.warn('🚫 Blocked unlisted CORS origin:', origin);
+      callback(null, false);
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Cache-Control', 'cache-control', 'Pragma', 'Expires'],
+  optionsSuccessStatus: 200
+};
+
+app.use(cors(corsOptions));
+app.options("*", cors(corsOptions));
+
 app.use((req, res, next) => {
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader("X-Frame-Options", "DENY");
@@ -29,10 +81,11 @@ app.use(cookieParser());
 
 const requestBuckets = new Map();
 app.use((req, res, next) => {
-  const key = `${req.ip}:${req.path.startsWith("/user/") ? "auth" : "api"}`;
+  if (req.method === "OPTIONS") return next();
+  const key = `${req.ip}:${req.path.startsWith("/user/login") || req.path.startsWith("/user/register") ? "auth" : "api"}`;
   const now = Date.now();
   const windowMs = 15 * 60 * 1000;
-  const limit = req.path.startsWith("/user/") ? 30 : 300;
+  const limit = req.path.startsWith("/user/login") || req.path.startsWith("/user/register") ? 50 : 1000;
   const bucket = requestBuckets.get(key);
   if (!bucket || bucket.resetAt <= now) {
     requestBuckets.set(key, { count: 1, resetAt: now + windowMs });
@@ -63,49 +116,6 @@ app.use(async (req, res, next) => {
   }
   next();
 });
-
-// ✅ CORS configuration
-const configuredFrontendOrigins = [
-  process.env.FRONTEND_URL,
-  ...(process.env.FRONTEND_URLS || '').split(','),
-  process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null,
-].filter(Boolean);
-
-const allowedOrigins = [
-  'http://localhost:3000',
-  'http://localhost:3001',
-  'http://localhost:4000',
-  'https://sportify-kashmir1.vercel.app',
-  ...configuredFrontendOrigins,
-].filter(Boolean);
-
-app.use(cors({
-  origin: function(origin, callback) {
-    if (!origin) return callback(null, true);
-    
-    const cleanOrigin = origin.replace(/\/$/, "");
-    const isAllowed = allowedOrigins.some(o => {
-      const cleanO = o ? o.replace(/\/$/, "") : "";
-      return cleanOrigin === cleanO;
-    });
-
-    if (
-      isAllowed || 
-      cleanOrigin.startsWith('http://localhost:') || 
-      cleanOrigin.startsWith('http://127.0.0.1:') ||
-      cleanOrigin === 'https://sportify-kashmir1.vercel.app'
-    ) {
-      callback(null, true);
-    } else {
-      console.warn('🚫 Blocked unlisted CORS origin:', origin);
-      callback(null, false);
-    }
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Cache-Control', 'cache-control', 'Pragma', 'Expires'],
-  optionsSuccessStatus: 200
-}));
 
 // Static uploads
 // Upload filenames are immutable, so let browsers/CDNs reuse optimized image sources.
