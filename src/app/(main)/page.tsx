@@ -17,6 +17,7 @@ import RecentlyViewed from "@/components/RecentlyViewed";
 import { ProductGridSkeleton } from "@/components/shared/SkeletonLoaders";
 import { resolveProductImage } from "@/lib/imageHelper";
 import HeroCarousel from "@/components/HeroCarousel";
+import { useLanguage } from "@/context/LanguageContext";
 
 interface Product {
   _id: string;
@@ -35,6 +36,7 @@ interface Product {
 }
 
 export default function HomePage() {
+  const { t } = useLanguage();
   const [products, setProducts] = useState<Product[]>([]);
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
   const [saleProducts, setSaleProducts] = useState<Product[]>([]);
@@ -176,17 +178,19 @@ export default function HomePage() {
       <HeroCarousel />
 
       <div className="container mx-auto px-3 sm:px-4 py-8">
-        {/* Featured Products Section: Section Heading 24–28px */}
+        {/* Featured Products Section */}
         <section className="mb-12">
           <div className="flex justify-between items-center mb-5">
             <div>
               <h2 className="text-[22px] sm:text-[25px] md:text-[28px] font-bold text-gray-900 dark:text-white tracking-tight">
-                Featured Products
+                {t("home.featured", "Featured Products")}
               </h2>
-              <p className="text-[13px] sm:text-[14px] text-gray-500 dark:text-gray-400 mt-0.5">New arrivals & trending picks</p>
+              <p className="text-[13px] sm:text-[14px] text-gray-500 dark:text-gray-400 mt-0.5">
+                {t("home.featuredSub", "New arrivals & trending picks")}
+              </p>
             </div>
             <Link href="/products" className="group text-[13px] sm:text-[14px] font-semibold text-orange-600 hover:text-orange-700 dark:text-orange-400 flex items-center gap-1 transition-all">
-              View All <ChevronRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
+              {t("home.viewAll", "View All")} <ChevronRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
             </Link>
           </div>
           {loading ? (
@@ -221,12 +225,14 @@ export default function HomePage() {
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                 <div>
                   <h2 className="text-[22px] sm:text-[26px] md:text-[28px] font-bold text-white flex items-center gap-2">
-                    <span>🔥</span> Flash Sale
+                    <span>🔥</span> {t("home.specialDeals", "Flash Sale")}
                   </h2>
-                  <p className="text-white/90 text-[13px] sm:text-[14px] mt-0.5">Limited time offers with discounts up to 50%</p>
+                  <p className="text-white/90 text-[13px] sm:text-[14px] mt-0.5">
+                    {t("home.specialDealsSub", "Limited time offers with discounts up to 50%")}
+                  </p>
                 </div>
                 <Link href="/sale" className="bg-white text-red-600 px-5 py-2 rounded-full text-[13px] sm:text-[14px] font-bold hover:bg-gray-50 transition shadow-sm flex items-center gap-1">
-                  View All Deals <ChevronRight size={16} />
+                  {t("home.viewAll", "View All Deals")} <ChevronRight size={16} />
                 </Link>
               </div>
             </div>
@@ -258,7 +264,7 @@ export default function HomePage() {
           <div className="flex justify-between items-center mb-5">
             <div>
               <h2 className="text-[22px] sm:text-[25px] md:text-[28px] font-bold text-gray-900 dark:text-white tracking-tight">
-                All Products
+                {t("home.viewAll", "All Products")}
               </h2>
               <p className="text-[13px] sm:text-[14px] text-gray-500 dark:text-gray-400 mt-0.5">Explore our complete catalog</p>
             </div>
@@ -305,9 +311,9 @@ export default function HomePage() {
                 <div className="text-center mt-8">
                   <button
                     onClick={loadMoreProducts}
-                    className="inline-flex items-center gap-2 bg-gray-900 dark:bg-white text-white dark:text-gray-900 px-6 py-2.5 rounded-full text-[14px] font-semibold hover:bg-orange-600 dark:hover:bg-orange-500 dark:hover:text-white transition shadow-sm"
+                    className="inline-flex items-center gap-2 bg-gray-900 dark:bg-white text-white dark:text-gray-900 px-6 py-2.5 rounded-full text-[14px] font-semibold hover:bg-orange-600 dark:hover:bg-orange-500 dark:hover:text-white transition shadow-sm cursor-pointer"
                   >
-                    Load More Products
+                    {t("home.loadMore", "Load More Products")}
                     <ArrowRight size={16} />
                   </button>
                   <p className="text-[12px] sm:text-[13px] text-gray-500 dark:text-gray-400 mt-2">
@@ -327,29 +333,29 @@ export default function HomePage() {
             <div className="w-10 h-10 bg-green-100 dark:bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-2.5">
               <Truck className="w-5 h-5 text-green-600 dark:text-green-400" />
             </div>
-            <h3 className="font-semibold text-gray-900 dark:text-white text-[14px] mb-0.5">Free Delivery</h3>
-            <p className="text-gray-500 dark:text-gray-400 text-[12px]">On orders above ₹999</p>
+            <h3 className="font-semibold text-gray-900 dark:text-white text-[14px] mb-0.5">{t("home.expressDelivery", "Free Delivery")}</h3>
+            <p className="text-gray-500 dark:text-gray-400 text-[12px]">{t("home.expressDeliveryDesc", "On orders above ₹999")}</p>
           </div>
           <div className="bg-white dark:bg-gray-800 rounded-xl p-4 text-center border border-gray-200 dark:border-gray-700">
             <div className="w-10 h-10 bg-blue-100 dark:bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-2.5">
               <Shield className="w-5 h-5 text-blue-600 dark:text-blue-400" />
             </div>
-            <h3 className="font-semibold text-gray-900 dark:text-white text-[14px] mb-0.5">Secure Payment</h3>
-            <p className="text-gray-500 dark:text-gray-400 text-[12px]">100% secure checkout</p>
+            <h3 className="font-semibold text-gray-900 dark:text-white text-[14px] mb-0.5">{t("home.securePayments", "Secure Payment")}</h3>
+            <p className="text-gray-500 dark:text-gray-400 text-[12px]">{t("home.securePaymentsDesc", "100% secure checkout")}</p>
           </div>
           <div className="bg-white dark:bg-gray-800 rounded-xl p-4 text-center border border-gray-200 dark:border-gray-700">
             <div className="w-10 h-10 bg-orange-100 dark:bg-orange-500/20 rounded-full flex items-center justify-center mx-auto mb-2.5">
               <Clock className="w-5 h-5 text-orange-600 dark:text-orange-400" />
             </div>
-            <h3 className="font-semibold text-gray-900 dark:text-white text-[14px] mb-0.5">Fast Delivery</h3>
-            <p className="text-gray-500 dark:text-gray-400 text-[12px]">2-3 days across Kashmir</p>
+            <h3 className="font-semibold text-gray-900 dark:text-white text-[14px] mb-0.5">{t("home.genuineWillow", "100% Handcrafted Willow")}</h3>
+            <p className="text-gray-500 dark:text-gray-400 text-[12px]">{t("home.genuineWillowDesc", "Direct from Sangam master craftsmen")}</p>
           </div>
           <div className="bg-white dark:bg-gray-800 rounded-xl p-4 text-center border border-gray-200 dark:border-gray-700">
             <div className="w-10 h-10 bg-purple-100 dark:bg-purple-500/20 rounded-full flex items-center justify-center mx-auto mb-2.5">
               <Award className="w-5 h-5 text-purple-600 dark:text-purple-400" />
             </div>
-            <h3 className="font-semibold text-gray-900 dark:text-white text-[14px] mb-0.5">Authentic Gear</h3>
-            <p className="text-gray-500 dark:text-gray-400 text-[12px]">100% genuine guaranteed</p>
+            <h3 className="font-semibold text-gray-900 dark:text-white text-[14px] mb-0.5">{t("home.authenticQuality", "Authentic Gear")}</h3>
+            <p className="text-gray-500 dark:text-gray-400 text-[12px]">{t("home.authenticQualityDesc", "100% genuine guaranteed")}</p>
           </div>
         </section>
       </div>

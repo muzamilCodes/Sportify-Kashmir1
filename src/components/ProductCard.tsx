@@ -1,12 +1,13 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { ShoppingBag, ShoppingCart, Zap, Star, Heart, Loader2, Eye, GitCompare } from "lucide-react";
+import React, { useState } from "react";
+import { ShoppingCart, Zap, Star, Heart, Loader2, Eye, GitCompare } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { resolveProductImage } from "@/lib/imageHelper";
 import ProductImage from "@/components/ProductImage";
+import { useLanguage } from "@/context/LanguageContext";
 
 export interface ProductItem {
   _id: string;
@@ -50,6 +51,7 @@ function ProductCardComponent({
   toggleWishlist: customToggleWishlist,
 }: ProductCardProps) {
   const router = useRouter();
+  const { t } = useLanguage();
   const [isAddingToCart, setIsAddingToCart] = useState(false);
   const [isBuyingNow, setIsBuyingNow] = useState(false);
   const [localWishlist, setLocalWishlist] = useState<string[]>(wishlist);
@@ -72,21 +74,27 @@ function ProductCardComponent({
     : resolveProductImage(product);
 
   const toggleCompare = (e: React.MouseEvent) => {
-    e.preventDefault(); e.stopPropagation();
+    e.preventDefault();
+    e.stopPropagation();
     const current = JSON.parse(localStorage.getItem("compareProducts") || "[]") as string[];
     if (current.includes(product._id)) {
       localStorage.setItem("compareProducts", JSON.stringify(current.filter((id) => id !== product._id)));
       window.dispatchEvent(new Event("compareUpdated"));
-      setCompareSelected(false); toast.success("Removed from comparison"); return;
+      setCompareSelected(false);
+      toast.success("Removed from comparison");
+      return;
     }
-    if (current.length >= 4) { toast.error("Compare up to 4 products"); return; }
+    if (current.length >= 4) {
+      toast.error("Compare up to 4 products");
+      return;
+    }
     localStorage.setItem("compareProducts", JSON.stringify([...current, product._id]));
     window.dispatchEvent(new Event("compareUpdated"));
-    setCompareSelected(true); toast.success("Added to comparison");
+    setCompareSelected(true);
+    toast.success("Added to comparison");
   };
 
   const isAvailable = product.isAvailable !== false && (product.stock === undefined || product.stock > 0);
-  const stockCount = product.stock ?? 10;
 
   // Default internal Add to Cart handler
   const onAddToCart = async (e: React.MouseEvent) => {
@@ -137,7 +145,7 @@ function ProductCardComponent({
     }
   };
 
-  // Default internal Buy Now handler
+  // Default internal Buy Now handler (Direct checkout - does NOT update the header cart badge)
   const onBuyNow = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -172,9 +180,8 @@ function ProductCardComponent({
 
       const result = await response.json();
       if (result.success) {
-        if (typeof window !== "undefined") {
-          window.dispatchEvent(new Event("cartUpdated"));
-        }
+        // Direct Buy Now checkout - do not increment or update the cart badge icon
+        toast.success("Proceeding to checkout...");
         router.push("/checkout");
       } else {
         toast.error(result.message || "Could not proceed to checkout");
@@ -261,7 +268,11 @@ function ProductCardComponent({
           </button>
           <button
             type="button"
-            onClick={(e) => { e.preventDefault(); e.stopPropagation(); setQuickView(true); }}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setQuickView(true);
+            }}
             aria-label={`Quick view ${product.name}`}
             className="absolute bottom-2 right-2 rounded-full bg-white/90 dark:bg-gray-800/90 p-1.5 text-gray-600 dark:text-gray-300 shadow-xs hover:text-orange-600 cursor-pointer"
           >
@@ -329,7 +340,7 @@ function ProductCardComponent({
             ) : (
               <ShoppingCart size={14} className="shrink-0" />
             )}
-            <span className="truncate">Add to Cart</span>
+            <span className="truncate">{!isAvailable ? t("product.outOfStock", "Out of Stock") : t("product.addToCart", "Add to Cart")}</span>
           </button>
 
           {/* Buy Now Button */}
@@ -345,10 +356,11 @@ function ProductCardComponent({
             ) : (
               <Zap size={14} className="shrink-0 fill-current" />
             )}
-            <span className="truncate">Buy Now</span>
+            <span className="truncate">{t("product.buyNow", "Buy Now")}</span>
           </button>
         </div>
       </div>
+
       {quickView && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4" onClick={() => setQuickView(false)}>
           <div className="w-full max-w-lg rounded-2xl bg-white dark:bg-gray-800 p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}>

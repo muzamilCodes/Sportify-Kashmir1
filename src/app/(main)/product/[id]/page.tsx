@@ -228,51 +228,6 @@ export default function ProductDetailPage() {
     }
   };
 
-  // const handleAddToCart = async () => {
-  //   try {
-  //     const token = localStorage.getItem("token");
-  //     const cartId = localStorage.getItem("cartId");
-  //     const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
-
-  //     const headers: Record<string, string> = {
-  //       "Content-Type": "application/json",
-  //     };
-
-  //     if (token) {
-  //       headers["Authorization"] = `Bearer ${token}`;
-  //     }
-
-  //     const body: any = {
-  //       quantity,
-  //       color: selectedColor,
-  //       size: selectedSize,
-  //     };
-
-  //     if (!token && cartId) {
-  //       body.cartId = cartId;
-  //     }
-
-  //     const response = await fetch(`${apiUrl}/cart/addtoCart/${product?._id}`, {
-  //       method: "POST",
-  //       headers,
-  //       body: JSON.stringify(body),
-  //     });
-
-  //     const result = await response.json();
-
-  //     if (result.success) {
-  //       if (!token && result.data && result.data._id) {
-  //         localStorage.setItem("cartId", result.data._id);
-  //       }
-  //       toast.success("Added to cart!");
-  //     } else {
-  //       toast.error(result.message || "Failed to add to cart");
-  //     }
-  //   } catch (error) {
-  //     console.error("Add to cart error:", error);
-  //     toast.error("Failed to add to cart");
-  //   }
-  // };
   const handleAddToCart = async () => {
     try {
       const token = localStorage.getItem("token");
@@ -303,10 +258,7 @@ export default function ProductDetailPage() {
           localStorage.setItem("cartId", result.data._id);
         }
         toast.success("Added to cart!");
-
-        // ✅ FIX: Trigger cart update event
         window.dispatchEvent(new Event("cartUpdated"));
-
       } else {
         toast.error(result.message || "Failed to add to cart");
       }
@@ -315,10 +267,7 @@ export default function ProductDetailPage() {
       toast.error("Failed to add to cart");
     }
   };
-  // const handleBuyNow = async () => {
-  //   await handleAddToCart();
-  //   router.push("/checkout");
-  // };
+
   const handleBuyNow = async () => {
     try {
       const token = localStorage.getItem("token");
@@ -330,7 +279,6 @@ export default function ProductDetailPage() {
 
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 
-      // ✅ First add to cart
       const response = await fetch(`${apiUrl}/cart/addtoCart/${product?._id}`, {
         method: "POST",
         headers: {
@@ -338,7 +286,7 @@ export default function ProductDetailPage() {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          quantity: quantity,
+          quantity,
           color: selectedColor,
           size: selectedSize,
         }),
@@ -347,32 +295,22 @@ export default function ProductDetailPage() {
       const result = await response.json();
 
       if (result.success) {
-        // ✅ Trigger cart update
-        window.dispatchEvent(new Event("cartUpdated"));
-
-        // ✅ Show loading toast
-        toast.loading("Adding to cart...", { id: "buynow" });
-
-        // ✅ Directly go to checkout
-        setTimeout(() => {
-          toast.dismiss("buynow");
-          toast.success("Redirecting to checkout!");
-          router.push("/checkout");
-        }, 500);
-
+        toast.success("Proceeding to checkout...");
+        router.push("/checkout");
       } else {
-        toast.error(result.message || "Failed to add to cart");
+        toast.error(result.message || "Failed to proceed to checkout");
       }
     } catch (error) {
       console.error("Buy now error:", error);
       toast.error("Failed to process");
     }
   };
+
   const toggleWishlist = () => {
     if (!product) return;
     let newWishlist: string[];
     if (wishlist.includes(product._id)) {
-      newWishlist = wishlist.filter(id => id !== product._id);
+      newWishlist = wishlist.filter((id) => id !== product._id);
       toast.success("Removed from wishlist");
     } else {
       newWishlist = [...wishlist, product._id];

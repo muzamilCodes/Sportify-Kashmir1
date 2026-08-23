@@ -36,6 +36,8 @@ import {
   Lock,
   Eye,
   EyeOff,
+  Globe,
+  Languages,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -43,6 +45,7 @@ import { useEffect, useState, useRef, Suspense } from "react";
 import toast from "react-hot-toast";
 import { cachedJson } from "@/lib/clientCache";
 import ProductImage from "@/components/ProductImage";
+import { useLanguage, LANGUAGES } from "@/context/LanguageContext";
 
 interface UserProfile {
   _id: string;
@@ -86,6 +89,8 @@ function ProfileContent() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const modalFileInputRef = useRef<HTMLInputElement>(null);
   const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000").replace(/\/$/, "");
+
+  const { language, setLanguage, currentLangOption, t } = useLanguage();
 
   // Resolve profile picture URL
   const getImageUrl = (url: string | undefined) => {
@@ -638,6 +643,56 @@ function ProfileContent() {
               </p>
             </div>
           </Link>
+
+          {/* Card 9: 🌐 Real Language Settings & Live Switcher */}
+          <div className="p-4 sm:p-5 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 hover:border-orange-500 dark:hover:border-orange-500 hover:shadow-md transition-all flex flex-col justify-between">
+            <div className="flex items-start gap-4 mb-3">
+              <div className="w-14 h-14 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200/60 dark:border-indigo-800/40 flex items-center justify-center shrink-0">
+                <Globe className="w-7 h-7 text-indigo-600 dark:text-indigo-400" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-base font-bold text-gray-900 dark:text-white">
+                    Language Settings
+                  </h2>
+                  <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-orange-100 dark:bg-orange-950 text-orange-600 dark:text-orange-400">
+                    {currentLangOption.name}
+                  </span>
+                </div>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Choose your preferred store language
+                </p>
+              </div>
+            </div>
+
+            {/* 4 Interactive Language Pills */}
+            <div className="grid grid-cols-2 gap-2 pt-2 border-t border-gray-100 dark:border-gray-700">
+              {LANGUAGES.map((l) => {
+                const active = l.code === language;
+                return (
+                  <button
+                    key={l.code}
+                    type="button"
+                    onClick={() => {
+                      setLanguage(l.code);
+                      toast.success(`Language changed to ${l.name} (${l.nativeName})`);
+                    }}
+                    className={`py-1.5 px-2 rounded-xl text-xs font-bold transition flex items-center justify-between border cursor-pointer ${
+                      active
+                        ? "bg-orange-500 text-white border-orange-500 shadow-sm"
+                        : "bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 border-gray-200 dark:border-gray-600"
+                    }`}
+                  >
+                    <span className="flex items-center gap-1.5">
+                      <span>{l.flag}</span>
+                      <span>{l.name}</span>
+                    </span>
+                    {active && <Check size={13} className="text-white" />}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         </div>
 
         {/* ─── Amazon-Style "Buy It Again" Section with Real Product Images ─── */}

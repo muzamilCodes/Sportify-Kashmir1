@@ -52,6 +52,7 @@ import { useCartCount } from "@/components/providers/CartCountProvider";
 import { resolveProductImage } from "@/lib/imageHelper";
 import ProductImage from "@/components/ProductImage";
 import { cachedJson } from "@/lib/clientCache";
+import { useLanguage, LANGUAGES, LanguageCode } from "@/context/LanguageContext";
 
 const Cricket = ({ size = 24 }: { size?: number }) => (
   <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -260,7 +261,10 @@ export default function Header() {
     announcementText?: string;
   } | null>(null);
 
+  const { language, setLanguage, currentLangOption, t } = useLanguage();
+
   const userMenuRef = useRef<HTMLDivElement>(null);
+  const langMenuRef = useRef<HTMLDivElement>(null);
   const searchContainerRef = useRef<HTMLDivElement>(null);
   const sideDrawerRef = useRef<HTMLDivElement>(null);
 
@@ -286,6 +290,9 @@ export default function Header() {
     const handleClickOutside = (event: MouseEvent) => {
       if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
         setIsUserMenuOpen(false);
+      }
+      if (langMenuRef.current && !langMenuRef.current.contains(event.target as Node)) {
+        setIsLangMenuOpen(false);
       }
       if (searchContainerRef.current && !searchContainerRef.current.contains(event.target as Node)) {
         setShowSuggestions(false);
@@ -515,7 +522,7 @@ export default function Header() {
             <MapPin size={16} className="text-white shrink-0 mt-2" />
             <div className="flex flex-col leading-tight">
               <span className="text-[11px] text-gray-300 font-normal truncate max-w-[120px]">
-                Deliver to {isLoggedIn && user ? (user.username || "User") : "Kashmir"}
+                {t("nav.deliverTo", "Deliver to")} {isLoggedIn && user ? (user.username || "User") : "Kashmir"}
               </span>
               <span className="text-xs font-bold text-white whitespace-nowrap">
                 Srinagar 190009
@@ -547,7 +554,7 @@ export default function Header() {
                 id="header-search-desktop"
                 name="search"
                 type="text"
-                placeholder="Search Kashmir willow bats, match footballs, gym gear, jerseys..."
+                placeholder={t("nav.searchPlaceholder", "Search Kashmir willow bats, match footballs, gym gear, jerseys...")}
                 value={searchQuery}
                 onFocus={() => {
                   if (searchQuery.trim().length >= 2) setShowSuggestions(true);
@@ -619,17 +626,61 @@ export default function Header() {
 
           {/* ── Right Section Actions: User, Orders, Cart, Theme ── */}
           <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
-            {/* Language Flag (Desktop Only) */}
-            <div className="relative hidden xl:flex">
+            {/* ── Language Flag & Real Switcher Dropdown (Desktop & Tablet) ── */}
+            <div className="relative hidden xl:flex" ref={langMenuRef}>
               <button
                 type="button"
                 onClick={() => setIsLangMenuOpen(!isLangMenuOpen)}
-                className="flex items-center gap-1 px-2 py-1.5 rounded-xs hover:outline-1 hover:outline-white text-xs font-bold"
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xs hover:outline-1 hover:outline-white text-xs font-bold text-white cursor-pointer group"
+                title="Change language"
               >
-                <span>🇮🇳</span>
-                <span>EN</span>
-                <ChevronDown size={10} className="text-gray-400" />
+                <span className="text-base leading-none">{currentLangOption.flag}</span>
+                <span className="tracking-wide uppercase text-[11px] font-black">{currentLangOption.code}</span>
+                <ChevronDown size={10} className={`text-gray-400 group-hover:text-white transition-transform ${isLangMenuOpen ? "rotate-180" : ""}`} />
               </button>
+
+              {/* Language Selection Modal Dropdown */}
+              {isLangMenuOpen && (
+                <div className="absolute right-0 top-full mt-1 w-56 bg-white text-gray-900 rounded-xl shadow-2xl border border-gray-200 py-2 z-50 animate-in fade-in slide-in-from-top-1 duration-150">
+                  <div className="px-3 py-1.5 border-b border-gray-100 flex items-center justify-between text-[11px] font-extrabold text-gray-500 uppercase tracking-wider">
+                    <span>{t("nav.language", "Select Language")}</span>
+                    <span className="text-orange-600 font-bold">4 Available</span>
+                  </div>
+                  <div className="p-1 space-y-0.5">
+                    {LANGUAGES.map((item) => {
+                      const isSelected = item.code === language;
+                      return (
+                        <button
+                          key={item.code}
+                          type="button"
+                          onClick={() => {
+                            setLanguage(item.code);
+                            setIsLangMenuOpen(false);
+                            toast.success(`Language set to ${item.name} (${item.nativeName})`);
+                          }}
+                          className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-bold transition cursor-pointer ${
+                            isSelected
+                              ? "bg-orange-50 text-orange-600 border border-orange-200"
+                              : "hover:bg-gray-100 text-gray-800"
+                          }`}
+                        >
+                          <div className="flex items-center gap-2.5">
+                            <span className="text-base leading-none">{item.flag}</span>
+                            <div className="text-left">
+                              <p className="leading-tight font-extrabold">{item.name}</p>
+                              <span className="text-[10px] text-gray-400 font-normal">{item.nativeName}</span>
+                            </div>
+                          </div>
+                          {isSelected && <Check size={15} className="text-orange-600 shrink-0" />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <div className="mt-1 px-3 py-1.5 bg-gray-50 border-t border-gray-100 text-[10px] text-gray-500 text-center">
+                    🇮🇳 Serving Athletes across Kashmir
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* ── Account & Lists Dropdown (100% Mobile & Desktop Responsive) ── */}
@@ -652,11 +703,11 @@ export default function Header() {
                 )}
                 <div className="flex flex-col leading-tight">
                   <span className="text-[10px] sm:text-[11px] text-gray-300 font-normal truncate max-w-[85px] sm:max-w-[110px]">
-                    Hello, {isLoggedIn && user ? (user.username || user.email?.split("@")[0]) : "Sign in"}
+                    {isLoggedIn && user ? `Hello, ${user.username || user.email?.split("@")[0]}` : t("nav.helloSignIn", "Hello, Sign in")}
                   </span>
                   <span className="text-[11px] sm:text-xs font-bold text-white flex items-center gap-0.5 whitespace-nowrap">
-                    <span className="hidden sm:inline">Account &amp; Lists</span>
-                    <span className="sm:hidden">Account</span>
+                    <span className="hidden sm:inline">{t("nav.accountLists", "Account & Lists")}</span>
+                    <span className="sm:hidden">{t("nav.accountLists", "Account")}</span>
                     <ChevronDown size={10} className={`text-gray-400 transition-transform ${isUserMenuOpen ? "rotate-180" : ""}`} />
                   </span>
                 </div>
@@ -873,7 +924,7 @@ export default function Header() {
               className="flex flex-col leading-tight px-1.5 sm:px-2 py-1 sm:py-1.5 rounded-xs hover:outline-1 hover:outline-white text-left shrink-0"
               aria-label="Returns and orders"
             >
-              <span className="text-[10px] sm:text-[11px] text-gray-300 font-normal">Returns</span>
+              <span className="text-[10px] sm:text-[11px] text-gray-300 font-normal">{t("nav.returnsOrders", "Returns")}</span>
               <span className="text-[11px] sm:text-xs font-bold text-white whitespace-nowrap">&amp; Orders</span>
             </Link>
 
@@ -889,7 +940,7 @@ export default function Header() {
                   {cartCount}
                 </span>
               </div>
-              <span className="hidden sm:inline text-xs font-bold text-white mt-1">Cart</span>
+              <span className="hidden sm:inline text-xs font-bold text-white mt-1">{t("nav.cart", "Cart")}</span>
             </Link>
 
             {/* Theme Toggle */}
@@ -923,7 +974,7 @@ export default function Header() {
               id="header-search-mobile"
               name="search"
               type="text"
-              placeholder="Search bats, balls, gym gear, wear..."
+              placeholder={t("nav.searchPlaceholder", "Search bats, balls, gym gear, wear...")}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="flex-1 px-2.5 text-xs text-gray-900 bg-white placeholder-gray-500 outline-none"
@@ -951,7 +1002,7 @@ export default function Header() {
         >
           <MapPin size={13} className="text-amber-400 shrink-0" />
           <span className="truncate">
-            Deliver to {isLoggedIn && user ? (user.username || "User") : "Kashmir"} - <strong>Srinagar 190009</strong>
+            {t("nav.deliverTo", "Deliver to")} {isLoggedIn && user ? (user.username || "User") : "Kashmir"} - <strong>Srinagar 190009</strong>
           </span>
         </Link>
         <ChevronRight size={13} className="text-gray-400 shrink-0 ml-1" />
@@ -970,7 +1021,7 @@ export default function Header() {
               className="flex items-center gap-1.5 px-2.5 py-1 rounded-xs hover:outline-1 hover:outline-white font-bold text-white cursor-pointer"
             >
               <Menu size={16} />
-              <span>All</span>
+              <span>{t("nav.all", "All")}</span>
             </button>
 
             {/* AI Assistant Badge */}
@@ -979,33 +1030,33 @@ export default function Header() {
               className="flex items-center gap-1 px-2 py-1 rounded-full bg-gradient-to-r from-orange-500/20 to-amber-500/20 border border-orange-400/40 text-amber-300 font-bold hover:bg-orange-500/30 transition"
             >
               <Sparkles size={13} className="text-amber-400" />
-              <span>⚡ Kashmir Express</span>
+              <span>⚡ {t("nav.kashmirExpress", "Kashmir Express")}</span>
             </Link>
 
             {/* Sports Links */}
             <Link href="/products?search=cricket" className="px-2 py-1 rounded-xs hover:outline-1 hover:outline-white">
-              Cricket Willow
+              {t("nav.cricket", "Cricket Willow")}
             </Link>
             <Link href="/products?search=football" className="px-2 py-1 rounded-xs hover:outline-1 hover:outline-white">
-              Football
+              {t("nav.football", "Football")}
             </Link>
             <Link href="/products?search=badminton" className="px-2 py-1 rounded-xs hover:outline-1 hover:outline-white">
-              Badminton
+              {t("nav.badminton", "Badminton")}
             </Link>
             <Link href="/products?search=gym" className="px-2 py-1 rounded-xs hover:outline-1 hover:outline-white">
-              Gym &amp; Fitness
+              {t("nav.gym", "Gym & Fitness")}
             </Link>
             <Link href="/products" className="px-2 py-1 rounded-xs hover:outline-1 hover:outline-white">
-              Buy Again
+              {t("nav.buyAgain", "Buy Again")}
             </Link>
             <Link href="/profile" className="px-2 py-1 rounded-xs hover:outline-1 hover:outline-white">
-              Sportify Prime
+              {t("nav.prime", "Sportify Prime")}
             </Link>
             <Link href="/wholesale" className="px-2 py-1 rounded-xs hover:outline-1 hover:outline-white font-bold text-amber-300">
-              Academy Wholesale
+              {t("nav.wholesale", "Academy Wholesale")}
             </Link>
             <Link href="/contact" className="px-2 py-1 rounded-xs hover:outline-1 hover:outline-white">
-              Customer Service
+              {t("nav.service", "Customer Service")}
             </Link>
           </div>
 

@@ -262,7 +262,7 @@ export default function AdminSettingsPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* 1. Store Logo */}
             <div className="p-4 bg-gray-50 dark:bg-gray-750 rounded-2xl border border-gray-200 dark:border-gray-700 flex flex-col justify-between">
               <div>
@@ -302,46 +302,7 @@ export default function AdminSettingsPage() {
               </div>
             </div>
 
-            {/* 2. Homepage Hero Banner */}
-            <div className="p-4 bg-gray-50 dark:bg-gray-750 rounded-2xl border border-gray-200 dark:border-gray-700 flex flex-col justify-between">
-              <div>
-                <label className="block text-xs font-bold uppercase text-gray-700 dark:text-gray-300 mb-1">
-                  Home Promo Banner
-                </label>
-                <p className="text-[11px] text-gray-500 dark:text-gray-400 mb-3">
-                  Featured Kashmir Willow &amp; Sports Deals banner on Homepage.
-                </p>
-                <div className="h-28 bg-white dark:bg-gray-700 rounded-xl border border-dashed border-gray-300 dark:border-gray-600 flex items-center justify-center overflow-hidden p-2 relative group">
-                  {currentBanner ? (
-                    <img src={currentBanner} alt="Hero banner preview" className="w-full h-full object-cover rounded-lg" />
-                  ) : (
-                    <div className="text-center text-gray-400">
-                      <ImageIcon size={24} className="mx-auto mb-1 opacity-50" />
-                      <span className="text-[11px]">No banner uploaded</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-              <div className="mt-3">
-                <button
-                  type="button"
-                  onClick={() => bannerInputRef.current?.click()}
-                  className="w-full py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-100 text-gray-800 dark:text-gray-200 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition cursor-pointer"
-                >
-                  <Upload size={13} />
-                  <span>{currentBanner ? "Change Banner" : "Upload Banner"}</span>
-                </button>
-                <input
-                  ref={bannerInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => handleFileSelect(e, setBannerFile, setBannerPreview)}
-                  className="hidden"
-                />
-              </div>
-            </div>
-
-            {/* 3. Favicon / PWA Icon */}
+            {/* 2. Favicon / PWA Icon */}
             <div className="p-4 bg-gray-50 dark:bg-gray-750 rounded-2xl border border-gray-200 dark:border-gray-700 flex flex-col justify-between">
               <div>
                 <label className="block text-xs font-bold uppercase text-gray-700 dark:text-gray-300 mb-1">

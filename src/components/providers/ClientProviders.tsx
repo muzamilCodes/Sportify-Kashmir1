@@ -9,6 +9,8 @@ import { CartCountProvider } from "@/components/providers/CartCountProvider";
 import { installRequestDedupe } from "@/lib/requestDedupe";
 import PWARegister from "@/components/shared/PWARegister";
 
+import { LanguageProvider } from "@/context/LanguageContext";
+
 /**
  * ClientProviders
  * Wraps all client-side providers and persistent UI components.
@@ -24,15 +26,16 @@ export default function ClientProviders({
 
   return (
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-      <CartCountProvider>
-        {children}
-        <MobileBottomNav />
-        <ScrollToTop />
-        <RouteChangeHandler />
-        <InstallPrompt />
-        <PWARegister />
-      </CartCountProvider>
+      <LanguageProvider>
+        <CartCountProvider>
+          {children}
+          <MobileBottomNav />
+          <ScrollToTop />
+          <RouteChangeHandler />
+          <InstallPrompt />
+          <PWARegister />
+        </CartCountProvider>
+      </LanguageProvider>
     </ThemeProvider>
   );
 }
-

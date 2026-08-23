@@ -15,12 +15,14 @@ import {
   Download,
 } from "lucide-react";
 import NextLink from "next/link";
+import { useLanguage } from "@/context/LanguageContext";
 
 function Link(props: React.ComponentProps<typeof NextLink>) {
   return <NextLink prefetch={false} {...props} />;
 }
 
 export default function Footer() {
+  const { t } = useLanguage();
   const currentYear = new Date().getFullYear();
 
   const quickLinks = [
@@ -103,7 +105,7 @@ export default function Footer() {
           <div>
             <h4 className="text-xs font-bold uppercase tracking-wider text-white mb-2.5 flex items-center gap-1.5">
               <span className="w-1.5 h-3 bg-orange-500 rounded-full"></span>
-              Categories
+              {t("nav.all", "Categories")}
             </h4>
             <div className="grid grid-cols-2 gap-x-2 gap-y-1.5">
               {categories.map((c) => (
@@ -122,7 +124,7 @@ export default function Footer() {
           <div>
             <h4 className="text-xs font-bold uppercase tracking-wider text-white mb-2.5 flex items-center gap-1.5">
               <span className="w-1.5 h-3 bg-orange-500 rounded-full"></span>
-              Quick Links
+              {t("footer.quickLinks", "Quick Links")}
             </h4>
             <div className="grid grid-cols-2 gap-x-2 gap-y-1.5">
               {quickLinks.map((l) => (
@@ -151,7 +153,7 @@ export default function Footer() {
           <div>
             <h4 className="text-xs font-bold uppercase tracking-wider text-white mb-2.5 flex items-center gap-1.5">
               <span className="w-1.5 h-3 bg-orange-500 rounded-full"></span>
-              Contact Us
+              {t("footer.customerService", "Contact Us")}
             </h4>
             <div className="space-y-1.5 text-[11px] text-gray-400">
               <div className="flex items-center gap-2">
@@ -172,7 +174,7 @@ export default function Footer() {
 
         {/* ─── Compact Bottom Bar ─── */}
         <div className="mt-6 pt-4 border-t border-gray-800/80 flex flex-col sm:flex-row items-center justify-between gap-2 text-[10px] text-gray-500">
-          <p>© {currentYear} Sportify Kashmir. All rights reserved.</p>
+          <p>© {currentYear} Sportify Kashmir. {t("footer.allRights", "All rights reserved.")}</p>
           <div className="flex items-center gap-3">
             <Link href="/privacy-policy" className="hover:text-orange-400 transition">
               Privacy

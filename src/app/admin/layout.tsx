@@ -25,6 +25,7 @@ import {
   Camera,
   ChevronLeft,
   ChevronRight,
+  Image as ImageIcon,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -159,6 +160,7 @@ export default function AdminLayout({
     { href: "/admin/refunds", label: "Refunds", icon: <RefreshCw size={18} /> },
     { href: "/admin/posts", label: "Blog Posts", icon: <FileText size={18} /> },
     { href: "/admin/contacts", label: "Contact Messages", icon: <Mail size={18} />, badge: unreadCount },
+    { href: "/admin/banners", label: "Hero Banners", icon: <ImageIcon size={18} /> },
     { href: "/admin/settings", label: "Store Settings", icon: <Settings size={18} /> },
     { href: "/admin/profile", label: "Admin Profile", icon: <User size={18} /> },
   ];
