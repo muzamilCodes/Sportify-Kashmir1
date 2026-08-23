@@ -24,6 +24,15 @@ const nextConfig = {
       dynamic: 30,
       static: 300,
     },
+    optimizePackageImports: [
+      'lucide-react',
+      '@radix-ui/react-dialog',
+      '@radix-ui/react-dropdown-menu',
+      '@radix-ui/react-tabs',
+      '@radix-ui/react-select',
+      '@radix-ui/react-slot',
+      '@radix-ui/react-alert-dialog',
+    ],
   },
   // Keep local development pointed at localhost, but never let a production
   // build silently call the browser's localhost when the env var is missing.
@@ -35,8 +44,9 @@ const nextConfig = {
         : 'http://localhost:4000'),
   },
   images: {
-    unoptimized: true,
     formats: ['image/avif', 'image/webp'],
+    deviceSizes: [360, 480, 640, 750, 828, 1080, 1200, 1920],
+    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
     minimumCacheTTL: 86400,
     remotePatterns: [
       {
@@ -146,6 +156,15 @@ const nextConfig = {
           {
             key: 'Cache-Control',
             value: 'public, max-age=0, must-revalidate',
+          },
+        ],
+      },
+      {
+        source: '/:all*(svg|jpg|png|webp|avif|ico|woff2|woff)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
           },
         ],
       },

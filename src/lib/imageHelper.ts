@@ -103,6 +103,24 @@ export const resolveProductImage = (product: any, customApiUrl?: string): string
   // Older records may contain Windows-style paths. Normalize them.
   raw = raw.replace(/\\/g, "/");
 
+  // Protocol-relative URLs (e.g. //images.unsplash.com/...)
+  if (raw.startsWith("//")) {
+    raw = `https:${raw}`;
+  }
+
+  // Cloudinary Image Optimization (auto WebP/AVIF format, auto compression, max width 600px)
+  if (raw.includes("res.cloudinary.com") && raw.includes("/image/upload/")) {
+    if (!raw.includes("f_auto") && !raw.includes("q_auto")) {
+      raw = raw.replace("/image/upload/", "/image/upload/f_auto,q_auto,c_limit,w_600/");
+    }
+  }
+
+  // Unsplash Image Optimization
+  if (raw.includes("images.unsplash.com") && !raw.includes("auto=format")) {
+    const separator = raw.includes("?") ? "&" : "?";
+    raw = `${raw}${separator}auto=format&fit=crop&q=75&w=600`;
+  }
+
   // Absolute HTTP / HTTPS or Data URI / Blob
   if (
     raw.startsWith("http://") ||
@@ -111,11 +129,6 @@ export const resolveProductImage = (product: any, customApiUrl?: string): string
     raw.startsWith("blob:")
   ) {
     return raw;
-  }
-
-  // Protocol-relative URLs (e.g. //images.unsplash.com/...)
-  if (raw.startsWith("//")) {
-    return `https:${raw}`;
   }
 
   const apiUrl = (customApiUrl || getApiUrl()).replace(/\/$/, "");

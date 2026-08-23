@@ -1,9 +1,16 @@
 import type { Metadata, Viewport } from "next";
+import { Inter } from "next/font/google";
 import { Toaster } from "react-hot-toast";
 import Footer from "@/components/shared/Footer";
 import Header from "@/components/shared/Header";
 import ClientProviders from "@/components/providers/ClientProviders";
 import "./globals.css";
+
+const inter = Inter({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-inter",
+});
 
 /* ─── SEO & PWA Metadata ───────────────────────────────────────── */
 export const metadata: Metadata = {
@@ -62,14 +69,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" className={inter.variable} suppressHydrationWarning>
       <head>
         <link rel="icon" href="/favicon.ico" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <link rel="manifest" href="/manifest.json" />
+        <link rel="preconnect" href="https://res.cloudinary.com" crossOrigin="anonymous" />
+        <link rel="dns-prefetch" href="https://res.cloudinary.com" />
         <meta name="theme-color" content="#f97316" />
       </head>
-      <body className="bg-[var(--color-bg-primary)] font-sans text-[var(--color-text-primary)] transition-colors duration-300" suppressHydrationWarning>
+      <body className={`${inter.className} bg-[var(--color-bg-primary)] font-sans text-[var(--color-text-primary)] transition-colors duration-300`} suppressHydrationWarning>
         <ClientProviders>
           <Header />
           <Toaster

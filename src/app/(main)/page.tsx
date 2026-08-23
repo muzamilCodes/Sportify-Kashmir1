@@ -153,40 +153,6 @@ export default function HomePage() {
   };
 
   const showLoadMore = products.length > visibleProducts;
-
-  // Skeleton loading state
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-[var(--color-bg-primary)]">
-        {/* Hero Skeleton */}
-        <section className="relative min-h-[50vh] flex items-center justify-center overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-orange-50 via-white to-red-50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800" />
-          <div className="container mx-auto px-4 relative z-10 py-12">
-            <div className="text-center space-y-3 animate-pulse">
-              <div className="h-10 w-2/3 mx-auto skeleton-shimmer rounded-lg" />
-              <div className="h-5 w-1/2 mx-auto skeleton-shimmer rounded-lg" />
-              <div className="flex justify-center gap-3 mt-6">
-                <div className="h-11 w-36 skeleton-shimmer rounded-full" />
-                <div className="h-11 w-36 skeleton-shimmer rounded-full" />
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <div className="container mx-auto px-3 sm:px-4 py-8 space-y-12">
-          <div>
-            <div className="h-7 w-52 skeleton-shimmer rounded-lg mb-4" />
-            <ProductGridSkeleton count={5} />
-          </div>
-          <div>
-            <div className="h-7 w-48 skeleton-shimmer rounded-lg mb-4" />
-            <ProductGridSkeleton count={10} />
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   const displayedProducts = products.slice(0, visibleProducts);
 
   return (
@@ -201,16 +167,16 @@ export default function HomePage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
             {/* Left: Text Content */}
             <div className="text-center lg:text-left max-w-xl mx-auto lg:mx-0">
-              <h1 className="text-[28px] sm:text-[32px] md:text-[36px] font-extrabold mb-4 animate-fade-in-up leading-tight tracking-tight">
-                <span className="text-gray-900 dark:text-white">Elevate Your</span>{" "}
+              <h1 className="text-[28px] sm:text-[32px] md:text-[36px] font-extrabold mb-4 leading-tight tracking-tight text-gray-900 dark:text-white">
+                Elevate Your{" "}
                 <span className="bg-gradient-to-r from-orange-500 via-red-500 to-pink-500 bg-clip-text text-transparent">
                   Game in Kashmir
                 </span>
               </h1>
-              <p className="text-[14px] sm:text-[16px] mb-6 text-gray-600 dark:text-gray-300 animate-fade-in-up leading-relaxed" style={{ animationDelay: '0.2s' }}>
+              <p className="text-[14px] sm:text-[16px] mb-6 text-gray-600 dark:text-gray-300 leading-relaxed">
                 Premium sports gear & equipment delivered across Kashmir with unmatched speed. 100% authentic products guaranteed.
               </p>
-              <div className="flex flex-wrap justify-center lg:justify-start gap-3 animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
+              <div className="flex flex-wrap justify-center lg:justify-start gap-3">
                 <Link href="/products" className="bg-gradient-to-r from-orange-500 to-red-500 text-white px-6 py-2.5 rounded-full text-[14px] sm:text-[15px] font-semibold shadow-md hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5">
                   Shop Collection
                 </Link>
@@ -221,13 +187,19 @@ export default function HomePage() {
             </div>
 
             {/* Right: Image Content */}
-            <div className="relative animate-fade-in-up flex justify-center" style={{ animationDelay: '0.3s' }}>
+            <div className="relative flex justify-center">
               <div className="relative w-full max-w-md aspect-square">
                 <div className="absolute inset-0 bg-gradient-to-tr from-orange-200 to-pink-200 dark:from-orange-500/20 dark:to-pink-500/20 rounded-[60%_40%_30%_70%/60%_30%_70%_40%] animate-spin-slow opacity-60"></div>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img 
                   src="/hero-sports.png" 
-                  alt="Premium Sports Equipment" 
+                  alt="Sportify Kashmir Premium Sports Equipment" 
+                  width={480}
+                  height={480}
+                  loading="eager"
+                  decoding="async"
+                  // @ts-ignore
+                  fetchPriority="high"
                   className="absolute inset-0 w-full h-full object-contain drop-shadow-xl hover:scale-105 transition-transform duration-500"
                 />
               </div>
@@ -238,20 +210,21 @@ export default function HomePage() {
 
       <div className="container mx-auto px-3 sm:px-4 py-8">
         {/* Featured Products Section: Section Heading 24–28px */}
-        {featuredProducts.length > 0 && (
-          <section className="mb-12">
-            <div className="flex justify-between items-center mb-5">
-              <div>
-                <h2 className="text-[22px] sm:text-[25px] md:text-[28px] font-bold text-gray-900 dark:text-white tracking-tight">
-                  Featured Products
-                </h2>
-                <p className="text-[13px] sm:text-[14px] text-gray-500 dark:text-gray-400 mt-0.5">New arrivals & trending picks</p>
-              </div>
-              <Link href="/products" className="group text-[13px] sm:text-[14px] font-semibold text-orange-600 hover:text-orange-700 dark:text-orange-400 flex items-center gap-1 transition-all">
-                View All <ChevronRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
-              </Link>
+        <section className="mb-12">
+          <div className="flex justify-between items-center mb-5">
+            <div>
+              <h2 className="text-[22px] sm:text-[25px] md:text-[28px] font-bold text-gray-900 dark:text-white tracking-tight">
+                Featured Products
+              </h2>
+              <p className="text-[13px] sm:text-[14px] text-gray-500 dark:text-gray-400 mt-0.5">New arrivals & trending picks</p>
             </div>
-            {/* 2 cols mobile, 3 sm, 4 md/lg, 5 xl */}
+            <Link href="/products" className="group text-[13px] sm:text-[14px] font-semibold text-orange-600 hover:text-orange-700 dark:text-orange-400 flex items-center gap-1 transition-all">
+              View All <ChevronRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
+            </Link>
+          </div>
+          {loading ? (
+            <ProductGridSkeleton count={5} />
+          ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4 md:gap-4.5">
               {featuredProducts.map((product) => {
                 const discountedPrice = calculateDiscountedPrice(product.price, product.discount);
@@ -271,11 +244,11 @@ export default function HomePage() {
                 );
               })}
             </div>
-          </section>
-        )}
+          )}
+        </section>
 
         {/* Flash Sale Banner & Grid */}
-        {saleProducts.length > 0 && (
+        {!loading && saleProducts.length > 0 && (
           <section className="mb-12">
             <div className="bg-gradient-to-r from-orange-500 via-red-500 to-pink-500 rounded-2xl p-5 sm:p-6 mb-6 shadow-md relative overflow-hidden">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
@@ -327,7 +300,9 @@ export default function HomePage() {
             </span>
           </div>
 
-          {products.length === 0 ? (
+          {loading ? (
+            <ProductGridSkeleton count={10} />
+          ) : products.length === 0 ? (
             <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
               <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-3">
                 <ShoppingCart className="w-8 h-8 text-gray-400 dark:text-gray-500" />
