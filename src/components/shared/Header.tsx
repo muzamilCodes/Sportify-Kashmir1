@@ -40,6 +40,7 @@ import ThemeToggle from "@/components/shared/ThemeToggle";
 import { useCartCount } from "@/components/providers/CartCountProvider";
 import { resolveProductImage } from "@/lib/imageHelper";
 import ProductImage from "@/components/ProductImage";
+import { cachedJson } from "@/lib/clientCache";
 
 const Cricket = ({ size = 24 }: { size?: number }) => (
   <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -103,11 +104,16 @@ export default function Header() {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   const userMenuRef = useRef<HTMLDivElement>(null);
   const searchContainerRef = useRef<HTMLDivElement>(null);
 
   const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000").replace(/\/$/, "");
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     setImageError(false);
@@ -233,7 +239,58 @@ export default function Header() {
     if (localStorage.getItem("token")) {
       verifyToken();
     }
-  }, []);
+  }, [API_URL]);
+
+  const [quickBuyProducts, setQuickBuyProducts] = useState<any[]>([]);
+  const [addingCartId, setAddingCartId] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function loadQuickBuy() {
+      try {
+        const res = await cachedJson<{ success: boolean; data: any }>(`${API_URL}/product/getAll`);
+        if (res.success && res.data) {
+          const raw = Array.isArray(res.data) ? res.data : res.data?.items || [];
+          setQuickBuyProducts(raw.slice(0, 3));
+        }
+      } catch {
+        // silent fallback
+      }
+    }
+    loadQuickBuy();
+  }, [API_URL]);
+
+  const handleQuickAddToCart = async (productId: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const token = localStorage.getItem("token");
+    if (!token) {
+      toast.error("Please login to add items to cart");
+      router.push("/login");
+      return;
+    }
+    setAddingCartId(productId);
+    try {
+      const response = await fetch(`${API_URL}/cart/addtoCart/${productId}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ quantity: 1 }),
+      });
+      const result = await response.json();
+      if (result.success) {
+        toast.success("Added to cart!");
+        window.dispatchEvent(new Event("cartUpdated"));
+      } else {
+        toast.error(result.message || "Failed to add to cart");
+      }
+    } catch {
+      toast.error("Failed to add to cart");
+    } finally {
+      setAddingCartId(null);
+    }
+  };
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -259,11 +316,14 @@ export default function Header() {
   const profileImageUrl = getProfileImageUrl(user?.profilePic);
 
   return (
-    <header className={`sticky top-0 z-50 transition-all duration-300 ${
-      scrolled
-        ? "shadow-xl bg-white/95 dark:bg-gray-900/95 backdrop-blur-md"
-        : "shadow-lg bg-white dark:bg-gray-900"
-    }`}>
+    <header
+      suppressHydrationWarning
+      className={`sticky top-0 z-50 transition-all duration-300 ${
+        scrolled
+          ? "shadow-xl bg-white/95 dark:bg-gray-900/95 backdrop-blur-md"
+          : "shadow-lg bg-white dark:bg-gray-900"
+      }`}
+    >
       {/* Top Banner */}
       <div className="bg-gradient-to-r from-orange-600 via-red-600 to-pink-600 text-white text-center py-2 px-4 text-xs font-semibold tracking-wide shadow-inner">
         <div className="flex items-center justify-center gap-3 sm:gap-6 flex-wrap">
@@ -301,9 +361,12 @@ export default function Header() {
             <form onSubmit={handleSearch} className="relative">
               <Search className="absolute left-3.5 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
               <input
+                id="header-search-desktop"
+                name="search"
                 type="text"
                 placeholder="Search sports gear, shoes, jerseys, equipment..."
                 value={searchQuery}
+                aria-label="Search sports gear, shoes, jerseys, equipment"
                 onFocus={() => {
                   if (searchQuery.trim().length >= 2) setShowSuggestions(true);
                 }}
@@ -312,7 +375,8 @@ export default function Header() {
               />
               <button
                 type="submit"
-                className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-gradient-to-r from-orange-500 to-red-500 text-white px-4 py-1.5 rounded-full text-xs font-semibold hover:shadow-md transition-shadow flex items-center gap-1"
+                aria-label="Submit search"
+                className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-gradient-to-r from-orange-500 to-red-500 text-white px-4 py-1.5 rounded-full text-xs font-semibold hover:shadow-md transition-shadow flex items-center gap-1 cursor-pointer"
               >
                 {isSearching ? <Loader2 size={13} className="animate-spin" /> : "Search"}
               </button>
@@ -403,128 +467,290 @@ export default function Header() {
               )}
             </Link>
 
-            {/* User Account Dropdown */}
+            {/* User Account Dropdown (Amazon-style Mega Dropdown) */}
             <div className="relative" ref={userMenuRef}>
               <button
                 onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                className="flex items-center gap-2 p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition"
+                className="flex items-center gap-2 py-1 px-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition cursor-pointer border border-transparent hover:border-gray-200 dark:hover:border-gray-700"
+                aria-label="Account and lists menu"
+                aria-expanded={isUserMenuOpen}
               >
                 {isLoggedIn && profileImageUrl && !imageError ? (
                   <img
                     src={profileImageUrl}
                     alt="Profile"
-                    className="w-9 h-9 rounded-full object-cover border-2 border-orange-500"
+                    className="w-9 h-9 rounded-full object-cover border-2 border-orange-500 shrink-0"
                     onError={() => setImageError(true)}
                   />
                 ) : (
-                  <div className="w-9 h-9 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center">
-                    <User className="text-gray-600 dark:text-gray-300" size={20} />
+                  <div className="w-9 h-9 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center shrink-0">
+                    <User className="text-gray-600 dark:text-gray-300" size={18} />
                   </div>
                 )}
-                {isLoggedIn && user && (
-                  <span className="hidden md:block text-sm font-medium text-gray-700 dark:text-gray-200">
-                    {user.username || user.email?.split("@")[0]}
+                <div className="hidden md:flex flex-col text-left leading-tight">
+                  <span className="text-[11px] text-gray-500 dark:text-gray-400 font-normal truncate max-w-[120px]">
+                    Hello, {isLoggedIn && user ? (user.username || user.email?.split("@")[0]) : "sign in"}
                   </span>
-                )}
-                <ChevronDown size={16} className={`text-gray-400 transition-transform ${isUserMenuOpen ? "rotate-180" : ""}`} />
+                  <span className="text-xs font-bold text-gray-900 dark:text-white flex items-center gap-0.5">
+                    Account & Lists
+                    <ChevronDown size={13} className={`text-gray-500 transition-transform ${isUserMenuOpen ? "rotate-180" : ""}`} />
+                  </span>
+                </div>
               </button>
 
-              {/* Dropdown Menu */}
-              <div className={`absolute right-0 top-full mt-2 w-64 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 transition-all duration-200 z-50 ${
-                isUserMenuOpen ? "opacity-100 visible translate-y-0" : "opacity-0 invisible -translate-y-2"
-              }`}>
-                {isLoggedIn && user ? (
-                  <>
-                    <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700 bg-gradient-to-r from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20 rounded-t-2xl">
-                      <div className="flex items-center gap-3">
-                        {profileImageUrl && !imageError ? (
-                          <img src={profileImageUrl} alt="Profile" className="w-12 h-12 rounded-full object-cover border-2 border-orange-500" />
-                        ) : (
-                          <div className="w-12 h-12 bg-gradient-to-r from-orange-500 to-red-500 rounded-full flex items-center justify-center">
-                            <User size={24} className="text-white" />
-                          </div>
-                        )}
-                        <div>
-                          <div className="font-semibold text-gray-900 dark:text-white">{user?.username || "User"}</div>
-                          <div className="text-sm text-gray-500 dark:text-gray-400">{user?.email}</div>
-                        </div>
-                      </div>
-                    </div>
-                    {user?.isAdmin && (
-                      <Link href="/admin" className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition" onClick={() => setIsUserMenuOpen(false)}>
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-500 dark:text-gray-400"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
-                        <div><div className="font-medium text-gray-900 dark:text-white">Admin Dashboard</div><div className="text-xs text-gray-500 dark:text-gray-400">Manage store & products</div></div>
-                      </Link>
+              {/* Amazon Mega Dropdown Menu */}
+              <div
+                className={`absolute right-0 top-full mt-2 w-[92vw] sm:w-[580px] lg:w-[680px] bg-white dark:bg-gray-850 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 transition-all duration-200 z-50 overflow-hidden ${
+                  isUserMenuOpen ? "opacity-100 visible translate-y-0" : "opacity-0 invisible -translate-y-2 pointer-events-none"
+                }`}
+              >
+                {/* ─── Top Bar: Profile Strip ─── */}
+                <div className="px-4 py-2.5 bg-gray-50 dark:bg-gray-800/80 border-b border-gray-100 dark:border-gray-700/80 flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300">
+                    <span>Who is shopping?</span>
+                    {isLoggedIn && user ? (
+                      <span className="font-bold text-gray-900 dark:text-white flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" />
+                        {user.username || user.email}
+                      </span>
+                    ) : (
+                      <span className="font-medium text-gray-500">Guest Customer</span>
                     )}
-                    <Link href="/profile" className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition border-t border-gray-100 dark:border-gray-700" onClick={() => setIsUserMenuOpen(false)}>
-                      <User size={18} className="text-gray-500 dark:text-gray-400" />
-                      <div><div className="font-medium text-gray-900 dark:text-white">My Account</div><div className="text-xs text-gray-500 dark:text-gray-400">View profile & orders</div></div>
-                    </Link>
-                    <Link href="/orders" className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition border-t border-gray-100 dark:border-gray-700" onClick={() => setIsUserMenuOpen(false)}>
-                      <ClipboardList size={18} className="text-gray-500 dark:text-gray-400" />
-                      <div><div className="font-medium text-gray-900 dark:text-white">My Orders</div><div className="text-xs text-gray-500 dark:text-gray-400">Track your orders</div></div>
-                    </Link>
-                    <Link href="/wishlist" className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition border-t border-gray-100 dark:border-gray-700" onClick={() => setIsUserMenuOpen(false)}>
-                      <Heart size={18} className="text-gray-500 dark:text-gray-400" />
-                      <div><div className="font-medium text-gray-900 dark:text-white">Wishlist</div><div className="text-xs text-gray-500 dark:text-gray-400">Saved items</div></div>
-                    </Link>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsUserMenuOpen(false);
-                        window.dispatchEvent(new CustomEvent("show-pwa-install"));
-                      }}
-                      className="flex items-center gap-3 w-full text-left px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition border-t border-gray-100 dark:border-gray-700 text-gray-700 dark:text-gray-300"
-                    >
-                      <Download size={18} className="text-orange-500" />
-                      <div>
-                        <div className="font-medium text-gray-900 dark:text-white">Install App</div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400">Install web app to device</div>
+                  </div>
+                  <Link
+                    href={isLoggedIn ? "/profile" : "/login"}
+                    onClick={() => setIsUserMenuOpen(false)}
+                    className="text-xs font-bold text-orange-600 dark:text-orange-400 hover:text-orange-700 flex items-center gap-0.5 hover:underline"
+                  >
+                    {isLoggedIn ? "Manage Profile ›" : "Sign In ›"}
+                  </Link>
+                </div>
+
+                {/* ─── 3-Column Grid ─── */}
+                <div className="grid grid-cols-1 sm:grid-cols-12 divide-y sm:divide-y-0 sm:divide-x divide-gray-100 dark:divide-gray-700/60 p-4 gap-4">
+                  {/* Column 1: Buy It Again (sm:col-span-5) */}
+                  <div className="sm:col-span-5 pr-0 sm:pr-2">
+                    <div className="flex items-center justify-between pb-1.5 mb-2 border-b border-gray-100 dark:border-gray-700">
+                      <h4 className="text-xs font-extrabold text-gray-900 dark:text-white uppercase tracking-wider">
+                        Buy it again
+                      </h4>
+                      <Link
+                        href="/products"
+                        onClick={() => setIsUserMenuOpen(false)}
+                        className="text-[11px] text-orange-600 dark:text-orange-400 font-semibold hover:underline"
+                      >
+                        View All
+                      </Link>
+                    </div>
+
+                    <div className="space-y-2.5">
+                      {quickBuyProducts.length > 0 ? (
+                        quickBuyProducts.map((prod) => (
+                          <div
+                            key={prod._id}
+                            className="flex items-center gap-2.5 p-1.5 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800/60 transition group"
+                          >
+                            <Link
+                              href={`/product/${prod._id}`}
+                              onClick={() => setIsUserMenuOpen(false)}
+                              className="relative w-12 h-12 rounded-lg bg-gray-100 dark:bg-gray-750 shrink-0 overflow-hidden border border-gray-200 dark:border-gray-700 flex items-center justify-center p-1"
+                            >
+                              <ProductImage
+                                product={prod}
+                                alt={prod.name}
+                                width={48}
+                                height={48}
+                                className="object-contain"
+                              />
+                            </Link>
+                            <div className="min-w-0 flex-1">
+                              <Link
+                                href={`/product/${prod._id}`}
+                                onClick={() => setIsUserMenuOpen(false)}
+                              >
+                                <p className="text-xs font-semibold text-gray-900 dark:text-gray-100 truncate group-hover:text-orange-600 transition">
+                                  {prod.name}
+                                </p>
+                              </Link>
+                              <p className="text-xs font-bold text-orange-600 dark:text-orange-400">
+                                ₹{Math.round(prod.discount ? prod.price - (prod.price * prod.discount) / 100 : prod.price).toLocaleString("en-IN")}
+                              </p>
+                              <button
+                                type="button"
+                                onClick={(e) => handleQuickAddToCart(prod._id, e)}
+                                disabled={addingCartId === prod._id}
+                                className="mt-1 px-2.5 py-0.5 text-[11px] font-bold rounded-md bg-amber-400 hover:bg-amber-500 text-gray-900 transition flex items-center gap-1 shadow-xs cursor-pointer disabled:opacity-50"
+                              >
+                                {addingCartId === prod._id ? (
+                                  <Loader2 size={10} className="animate-spin" />
+                                ) : (
+                                  <ShoppingCart size={10} />
+                                )}
+                                <span>Add to cart</span>
+                              </button>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="text-center py-4 text-xs text-gray-500">
+                          <ShoppingBag size={20} className="mx-auto mb-1 text-gray-400" />
+                          <span>No past orders yet</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Column 2: Your Lists (sm:col-span-3) */}
+                  <div className="sm:col-span-3 px-0 sm:px-2 pt-3 sm:pt-0">
+                    <h4 className="text-xs font-extrabold text-gray-900 dark:text-white uppercase tracking-wider pb-1.5 mb-2 border-b border-gray-100 dark:border-gray-700">
+                      Your Lists
+                    </h4>
+                    <ul className="space-y-2 text-xs font-medium text-gray-700 dark:text-gray-300">
+                      <li>
+                        <Link
+                          href="/wishlist"
+                          onClick={() => setIsUserMenuOpen(false)}
+                          className="flex items-center gap-1.5 py-1 hover:text-orange-600 transition"
+                        >
+                          <Heart size={13} className="text-orange-500 shrink-0" />
+                          <span>Your Wishlist</span>
+                        </Link>
+                      </li>
+                      <li>
+                        <Link
+                          href="/categories"
+                          onClick={() => setIsUserMenuOpen(false)}
+                          className="flex items-center gap-1.5 py-1 hover:text-orange-600 transition"
+                        >
+                          <Award size={13} className="text-orange-500 shrink-0" />
+                          <span>Sports Showroom</span>
+                        </Link>
+                      </li>
+                      <li>
+                        <Link
+                          href="/products"
+                          onClick={() => setIsUserMenuOpen(false)}
+                          className="flex items-center gap-1.5 py-1 hover:text-orange-600 transition"
+                        >
+                          <Tag size={13} className="text-orange-500 shrink-0" />
+                          <span>Special Deals</span>
+                        </Link>
+                      </li>
+                    </ul>
+                  </div>
+
+                  {/* Column 3: Your Account (sm:col-span-4) */}
+                  <div className="sm:col-span-4 pl-0 sm:pl-2 pt-3 sm:pt-0">
+                    <h4 className="text-xs font-extrabold text-gray-900 dark:text-white uppercase tracking-wider pb-1.5 mb-2 border-b border-gray-100 dark:border-gray-700">
+                      Your Account
+                    </h4>
+                    {isLoggedIn && user ? (
+                      <ul className="space-y-2 text-xs font-medium text-gray-700 dark:text-gray-300">
+                        {user?.isAdmin && (
+                          <li>
+                            <Link
+                              href="/admin"
+                              onClick={() => setIsUserMenuOpen(false)}
+                              className="flex items-center gap-1.5 py-1 text-orange-600 font-bold hover:underline"
+                            >
+                              <span>⭐ Admin Dashboard</span>
+                            </Link>
+                          </li>
+                        )}
+                        <li>
+                          <Link
+                            href="/profile"
+                            onClick={() => setIsUserMenuOpen(false)}
+                            className="flex items-center gap-1.5 py-1 hover:text-orange-600 transition"
+                          >
+                            <User size={13} className="text-gray-500 shrink-0" />
+                            <span>Your Account</span>
+                          </Link>
+                        </li>
+                        <li>
+                          <Link
+                            href="/orders"
+                            onClick={() => setIsUserMenuOpen(false)}
+                            className="flex items-center gap-1.5 py-1 hover:text-orange-600 transition"
+                          >
+                            <ClipboardList size={13} className="text-gray-500 shrink-0" />
+                            <span>Your Orders</span>
+                          </Link>
+                        </li>
+                        <li>
+                          <Link
+                            href="/profile?tab=addresses"
+                            onClick={() => setIsUserMenuOpen(false)}
+                            className="flex items-center gap-1.5 py-1 hover:text-orange-600 transition"
+                          >
+                            <MapPin size={13} className="text-gray-500 shrink-0" />
+                            <span>Your Addresses</span>
+                          </Link>
+                        </li>
+                        <li>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsUserMenuOpen(false);
+                              window.dispatchEvent(new CustomEvent("show-pwa-install"));
+                            }}
+                            className="flex items-center gap-1.5 py-1 text-orange-600 hover:underline cursor-pointer"
+                          >
+                            <Download size={13} className="shrink-0" />
+                            <span>Install App</span>
+                          </button>
+                        </li>
+                        <li className="pt-2 border-t border-gray-100 dark:border-gray-700">
+                          <button
+                            type="button"
+                            onClick={handleLogout}
+                            className="flex items-center gap-1.5 py-1 text-red-600 hover:text-red-700 font-bold transition cursor-pointer"
+                          >
+                            <LogOut size={13} className="shrink-0" />
+                            <span>Sign Out</span>
+                          </button>
+                        </li>
+                      </ul>
+                    ) : (
+                      <div className="space-y-2.5">
+                        <Link
+                          href="/login"
+                          onClick={() => setIsUserMenuOpen(false)}
+                          className="block w-full py-2 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white text-center rounded-xl font-bold text-xs shadow-md transition"
+                        >
+                          Sign In
+                        </Link>
+                        <p className="text-[11px] text-gray-500 text-center">
+                          New customer?{" "}
+                          <Link
+                            href="/signup"
+                            onClick={() => setIsUserMenuOpen(false)}
+                            className="text-orange-600 font-bold hover:underline"
+                          >
+                            Start here.
+                          </Link>
+                        </p>
                       </div>
-                    </button>
-                    <button onClick={handleLogout} className="flex items-center gap-3 w-full text-left px-4 py-3 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition rounded-b-2xl border-t border-gray-100 dark:border-gray-700">
-                      <LogOut size={18} />
-                      <div><div className="font-medium">Logout</div><div className="text-xs text-red-500">Sign out</div></div>
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <Link href="/login" className="block px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-100 dark:border-gray-700 rounded-t-2xl" onClick={() => setIsUserMenuOpen(false)}>
-                      <div className="font-medium text-gray-900 dark:text-white">Login</div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400">Sign in to your account</div>
-                    </Link>
-                    <Link href="/signup" className="block px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-100 dark:border-gray-700" onClick={() => setIsUserMenuOpen(false)}>
-                      <div className="font-medium text-gray-900 dark:text-white">Create Account</div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400">Register now</div>
-                    </Link>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsUserMenuOpen(false);
-                        window.dispatchEvent(new CustomEvent("show-pwa-install"));
-                      }}
-                      className="flex items-center gap-3 w-full text-left px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition rounded-b-2xl text-gray-700 dark:text-gray-300"
-                    >
-                      <Download size={18} className="text-orange-500" />
-                      <div>
-                        <div className="font-medium text-gray-900 dark:text-white">Install App</div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400">Install web app to device</div>
-                      </div>
-                    </button>
-                  </>
-                )}
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
 
             {/* Mobile Menu Button */}
-            <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="p-2 lg:hidden rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition">
+            <button
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              aria-label={isMenuOpen ? "Close navigation menu" : "Open navigation menu"}
+              aria-expanded={isMenuOpen}
+              className="p-2 lg:hidden rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition"
+            >
               {isMenuOpen ? <X size={24} className="text-gray-700 dark:text-gray-300" /> : <Menu size={24} className="text-gray-700 dark:text-gray-300" />}
             </button>
           </div>
         </div>
 
         {/* Desktop Navigation */}
-        <nav className="hidden lg:flex items-center justify-between py-2 border-t border-gray-200 dark:border-gray-700">
+        <nav className="hidden lg:flex items-center justify-between py-2 border-t border-gray-200 dark:border-gray-700" aria-label="Main Navigation">
           <div className="flex items-center gap-1">
             {MAIN_NAV.map((item) => (
               <Link
@@ -552,15 +778,19 @@ export default function Header() {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
                 <input
+                  id="header-search-mobile"
+                  name="search"
                   type="text"
                   placeholder="Search products..."
                   value={searchQuery}
+                  aria-label="Search products"
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full pl-10 pr-28 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400"
                 />
                 <button
                   type="submit"
-                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg bg-gradient-to-r from-orange-500 to-red-500 px-3 py-1.5 text-xs font-semibold text-white shadow-md"
+                  aria-label="Submit search"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg bg-gradient-to-r from-orange-500 to-red-500 px-3 py-1.5 text-xs font-semibold text-white shadow-md cursor-pointer"
                 >
                   Search
                 </button>

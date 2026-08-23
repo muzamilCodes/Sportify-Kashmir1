@@ -2,6 +2,7 @@
 
 import { Camera, Heart, LogOut, Mail, MapPin, Phone, Settings, ShoppingBag, User, ChevronRight, Check, X, Loader2, AlertTriangle } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 
@@ -16,6 +17,7 @@ interface UserProfile {
 }
 
 export default function ProfilePage() {
+  const router = useRouter();
   const [user, setUser] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("overview");
@@ -30,12 +32,14 @@ export default function ProfilePage() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [imageError, setImageError] = useState(false);
 
-  // ✅ Get image URL - Use live backend URL
+  const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000").replace(/\/$/, "");
+
+  // ✅ Get image URL
   const getImageUrl = (url: string | undefined) => {
     if (!url) return null;
-    if (url.startsWith('http')) return url;
-    if (url.startsWith('/uploads/')) return `${process.env.NEXT_PUBLIC_API_URL}${url}`;
-    return `${process.env.NEXT_PUBLIC_API_URL}/uploads/${url}`;
+    if (url.startsWith("http")) return url;
+    if (url.startsWith("/uploads/")) return `${API_URL}${url}`;
+    return `${API_URL}/uploads/${url}`;
   };
 
   useEffect(() => {
@@ -47,12 +51,11 @@ export default function ProfilePage() {
       setLoading(true);
       const token = localStorage.getItem("token");
       if (!token) {
-        window.location.href = "/login";
+        router.push("/login");
         return;
       }
 
-      // ✅ Use live API URL
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/user/verify`, {
+      const response = await fetch(`${API_URL}/user/verify`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -66,7 +69,7 @@ export default function ProfilePage() {
           mobile: result.payload.mobile || "",
         });
       } else {
-        window.location.href = "/login";
+        router.push("/login");
       }
     } catch (error) {
       console.error("Error:", error);
@@ -136,7 +139,7 @@ export default function ProfilePage() {
       const token = localStorage.getItem("token");
       if (!token) {
         toast.error("Please login again");
-        window.location.href = "/login";
+        router.push("/login");
         return;
       }
 
@@ -148,8 +151,7 @@ export default function ProfilePage() {
         formData.append("profilePic", selectedProfilePic);
       }
 
-      // ✅ Use live API URL
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/user/edit/user`, {
+      const response = await fetch(`${API_URL}/user/edit/user`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -194,7 +196,7 @@ export default function ProfilePage() {
       const token = localStorage.getItem("token");
       if (!token) return;
       
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/user/account/me`, {
+      const response = await fetch(`${API_URL}/user/account/me`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${token}`
@@ -205,7 +207,7 @@ export default function ProfilePage() {
         toast.success("Your account has been deleted");
         localStorage.removeItem("token");
         localStorage.removeItem("user");
-        window.location.href = "/";
+        router.push("/");
       } else {
         toast.error(result.message || "Failed to delete account");
       }

@@ -30,6 +30,17 @@ export default function PWARegister() {
         });
     };
 
+    // Purge any outdated static caches from previous builds
+    if ("caches" in window) {
+      caches.keys().then((keys) => {
+        keys.forEach((key) => {
+          if (key.startsWith("sportify-") && !key.startsWith("sportify-v5")) {
+            caches.delete(key);
+          }
+        });
+      });
+    }
+
     if (document.readyState === "complete") {
       register();
     } else {

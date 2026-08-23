@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { resolveProductImage } from "@/lib/imageHelper";
 
 const FALLBACK_IMAGE = "/placeholder.svg";
@@ -21,13 +21,13 @@ export type ProductImageProps = {
 
 /**
  * Universal Image component for Sportify Kashmir.
- * Guarantees display of product, category, brand, Cloudinary, Unsplash, and local /uploads/ images.
+ * Highly optimized for Core Web Vitals (LCP, CLS, FCP) and WCAG Accessibility.
  */
-export default function ProductImage({
+function ProductImageComponent({
   product,
   src,
   url,
-  alt = "Product Image",
+  alt = "Sportify Kashmir product",
   className = "object-contain",
   priority = false,
   fill,
@@ -45,7 +45,7 @@ export default function ProductImage({
   }, [target]);
 
   const isFill = fill !== undefined ? fill : !Boolean(width && height);
-  const safeAlt = alt || "Product Image";
+  const safeAlt = alt || "Sportify Kashmir product gear";
   const displaySrc = imgSrc || FALLBACK_IMAGE;
 
   return (
@@ -53,9 +53,11 @@ export default function ProductImage({
     <img
       src={displaySrc}
       alt={safeAlt}
-      width={!isFill ? width : undefined}
-      height={!isFill ? height : undefined}
+      width={!isFill ? width || 300 : undefined}
+      height={!isFill ? height || 300 : undefined}
       loading={priority ? "eager" : loading || "lazy"}
+      // @ts-expect-error fetchpriority is valid in modern browsers
+      fetchpriority={priority ? "high" : "auto"}
       decoding="async"
       referrerPolicy="no-referrer"
       className={`${isFill ? "absolute inset-0 w-full h-full" : ""} ${className}`}
@@ -69,3 +71,7 @@ export default function ProductImage({
     />
   );
 }
+
+const ProductImage = React.memo(ProductImageComponent);
+export default ProductImage;
+

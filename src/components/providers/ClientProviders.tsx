@@ -1,7 +1,6 @@
 "use client";
 
-import { ThemeProvider } from "next-themes";
-import SplashScreen from "@/components/shared/SplashScreen";
+import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import InstallPrompt from "@/components/shared/InstallPrompt";
 import MobileBottomNav from "@/components/shared/MobileBottomNav";
 import ScrollToTop from "@/components/shared/ScrollToTop";
@@ -26,7 +25,6 @@ export default function ClientProviders({
   return (
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
       <CartCountProvider>
-        <SplashScreen />
         {children}
         <MobileBottomNav />
         <ScrollToTop />

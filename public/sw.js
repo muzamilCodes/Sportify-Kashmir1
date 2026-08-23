@@ -4,7 +4,7 @@
  * Provides offline support and intelligent caching for the PWA.
  */
 
-const CACHE_VERSION = 'sportify-v4';
+const CACHE_VERSION = 'sportify-v5';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const DYNAMIC_CACHE = `${CACHE_VERSION}-dynamic`;
 
@@ -54,11 +54,13 @@ self.addEventListener('fetch', (event) => {
   // Skip non-http(s)
   if (!url.protocol.startsWith('http')) return;
 
-  // Bypass Next.js hot module reload & dev requests to prevent dev cache issues
+  // Bypass Next.js hot module reload, static chunks, and dev requests to prevent stale cache
   if (
-    url.pathname.includes('/_next/webpack-hmr') ||
+    url.hostname === 'localhost' ||
+    url.hostname === '127.0.0.1' ||
+    url.hostname.startsWith('10.') ||
+    url.pathname.includes('/_next/') ||
     url.pathname.includes('hot-update') ||
-    url.pathname.includes('/_next/data/') ||
     url.searchParams.has('__rsc')
   ) {
     return;
