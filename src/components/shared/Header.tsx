@@ -44,6 +44,7 @@ import {
   Phone,
   Gift,
   Check,
+  Package,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import ThemeToggle from "@/components/shared/ThemeToggle";
@@ -69,17 +70,17 @@ const getProfileImageUrl = (profilePic: string | undefined) => {
 };
 
 const SEARCH_CATEGORIES = [
-  { id: "all", label: "All Sports" },
-  { id: "cricket", label: "Cricket Willow" },
+  { id: "all", label: "All" },
+  { id: "cricket", label: "Cricket" },
   { id: "football", label: "Football" },
   { id: "badminton", label: "Badminton" },
-  { id: "gym", label: "Gym & Fitness" },
-  { id: "shoes", label: "Sports Shoes" },
-  { id: "wear", label: "Jerseys & Wear" },
-  { id: "tennis", label: "Tennis & TT" },
-  { id: "basketball", label: "Basketball & Volleyball" },
-  { id: "trophies", label: "Trophies & Awards" },
-  { id: "accessories", label: "Accessories" },
+  { id: "gym", label: "Gym" },
+  { id: "shoes", label: "Shoes" },
+  { id: "wear", label: "Wear" },
+  { id: "tennis", label: "Tennis" },
+  { id: "basketball", label: "Hoops" },
+  { id: "trophies", label: "Trophies" },
+  { id: "accessories", label: "Gear" },
 ];
 
 export interface SubCategory {
@@ -441,28 +442,39 @@ export default function Header() {
       ═══════════════════════════════════════════════════════════════════════ */}
       <div className="bg-[#131921] text-white px-2 sm:px-4 py-1.5 sm:py-2">
         <div className="max-w-[1500px] mx-auto flex items-center justify-between gap-2 sm:gap-4">
-          {/* ── 1. Logo ── */}
-          <Link
-            href="/"
-            className="flex items-center gap-1.5 px-2 py-1.5 rounded-xs hover:outline-1 hover:outline-white shrink-0 group"
-          >
-            <div className="w-8 h-8 bg-gradient-to-tr from-amber-500 via-orange-500 to-red-500 rounded-lg flex items-center justify-center shadow-xs">
-              <Trophy size={18} className="text-white" />
-            </div>
-            <div className="flex flex-col leading-none">
-              <span className="text-base sm:text-lg font-black tracking-tight text-white flex items-center">
-                sportify<span className="text-amber-400 font-bold text-sm">.in</span>
-              </span>
-              <span className="text-[9px] text-gray-300 font-semibold tracking-wider uppercase -mt-0.5">
-                Kashmir
-              </span>
-            </div>
-          </Link>
+          {/* ── Left: Hamburger Menu (Mobile) + Logo ── */}
+          <div className="flex items-center gap-1 shrink-0">
+            <button
+              type="button"
+              onClick={() => setIsSideDrawerOpen(true)}
+              className="lg:hidden p-1.5 text-white hover:text-amber-400 transition cursor-pointer"
+              aria-label="Open navigation menu"
+            >
+              <Menu size={22} />
+            </button>
 
-          {/* ── 2. Deliver To Location Button ── */}
+            <Link
+              href="/"
+              className="flex items-center gap-1.5 px-1 sm:px-2 py-1 rounded-xs hover:outline-1 hover:outline-white shrink-0 group"
+            >
+              <div className="w-7 h-7 sm:w-8 sm:h-8 bg-gradient-to-tr from-amber-500 via-orange-500 to-red-500 rounded-lg flex items-center justify-center shadow-xs">
+                <Trophy size={16} className="text-white" />
+              </div>
+              <div className="flex flex-col leading-none">
+                <span className="text-sm sm:text-lg font-black tracking-tight text-white flex items-center">
+                  sportify<span className="text-amber-400 font-bold text-xs sm:text-sm">.in</span>
+                </span>
+                <span className="text-[8px] sm:text-[9px] text-gray-300 font-semibold tracking-wider uppercase -mt-0.5">
+                  Kashmir
+                </span>
+              </div>
+            </Link>
+          </div>
+
+          {/* ── Desktop Deliver To Location Button ── */}
           <Link
             href={isLoggedIn ? "/profile?tab=addresses" : "/login"}
-            className="hidden md:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xs hover:outline-1 hover:outline-white shrink-0 text-left"
+            className="hidden lg:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xs hover:outline-1 hover:outline-white shrink-0 text-left"
           >
             <MapPin size={16} className="text-white shrink-0 mt-2" />
             <div className="flex flex-col leading-tight">
@@ -475,11 +487,11 @@ export default function Header() {
             </div>
           </Link>
 
-          {/* ── 3. Amazon-Style Search Bar ── */}
-          <div className="flex-1 max-w-3xl relative mx-1 sm:mx-2" ref={searchContainerRef}>
+          {/* ── Desktop Search Bar (Hidden on mobile, displayed in dedicated row 2 below) ── */}
+          <div className="hidden lg:block flex-1 max-w-3xl relative mx-2" ref={searchContainerRef}>
             <form onSubmit={handleSearch} className="flex h-10 rounded-md overflow-hidden shadow-sm">
               {/* Category Select Pill */}
-              <div className="relative hidden sm:flex items-center bg-[#f3f3f3] text-gray-800 border-r border-gray-300 hover:bg-[#e6e6e6] transition cursor-pointer">
+              <div className="relative flex items-center bg-[#f3f3f3] text-gray-800 border-r border-gray-300 hover:bg-[#e6e6e6] transition cursor-pointer">
                 <select
                   value={selectedSearchCat}
                   onChange={(e) => setSelectedSearchCat(e.target.value)}
@@ -512,7 +524,7 @@ export default function Header() {
               <button
                 type="submit"
                 aria-label="Submit search"
-                className="w-11 sm:w-12 bg-[#febd69] hover:bg-[#f3a847] text-gray-900 flex items-center justify-center transition cursor-pointer shrink-0"
+                className="w-12 bg-[#febd69] hover:bg-[#f3a847] text-gray-900 flex items-center justify-center transition cursor-pointer shrink-0"
               >
                 {isSearching ? <Loader2 size={18} className="animate-spin" /> : <Search size={19} />}
               </button>
@@ -569,9 +581,9 @@ export default function Header() {
             )}
           </div>
 
-          {/* ── 4. Right Section Actions ── */}
-          <div className="flex items-center gap-0.5 sm:gap-1.5 shrink-0">
-            {/* Language Flag (Desktop) */}
+          {/* ── Right Section Actions: User, Orders, Cart, Theme ── */}
+          <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
+            {/* Language Flag (Desktop Only) */}
             <div className="relative hidden xl:flex">
               <button
                 type="button"
@@ -584,38 +596,39 @@ export default function Header() {
               </button>
             </div>
 
-            {/* ── 5. Account & Lists Dropdown (Amazon-Style) ── */}
+            {/* ── Account & Lists Dropdown (100% Mobile & Desktop Responsive) ── */}
             <div className="relative" ref={userMenuRef}>
               <button
                 type="button"
                 onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                className="flex items-center gap-1.5 px-2 py-1.5 rounded-xs hover:outline-1 hover:outline-white text-left cursor-pointer"
+                className="flex items-center gap-1 px-1.5 sm:px-2 py-1 sm:py-1.5 rounded-xs hover:outline-1 hover:outline-white text-left cursor-pointer"
                 aria-label="Account and lists"
               >
                 {isLoggedIn && profileImageUrl && !imageError ? (
                   <img
                     src={profileImageUrl}
                     alt="Profile"
-                    className="w-7 h-7 rounded-full object-cover border border-amber-400 shrink-0"
+                    className="w-6 h-6 sm:w-7 sm:h-7 rounded-full object-cover border border-amber-400 shrink-0"
                     onError={() => setImageError(true)}
                   />
                 ) : (
-                  <User size={16} className="text-gray-300 shrink-0 sm:hidden" />
+                  <User size={18} className="text-gray-300 shrink-0 lg:hidden" />
                 )}
-                <div className="hidden sm:flex flex-col leading-tight">
-                  <span className="text-[11px] text-gray-300 font-normal truncate max-w-[110px]">
-                    Hello, {isLoggedIn && user ? (user.username || user.email?.split("@")[0]) : "sign in"}
+                <div className="flex flex-col leading-tight">
+                  <span className="text-[10px] sm:text-[11px] text-gray-300 font-normal truncate max-w-[85px] sm:max-w-[110px]">
+                    Hello, {isLoggedIn && user ? (user.username || user.email?.split("@")[0]) : "Sign in"}
                   </span>
-                  <span className="text-xs font-bold text-white flex items-center gap-0.5 whitespace-nowrap">
-                    Account & Lists
-                    <ChevronDown size={11} className={`text-gray-400 transition-transform ${isUserMenuOpen ? "rotate-180" : ""}`} />
+                  <span className="text-[11px] sm:text-xs font-bold text-white flex items-center gap-0.5 whitespace-nowrap">
+                    <span className="hidden sm:inline">Account &amp; Lists</span>
+                    <span className="sm:hidden">Account</span>
+                    <ChevronDown size={10} className={`text-gray-400 transition-transform ${isUserMenuOpen ? "rotate-180" : ""}`} />
                   </span>
                 </div>
               </button>
 
-              {/* Mega Dropdown Menu */}
+              {/* Mega Dropdown Menu (Fixed sheet on mobile, anchored on desktop) */}
               <div
-                className={`fixed sm:absolute left-2.5 right-2.5 sm:left-auto sm:right-0 top-14 sm:top-full mt-1 w-auto sm:w-[580px] lg:w-[660px] max-h-[82vh] overflow-y-auto overscroll-contain bg-white text-gray-900 rounded-lg shadow-2xl border border-gray-200 transition-all duration-200 z-50 ${
+                className={`fixed sm:absolute inset-x-2 sm:inset-x-auto sm:right-0 top-14 sm:top-full mt-1 w-auto sm:w-[580px] lg:w-[660px] max-h-[82vh] overflow-y-auto overscroll-contain bg-white text-gray-900 rounded-2xl sm:rounded-lg shadow-2xl border border-gray-200 transition-all duration-200 z-50 ${
                   isUserMenuOpen ? "opacity-100 visible translate-y-0" : "opacity-0 invisible -translate-y-2 pointer-events-none"
                 }`}
               >
@@ -734,7 +747,7 @@ export default function Header() {
                       <li>
                         <Link href="/products" onClick={() => setIsUserMenuOpen(false)} className="hover:text-orange-600 flex items-center gap-1.5">
                           <Tag size={13} className="text-orange-500" />
-                          <span>Deals & Sale</span>
+                          <span>Deals &amp; Sale</span>
                         </Link>
                       </li>
                     </ul>
@@ -818,50 +831,98 @@ export default function Header() {
               </div>
             </div>
 
-            {/* ── 6. Returns & Orders Button ── */}
+            {/* ── Returns & Orders Button (Visible on both Mobile & Desktop) ── */}
             <Link
               href="/orders"
-              className="hidden md:flex flex-col leading-tight px-2 py-1.5 rounded-xs hover:outline-1 hover:outline-white text-left shrink-0"
+              className="flex flex-col leading-tight px-1.5 sm:px-2 py-1 sm:py-1.5 rounded-xs hover:outline-1 hover:outline-white text-left shrink-0"
+              aria-label="Returns and orders"
             >
-              <span className="text-[11px] text-gray-300 font-normal">Returns</span>
-              <span className="text-xs font-bold text-white whitespace-nowrap">& Orders</span>
+              <span className="text-[10px] sm:text-[11px] text-gray-300 font-normal">Returns</span>
+              <span className="text-[11px] sm:text-xs font-bold text-white whitespace-nowrap">&amp; Orders</span>
             </Link>
 
-            {/* ── 7. Cart Button ── */}
+            {/* ── Cart Button (Visible on both Mobile & Desktop) ── */}
             <Link
               href="/cart"
-              className="flex items-center gap-1 px-2.5 py-1.5 rounded-xs hover:outline-1 hover:outline-white shrink-0 relative"
+              className="flex items-center gap-1 px-1.5 sm:px-2.5 py-1 sm:py-1.5 rounded-xs hover:outline-1 hover:outline-white shrink-0 relative"
               aria-label="Shopping cart"
             >
               <div className="relative">
-                <ShoppingCart size={26} className="text-white" />
-                <span className="absolute -top-1.5 left-3 bg-[#f08804] text-gray-900 text-xs font-black rounded-full h-4 min-w-4 px-1 flex items-center justify-center leading-none">
+                <ShoppingCart size={24} className="text-white" />
+                <span className="absolute -top-1.5 left-2.5 bg-[#f08804] text-gray-900 text-[10px] sm:text-xs font-black rounded-full h-4 min-w-4 px-1 flex items-center justify-center leading-none shadow-xs">
                   {cartCount}
                 </span>
               </div>
-              <span className="hidden md:inline text-xs font-bold text-white mt-2">Cart</span>
+              <span className="hidden sm:inline text-xs font-bold text-white mt-1">Cart</span>
             </Link>
 
             {/* Theme Toggle */}
-            <div className="pl-1">
+            <div className="pl-0.5">
               <ThemeToggle />
             </div>
-
-            {/* Mobile Hamburger Toggle Button */}
-            <button
-              type="button"
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="lg:hidden p-1.5 text-white hover:text-amber-400 transition"
-              aria-label="Toggle navigation menu"
-            >
-              {isMenuOpen ? <X size={22} /> : <Menu size={22} />}
-            </button>
           </div>
+        </div>
+
+        {/* ── Mobile Search Bar Row (Clean Full Width on Mobile < 1024px) ── */}
+        <div className="lg:hidden mt-1.5 px-0.5">
+          <form onSubmit={handleSearch} className="flex h-9 sm:h-10 rounded-lg overflow-hidden shadow-sm">
+            {/* Mobile Category Select */}
+            <div className="relative flex items-center bg-[#f3f3f3] text-gray-800 border-r border-gray-300 shrink-0">
+              <select
+                value={selectedSearchCat}
+                onChange={(e) => setSelectedSearchCat(e.target.value)}
+                className="h-full px-2 text-[11px] font-semibold bg-transparent appearance-none cursor-pointer outline-none pr-5 text-gray-800"
+              >
+                {SEARCH_CATEGORIES.map((c) => (
+                  <option key={c.id} value={c.id} className="text-gray-900 bg-white">
+                    {c.label}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown size={11} className="absolute right-1 text-gray-600 pointer-events-none" />
+            </div>
+
+            {/* Mobile Search Input */}
+            <input
+              id="header-search-mobile"
+              name="search"
+              type="text"
+              placeholder="Search bats, balls, gym gear, wear..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="flex-1 px-2.5 text-xs text-gray-900 bg-white placeholder-gray-500 outline-none"
+            />
+
+            {/* Mobile Search Button */}
+            <button
+              type="submit"
+              aria-label="Submit search"
+              className="w-10 bg-[#febd69] hover:bg-[#f3a847] text-gray-900 flex items-center justify-center transition shrink-0"
+            >
+              {isSearching ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />}
+            </button>
+          </form>
         </div>
       </div>
 
       {/* ═══════════════════════════════════════════════════════════════════════
-          ROW 2: Amazon-Style Sub-Navigation Bar (#232f3e Navy)
+          ROW 2: Mobile Delivery Location Strip
+      ═══════════════════════════════════════════════════════════════════════ */}
+      <div className="lg:hidden bg-[#232f3e] text-white px-3 py-1.5 text-[11px] flex items-center justify-between border-t border-[#37475a]">
+        <Link
+          href={isLoggedIn ? "/profile?tab=addresses" : "/login"}
+          className="flex items-center gap-1.5 text-gray-200 hover:text-white truncate"
+        >
+          <MapPin size={13} className="text-amber-400 shrink-0" />
+          <span className="truncate">
+            Deliver to {isLoggedIn && user ? (user.username || "User") : "Kashmir"} - <strong>Srinagar 190009</strong>
+          </span>
+        </Link>
+        <ChevronRight size={13} className="text-gray-400 shrink-0 ml-1" />
+      </div>
+
+      {/* ═══════════════════════════════════════════════════════════════════════
+          ROW 3: Amazon-Style Sub-Navigation Bar (#232f3e Navy)
       ═══════════════════════════════════════════════════════════════════════ */}
       <div className="bg-[#232f3e] text-white px-2 sm:px-4 py-1.5 text-xs font-medium border-t border-[#37475a] overflow-x-auto scrollbar-none">
         <div className="max-w-[1500px] mx-auto flex items-center justify-between gap-4">
@@ -896,7 +957,7 @@ export default function Header() {
               Badminton
             </Link>
             <Link href="/products?search=gym" className="px-2 py-1 rounded-xs hover:outline-1 hover:outline-white">
-              Gym & Fitness
+              Gym &amp; Fitness
             </Link>
             <Link href="/products" className="px-2 py-1 rounded-xs hover:outline-1 hover:outline-white">
               Buy Again
@@ -947,7 +1008,7 @@ export default function Header() {
                   <h3 className="font-extrabold text-base">
                     Hello, {isLoggedIn && user ? (user.username || "User") : "Sign In"}
                   </h3>
-                  <p className="text-xs text-gray-300">Browse All Sports & Sub-Categories</p>
+                  <p className="text-xs text-gray-300">Browse All Sports &amp; Sub-Categories</p>
                 </div>
               </div>
               <button
@@ -991,7 +1052,7 @@ export default function Header() {
                       onClick={() => setIsSideDrawerOpen(false)}
                       className="block py-2 px-2.5 rounded-lg hover:bg-orange-50 hover:text-orange-600 text-orange-600 font-bold transition"
                     >
-                      🏫 Academy & Club Bulk Wholesale (25% OFF)
+                      🏫 Academy &amp; Club Bulk Wholesale (25% OFF)
                     </Link>
                   </li>
                 </ul>
@@ -1001,7 +1062,7 @@ export default function Header() {
               <div className="pt-4">
                 <div className="flex items-center justify-between mb-3">
                   <h4 className="font-extrabold text-gray-900 text-xs uppercase tracking-wider">
-                    Shop by Sport & Sub-Categories
+                    Shop by Sport &amp; Sub-Categories
                   </h4>
                   <span className="text-[11px] text-gray-400 font-normal">Click to expand</span>
                 </div>
@@ -1070,7 +1131,7 @@ export default function Header() {
               {/* Section 3: Programs & Features */}
               <div className="pt-4">
                 <h4 className="font-extrabold text-gray-900 text-xs uppercase tracking-wider mb-2.5">
-                  Programs & Features
+                  Programs &amp; Features
                 </h4>
                 <ul className="space-y-1 text-gray-700 font-medium">
                   <li>
@@ -1079,7 +1140,7 @@ export default function Header() {
                       onClick={() => setIsSideDrawerOpen(false)}
                       className="block py-2 px-2.5 rounded-lg hover:bg-gray-100 hover:text-orange-600 font-bold text-orange-600"
                     >
-                      🏫 Academy Wholesale & Institutional Supply
+                      🏫 Academy Wholesale &amp; Institutional Supply
                     </Link>
                   </li>
                   <li>
@@ -1106,7 +1167,7 @@ export default function Header() {
               {/* Section 4: Help & Settings */}
               <div className="pt-4">
                 <h4 className="font-extrabold text-gray-900 text-xs uppercase tracking-wider mb-2.5">
-                  Help & Settings
+                  Help &amp; Settings
                 </h4>
                 <ul className="space-y-1 text-gray-700 font-medium">
                   <li>
@@ -1153,123 +1214,6 @@ export default function Header() {
               </div>
             </div>
           </div>
-        </div>
-      )}
-
-      {/* ═══════════════════════════════════════════════════════════════════════
-          MOBILE MENU (When mobile hamburger toggle is clicked)
-      ═══════════════════════════════════════════════════════════════════════ */}
-      {isMenuOpen && (
-        <div className="lg:hidden bg-[#131921] text-white p-4 border-t border-gray-700 max-h-[85vh] overflow-y-auto">
-          {/* Mobile User Banner */}
-          <div className="p-3 bg-[#232f3e] rounded-xl mb-4 flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              {isLoggedIn && profileImageUrl && !imageError ? (
-                <img src={profileImageUrl} alt="Profile" className="w-9 h-9 rounded-full object-cover border border-amber-400" />
-              ) : (
-                <div className="w-9 h-9 bg-gray-700 rounded-full flex items-center justify-center">
-                  <User size={18} className="text-white" />
-                </div>
-              )}
-              <div>
-                <p className="font-bold text-sm text-white">
-                  {isLoggedIn && user ? user.username : "Guest"}
-                </p>
-                <p className="text-xs text-gray-300">Deliver to Srinagar 190009</p>
-              </div>
-            </div>
-            <Link
-              href={isLoggedIn ? "/profile" : "/login"}
-              onClick={() => setIsMenuOpen(false)}
-              className="text-xs font-bold text-amber-400 hover:underline"
-            >
-              {isLoggedIn ? "Manage ›" : "Sign In ›"}
-            </Link>
-          </div>
-
-          {/* Quick Links Grid */}
-          <div className="grid grid-cols-2 gap-2 mb-4">
-            <Link
-              href="/orders"
-              onClick={() => setIsMenuOpen(false)}
-              className="p-3 bg-[#232f3e] rounded-xl text-center font-bold text-xs hover:bg-gray-700"
-            >
-              📦 Your Orders
-            </Link>
-            <Link
-              href="/wholesale"
-              onClick={() => setIsMenuOpen(false)}
-              className="p-3 bg-gradient-to-r from-orange-600/30 to-amber-600/30 border border-orange-500/40 rounded-xl text-center font-bold text-xs text-amber-300"
-            >
-              🏫 Academy Wholesale
-            </Link>
-            <Link
-              href="/wishlist"
-              onClick={() => setIsMenuOpen(false)}
-              className="p-3 bg-[#232f3e] rounded-xl text-center font-bold text-xs hover:bg-gray-700"
-            >
-              ❤️ Your Wishlist
-            </Link>
-            <Link
-              href="/cart"
-              onClick={() => setIsMenuOpen(false)}
-              className="p-3 bg-[#232f3e] rounded-xl text-center font-bold text-xs hover:bg-gray-700"
-            >
-              🛒 Your Cart ({cartCount})
-            </Link>
-          </div>
-
-          {/* Sports Categories with Sub-Categories Accordion */}
-          <h4 className="font-bold text-xs text-gray-400 uppercase tracking-wider mb-2">
-            Sports & Sub-Categories
-          </h4>
-          <div className="space-y-1.5 mb-4">
-            {DETAILED_SPORTS_CATEGORIES.map((cat) => {
-              const isExpanded = expandedCategoryId === cat.id;
-
-              return (
-                <div key={cat.id} className="bg-[#232f3e] rounded-xl overflow-hidden">
-                  <div
-                    onClick={() => toggleCategoryAccordion(cat.id)}
-                    className="flex items-center justify-between p-3 cursor-pointer"
-                  >
-                    <div className="flex items-center gap-2 text-xs font-bold text-white">
-                      <span className="text-amber-400">{cat.icon}</span>
-                      <span>{cat.name}</span>
-                    </div>
-                    <ChevronDown size={14} className={`text-gray-400 transition-transform ${isExpanded ? "rotate-180 text-amber-400" : ""}`} />
-                  </div>
-                  {isExpanded && (
-                    <div className="p-2.5 pt-0 space-y-1 border-t border-gray-700/50">
-                      {cat.subcategories.map((sub) => (
-                        <Link
-                          key={sub.title}
-                          href={`/products?search=${encodeURIComponent(sub.query)}`}
-                          onClick={() => setIsMenuOpen(false)}
-                          className="block py-1.5 px-2 rounded text-[11px] text-gray-300 hover:text-amber-300 hover:bg-gray-700/50"
-                        >
-                          • {sub.title}
-                        </Link>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Install PWA Button */}
-          <button
-            type="button"
-            onClick={() => {
-              setIsMenuOpen(false);
-              window.dispatchEvent(new CustomEvent("show-pwa-install"));
-            }}
-            className="w-full py-3 bg-gradient-to-r from-amber-400 to-orange-500 text-gray-900 font-bold rounded-xl text-xs flex items-center justify-center gap-2 shadow-md cursor-pointer"
-          >
-            <Download size={15} />
-            <span>Install Sportify App (PWA)</span>
-          </button>
         </div>
       )}
     </header>
