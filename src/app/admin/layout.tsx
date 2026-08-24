@@ -26,11 +26,13 @@ import {
   ChevronLeft,
   ChevronRight,
   Image as ImageIcon,
+  Megaphone,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import LoadingSpinner from "@/components/shared/LoadingSpinner";
+import AdminNotificationCenter from "@/components/admin/AdminNotificationCenter";
 
 export default function AdminLayout({
   children,
@@ -161,6 +163,7 @@ export default function AdminLayout({
     { href: "/admin/posts", label: "Blog Posts", icon: <FileText size={18} /> },
     { href: "/admin/contacts", label: "Contact Messages", icon: <Mail size={18} />, badge: unreadCount },
     { href: "/admin/banners", label: "Hero Banners", icon: <ImageIcon size={18} /> },
+    { href: "/admin/notifications", label: "Broadcast & Alerts", icon: <Megaphone size={18} /> },
     { href: "/admin/settings", label: "Store Settings", icon: <Settings size={18} /> },
     { href: "/admin/profile", label: "Admin Profile", icon: <User size={18} /> },
   ];
@@ -201,23 +204,26 @@ export default function AdminLayout({
             </span>
           </div>
 
-          {/* Quick Profile Icon on Mobile */}
-          <Link
-            href="/admin/profile"
-            className="flex items-center gap-1.5 p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition"
-          >
-            {userProfilePic ? (
-              <img
-                src={userProfilePic}
-                alt="Admin"
-                className="w-7 h-7 rounded-full object-cover border-2 border-orange-500"
-              />
-            ) : (
-              <div className="w-7 h-7 rounded-full bg-orange-500 flex items-center justify-center text-white text-[11px] font-bold">
-                {userName.charAt(0).toUpperCase() || "A"}
-              </div>
-            )}
-          </Link>
+          {/* Mobile Right: Notification Bell & Quick Profile Icon */}
+          <div className="flex items-center gap-2">
+            <AdminNotificationCenter />
+            <Link
+              href="/admin/profile"
+              className="flex items-center gap-1.5 p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition"
+            >
+              {userProfilePic ? (
+                <img
+                  src={userProfilePic}
+                  alt="Admin"
+                  className="w-7 h-7 rounded-full object-cover border-2 border-orange-500"
+                />
+              ) : (
+                <div className="w-7 h-7 rounded-full bg-orange-500 flex items-center justify-center text-white text-[11px] font-bold">
+                  {userName.charAt(0).toUpperCase() || "A"}
+                </div>
+              )}
+            </Link>
+          </div>
         </div>
       </div>
 
@@ -410,7 +416,10 @@ export default function AdminLayout({
               </div>
             </div>
 
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
+              {/* Notification Center */}
+              <AdminNotificationCenter />
+
               {/* View Public Store */}
               <Link
                 href="/"

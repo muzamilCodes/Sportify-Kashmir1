@@ -58,6 +58,7 @@ import { cachedJson } from "@/lib/clientCache";
 import { useLanguage, LANGUAGES, LanguageCode } from "@/context/LanguageContext";
 import AmazonQuickCategories from "@/components/shared/AmazonQuickCategories";
 import { VoiceSearchModal, VisualSearchModal, QrScannerModal } from "@/components/shared/SearchModals";
+import NotificationCenter from "@/components/shared/NotificationCenter";
 import PrimeMembershipModal from "@/components/shared/PrimeMembershipModal";
 import RufusAIAssistant from "@/components/shared/RufusAIAssistant";
 
@@ -970,6 +971,11 @@ export default function Header() {
               </div>
             </div>
 
+            {/* ── Notification Center Bell (Desktop & Mobile) ── */}
+            <div className="flex items-center">
+              <NotificationCenter />
+            </div>
+
             {/* ── Returns & Orders Button (Desktop Only) ── */}
             <Link
               href="/orders"
@@ -1211,6 +1217,16 @@ export default function Header() {
                       className="block py-2 px-2.5 rounded-lg hover:bg-orange-50 hover:text-orange-600 transition"
                     >
                       ⚡ 24h Express Delivery Gear
+                    </Link>
+                  </li>
+                  <li>
+                    <Link
+                      href="/notifications"
+                      onClick={() => setIsSideDrawerOpen(false)}
+                      className="block py-2 px-2.5 rounded-lg hover:bg-orange-50 hover:text-orange-600 font-bold text-gray-900 transition flex items-center justify-between"
+                    >
+                      <span>🔔 Notifications &amp; Updates</span>
+                      <span className="text-[10px] bg-orange-100 text-orange-600 font-bold px-2 py-0.5 rounded-full">New</span>
                     </Link>
                   </li>
                   <li>
