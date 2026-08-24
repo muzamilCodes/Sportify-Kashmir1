@@ -641,6 +641,364 @@ class EnhancedEmailService {
       </html>
     `;
   }
+
+  /**
+   * Admin Alert: New User Registered
+   */
+  getAdminNewUserAlertTemplate(user) {
+    const username = user?.username || "New User";
+    const email = user?.email || "N/A";
+    const mobile = user?.mobile || "N/A";
+    const date = new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata", dateStyle: "medium", timeStyle: "short" });
+    const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
+
+    return `
+      <!DOCTYPE html>
+      <html lang="en">
+      <head><meta charset="utf-8"><title>New User Joined - Sportify Kashmir Admin Alert</title></head>
+      <body style="margin: 0; padding: 0; background-color: #0f172a; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+        <table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #0f172a; padding: 30px 10px;">
+          <tr>
+            <td align="center">
+              <table border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 580px; background-color: #1e293b; border-radius: 16px; overflow: hidden; border: 1px solid #334155; box-shadow: 0 20px 40px rgba(0,0,0,0.4);">
+                <tr>
+                  <td style="background: linear-gradient(135deg, #f97316 0%, #dc2626 100%); padding: 28px 24px; text-align: center;">
+                    <span style="background: rgba(0,0,0,0.25); color: #ffffff; font-size: 11px; font-weight: 800; letter-spacing: 1.5px; padding: 4px 12px; border-radius: 20px; text-transform: uppercase;">ADMIN NOTIFICATION</span>
+                    <h1 style="color: #ffffff; margin: 10px 0 0 0; font-size: 22px; font-weight: 900;">👤 New User Registered!</h1>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding: 30px 24px; color: #f1f5f9;">
+                    <p style="font-size: 15px; line-height: 1.6; color: #cbd5e1; margin-top: 0;">
+                      A new customer has successfully registered and verified their account on <strong>Sportify Kashmir</strong>.
+                    </p>
+                    <div style="background-color: #0f172a; border: 1px solid #334155; border-radius: 12px; padding: 18px; margin: 20px 0;">
+                      <table border="0" cellpadding="0" cellspacing="0" width="100%">
+                        <tr>
+                          <td style="color: #94a3b8; font-size: 13px; padding: 6px 0;">Full Name:</td>
+                          <td align="right" style="color: #f8fafc; font-weight: 700; font-size: 14px;">${username}</td>
+                        </tr>
+                        <tr>
+                          <td style="color: #94a3b8; font-size: 13px; padding: 6px 0;">Email Address:</td>
+                          <td align="right" style="color: #38bdf8; font-weight: 600; font-size: 13px;">${email}</td>
+                        </tr>
+                        <tr>
+                          <td style="color: #94a3b8; font-size: 13px; padding: 6px 0;">Mobile Number:</td>
+                          <td align="right" style="color: #f8fafc; font-weight: 600; font-size: 13px;">+91 ${mobile}</td>
+                        </tr>
+                        <tr>
+                          <td style="color: #94a3b8; font-size: 13px; padding: 6px 0;">Registration Date:</td>
+                          <td align="right" style="color: #f8fafc; font-size: 12px;">${date}</td>
+                        </tr>
+                      </table>
+                    </div>
+                    <div style="text-align: center; margin: 26px 0 10px 0;">
+                      <a href="${frontendUrl}/admin/users" style="background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); color: #ffffff; text-decoration: none; padding: 12px 28px; border-radius: 10px; font-weight: 700; font-size: 14px; display: inline-block;">Manage Users in Admin Panel</a>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="background-color: #0f172a; padding: 16px; text-align: center; border-top: 1px solid #334155;">
+                    <p style="color: #64748b; font-size: 12px; margin: 0;">Sportify Kashmir Management System</p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+      </body>
+      </html>
+    `;
+  }
+
+  /**
+   * Admin Alert: New Order Placed
+   */
+  getAdminNewOrderAlertTemplate(order, user, address) {
+    const orderId = order?.orderId || (order?._id ? order._id.toString().slice(-8) : "N/A");
+    const totalAmount = order?.orderValue ? Number(order.orderValue).toFixed(2) : "0.00";
+    const paymentMethod = (order?.paymentMethod || "COD").toUpperCase();
+    const customerName = user?.username || address?.fullName || address?.firstName || "Valued Customer";
+    const customerEmail = user?.email || address?.email || "N/A";
+    const customerPhone = user?.mobile || address?.mobileNumber || address?.mobile || "N/A";
+    const addressStr = address ? `${address.street || ""}, ${address.city || ""}, ${address.state || ""}, ${address.pincode || address.postalCode || ""}` : "Not specified";
+    const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
+
+    const productRows = (order?.products || [])
+      .map((p) => {
+        const title = p.productId?.name || p.name || "Sporting Item";
+        const qty = p.quantity || 1;
+        const price = p.productId?.price ? Number(p.productId.price).toFixed(2) : (p.price ? Number(p.price).toFixed(2) : "0.00");
+        return `
+          <tr>
+            <td style="padding: 10px 0; border-bottom: 1px solid #334155; color: #f8fafc; font-size: 13px;">
+              <strong>${title}</strong>
+              <div style="color: #94a3b8; font-size: 11px;">Qty: ${qty} × ₹${price}</div>
+            </td>
+            <td align="right" style="padding: 10px 0; border-bottom: 1px solid #334155; color: #f97316; font-weight: 700; font-size: 13px;">
+              ₹${(Number(price) * qty).toFixed(2)}
+            </td>
+          </tr>
+        `;
+      })
+      .join("");
+
+    return `
+      <!DOCTYPE html>
+      <html lang="en">
+      <head><meta charset="utf-8"><title>New Order #${orderId} - Sportify Kashmir Admin Alert</title></head>
+      <body style="margin: 0; padding: 0; background-color: #0f172a; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+        <table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #0f172a; padding: 30px 10px;">
+          <tr>
+            <td align="center">
+              <table border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 600px; background-color: #1e293b; border-radius: 16px; overflow: hidden; border: 1px solid #334155; box-shadow: 0 20px 40px rgba(0,0,0,0.4);">
+                <tr>
+                  <td style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 28px 24px; text-align: center;">
+                    <span style="background: rgba(0,0,0,0.25); color: #ffffff; font-size: 11px; font-weight: 800; letter-spacing: 1.5px; padding: 4px 12px; border-radius: 20px; text-transform: uppercase;">ADMIN NOTIFICATION</span>
+                    <h1 style="color: #ffffff; margin: 10px 0 0 0; font-size: 22px; font-weight: 900;">🛍️ New Order Received! (#${orderId})</h1>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding: 28px 24px; color: #f1f5f9;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
+                      <div>
+                        <span style="font-size: 12px; color: #94a3b8;">Customer:</span>
+                        <h3 style="margin: 2px 0 0 0; color: #f8fafc; font-size: 16px;">${customerName}</h3>
+                        <p style="margin: 2px 0; color: #cbd5e1; font-size: 13px;">📞 ${customerPhone} | ✉️ ${customerEmail}</p>
+                      </div>
+                    </div>
+
+                    <div style="background-color: #0f172a; border: 1px solid #334155; border-radius: 12px; padding: 14px 18px; margin-bottom: 20px;">
+                      <span style="color: #94a3b8; font-size: 12px; text-transform: uppercase; font-weight: 700;">📍 Delivery Address</span>
+                      <p style="color: #f1f5f9; font-size: 13px; margin: 4px 0 0 0; line-height: 1.5;">${addressStr}</p>
+                    </div>
+
+                    <!-- Items Table -->
+                    <div style="background-color: #0f172a; border: 1px solid #334155; border-radius: 12px; padding: 16px; margin-bottom: 20px;">
+                      <table border="0" cellpadding="0" cellspacing="0" width="100%">
+                        <thead>
+                          <tr>
+                            <th align="left" style="color: #94a3b8; font-size: 11px; text-transform: uppercase; padding-bottom: 8px;">Product</th>
+                            <th align="right" style="color: #94a3b8; font-size: 11px; text-transform: uppercase; padding-bottom: 8px;">Subtotal</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          ${productRows || '<tr><td colspan="2" style="color:#94a3b8; font-size:13px; padding: 10px 0;">Order items processing</td></tr>'}
+                        </tbody>
+                        <tfoot>
+                          <tr>
+                            <td style="padding-top: 12px; color: #cbd5e1; font-weight: 600; font-size: 14px;">Total Order Value (${paymentMethod}):</td>
+                            <td align="right" style="padding-top: 12px; color: #10b981; font-weight: 900; font-size: 18px;">₹${totalAmount}</td>
+                          </tr>
+                        </tfoot>
+                      </table>
+                    </div>
+
+                    <div style="text-align: center; margin: 26px 0 10px 0;">
+                      <a href="${frontendUrl}/admin/orders" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #ffffff; text-decoration: none; padding: 12px 30px; border-radius: 10px; font-weight: 700; font-size: 14px; display: inline-block;">Open Order Manager</a>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="background-color: #0f172a; padding: 16px; text-align: center; border-top: 1px solid #334155;">
+                    <p style="color: #64748b; font-size: 12px; margin: 0;">Sportify Kashmir Live Dispatch Center</p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+      </body>
+      </html>
+    `;
+  }
+
+  /**
+   * User Welcome Email Template
+   */
+  getUserWelcomeTemplate(user) {
+    const username = user?.username || "Friend";
+    const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
+
+    return `
+      <!DOCTYPE html>
+      <html lang="en">
+      <head><meta charset="utf-8"><title>Welcome to Sportify Kashmir!</title></head>
+      <body style="margin: 0; padding: 0; background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+        <table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #f8fafc; padding: 30px 10px;">
+          <tr>
+            <td align="center">
+              <table border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 580px; background-color: #ffffff; border-radius: 16px; overflow: hidden; border: 1px solid #e2e8f0; box-shadow: 0 10px 25px rgba(0,0,0,0.05);">
+                <tr>
+                  <td style="background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); padding: 36px 24px; text-align: center;">
+                    <h1 style="color: #ffffff; margin: 0; font-size: 26px; font-weight: 900; letter-spacing: -0.5px;">Welcome to Sportify Kashmir! 🏸</h1>
+                    <p style="color: rgba(255,255,255,0.9); margin: 8px 0 0 0; font-size: 14px;">Your Gateway to Premium Sports Equipment</p>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding: 32px 28px;">
+                    <h2 style="color: #0f172a; margin-top: 0; font-size: 18px;">Hello ${username},</h2>
+                    <p style="color: #475569; font-size: 15px; line-height: 1.6;">
+                      Thank you for joining <strong>Sportify Kashmir</strong>! We are thrilled to have you in our sports community.
+                    </p>
+                    <p style="color: #475569; font-size: 14px; line-height: 1.6;">
+                      Explore authentic bats, rackets, sportswear, protective gear, and accessories delivered straight to your doorstep anywhere across Jammu & Kashmir and India.
+                    </p>
+                    <div style="background-color: #fff7ed; border: 1px dashed #f97316; border-radius: 12px; padding: 18px; margin: 24px 0; text-align: center;">
+                      <span style="color: #9a3412; font-size: 12px; font-weight: 700; text-transform: uppercase;">Exclusive Member Benefit</span>
+                      <p style="color: #ea580c; font-size: 18px; font-weight: 800; margin: 6px 0 0 0;">Fast Kashmir-wide Delivery & Authentic Warranty</p>
+                    </div>
+                    <div style="text-align: center; margin-top: 28px;">
+                      <a href="${frontendUrl}/products" style="background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); color: #ffffff; text-decoration: none; padding: 14px 34px; border-radius: 10px; font-weight: 800; font-size: 15px; display: inline-block;">Start Shopping Now</a>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="background-color: #f1f5f9; padding: 20px; text-align: center; border-top: 1px solid #e2e8f0;">
+                    <p style="color: #64748b; font-size: 12px; margin: 0;">Sportify Kashmir • Handwara, Qalamabad • Support: +91 9682645127</p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+      </body>
+      </html>
+    `;
+  }
+
+  /**
+   * User Order Placed Confirmation Email
+   */
+  getUserOrderPlacedTemplate(order, user, address) {
+    const orderId = order?.orderId || (order?._id ? order._id.toString().slice(-8) : "N/A");
+    const totalAmount = order?.orderValue ? Number(order.orderValue).toFixed(2) : "0.00";
+    const paymentMethod = (order?.paymentMethod || "COD").toUpperCase();
+    const customerName = user?.username || address?.fullName || address?.firstName || "Valued Customer";
+    const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
+
+    const productRows = (order?.products || [])
+      .map((p) => {
+        const title = p.productId?.name || p.name || "Sporting Product";
+        const qty = p.quantity || 1;
+        const price = p.productId?.price ? Number(p.productId.price).toFixed(2) : (p.price ? Number(p.price).toFixed(2) : "0.00");
+        return `
+          <tr>
+            <td style="padding: 10px 0; border-bottom: 1px solid #e2e8f0; color: #0f172a; font-size: 13px;">
+              <strong>${title}</strong>
+              <div style="color: #64748b; font-size: 11px;">Qty: ${qty} × ₹${price}</div>
+            </td>
+            <td align="right" style="padding: 10px 0; border-bottom: 1px solid #e2e8f0; color: #ea580c; font-weight: 700; font-size: 13px;">
+              ₹${(Number(price) * qty).toFixed(2)}
+            </td>
+          </tr>
+        `;
+      })
+      .join("");
+
+    return `
+      <!DOCTYPE html>
+      <html lang="en">
+      <head><meta charset="utf-8"><title>Order Confirmed #${orderId} - Sportify Kashmir</title></head>
+      <body style="margin: 0; padding: 0; background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+        <table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #f8fafc; padding: 30px 10px;">
+          <tr>
+            <td align="center">
+              <table border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 580px; background-color: #ffffff; border-radius: 16px; overflow: hidden; border: 1px solid #e2e8f0; box-shadow: 0 10px 25px rgba(0,0,0,0.06);">
+                <tr>
+                  <td style="background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); padding: 32px 24px; text-align: center;">
+                    <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: 900;">Order Confirmed! 🎉</h1>
+                    <p style="color: rgba(255,255,255,0.9); margin: 6px 0 0 0; font-size: 13px;">Order ID: #${orderId}</p>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding: 30px 26px;">
+                    <p style="font-size: 15px; color: #334155; margin-top: 0;">
+                      Hello <strong>${customerName}</strong>, thank you for your order! We have received your purchase and our dispatch team is now preparing it for shipment.
+                    </p>
+                    <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; margin: 20px 0;">
+                      <table border="0" cellpadding="0" cellspacing="0" width="100%">
+                        <thead>
+                          <tr>
+                            <th align="left" style="color: #64748b; font-size: 11px; text-transform: uppercase; padding-bottom: 6px;">Product</th>
+                            <th align="right" style="color: #64748b; font-size: 11px; text-transform: uppercase; padding-bottom: 6px;">Total</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          ${productRows}
+                        </tbody>
+                        <tfoot>
+                          <tr>
+                            <td style="padding-top: 12px; color: #0f172a; font-weight: 700; font-size: 14px;">Grand Total (${paymentMethod}):</td>
+                            <td align="right" style="padding-top: 12px; color: #ea580c; font-weight: 900; font-size: 16px;">₹${totalAmount}</td>
+                          </tr>
+                        </tfoot>
+                      </table>
+                    </div>
+                    <div style="text-align: center; margin-top: 24px;">
+                      <a href="${frontendUrl}/orders/${order?._id || ''}" style="background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); color: #ffffff; text-decoration: none; padding: 12px 30px; border-radius: 8px; font-weight: 700; font-size: 14px; display: inline-block;">Track Your Order</a>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="background-color: #f1f5f9; padding: 18px; text-align: center; border-top: 1px solid #e2e8f0;">
+                    <p style="color: #64748b; font-size: 12px; margin: 0;">Sportify Kashmir • Handwara, Qalamabad • Support: +91 9682645127</p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+      </body>
+      </html>
+    `;
+  }
+
+  /**
+   * Website Update / Announcement Email Template
+   */
+  getWebsiteUpdateTemplate(title, message, link) {
+    const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
+    const targetUrl = link ? (link.startsWith("http") ? link : `${frontendUrl}${link}`) : frontendUrl;
+
+    return `
+      <!DOCTYPE html>
+      <html lang="en">
+      <head><meta charset="utf-8"><title>${title} - Sportify Kashmir</title></head>
+      <body style="margin: 0; padding: 0; background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+        <table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #f8fafc; padding: 30px 10px;">
+          <tr>
+            <td align="center">
+              <table border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 580px; background-color: #ffffff; border-radius: 16px; overflow: hidden; border: 1px solid #e2e8f0; box-shadow: 0 10px 25px rgba(0,0,0,0.06);">
+                <tr>
+                  <td style="background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); padding: 32px 24px; text-align: center;">
+                    <span style="background: rgba(0,0,0,0.2); color: #ffffff; font-size: 11px; font-weight: 800; letter-spacing: 1px; padding: 4px 12px; border-radius: 20px; text-transform: uppercase;">WEBSITE UPDATE & ANNOUNCEMENT</span>
+                    <h1 style="color: #ffffff; margin: 10px 0 0 0; font-size: 22px; font-weight: 900;">${title}</h1>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding: 30px 26px;">
+                    <p style="font-size: 15px; color: #334155; line-height: 1.6; margin-top: 0;">
+                      ${message}
+                    </p>
+                    <div style="text-align: center; margin-top: 28px;">
+                      <a href="${targetUrl}" style="background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); color: #ffffff; text-decoration: none; padding: 13px 32px; border-radius: 8px; font-weight: 700; font-size: 14px; display: inline-block;">Check Out Update</a>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="background-color: #f1f5f9; padding: 18px; text-align: center; border-top: 1px solid #e2e8f0;">
+                    <p style="color: #64748b; font-size: 12px; margin: 0;">Sportify Kashmir • Handwara, Qalamabad • Support: +91 9682645127</p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+      </body>
+      </html>
+    `;
+  }
 }
 
 const serviceInstance = new EnhancedEmailService();
@@ -655,6 +1013,11 @@ sendEmail.getOtpTemplate = (otp, purpose, userName) => serviceInstance.getOtpTem
 sendEmail.getOrderStatusTemplate = (order, title, message, actionUrl) => serviceInstance.getOrderStatusTemplate(order, title, message, actionUrl);
 sendEmail.getDeliveryRejectionOtpTemplate = (otp, order, customerName, reason) => serviceInstance.getDeliveryRejectionOtpTemplate(otp, order, customerName, reason);
 sendEmail.getDeliveryRejectionConfirmedTemplate = (order, customerName, reason) => serviceInstance.getDeliveryRejectionConfirmedTemplate(order, customerName, reason);
+sendEmail.getAdminNewUserAlertTemplate = (user) => serviceInstance.getAdminNewUserAlertTemplate(user);
+sendEmail.getAdminNewOrderAlertTemplate = (order, user, address) => serviceInstance.getAdminNewOrderAlertTemplate(order, user, address);
+sendEmail.getUserWelcomeTemplate = (user) => serviceInstance.getUserWelcomeTemplate(user);
+sendEmail.getUserOrderPlacedTemplate = (order, user, address) => serviceInstance.getUserOrderPlacedTemplate(order, user, address);
+sendEmail.getWebsiteUpdateTemplate = (title, message, link) => serviceInstance.getWebsiteUpdateTemplate(title, message, link);
 sendEmail.getConfig = () => ({
   providersConfigured: serviceInstance.transporters.map((t) => t.name),
   sesConfigured: Boolean(process.env.AWS_SES_ACCESS_KEY && process.env.AWS_SES_SECRET_KEY),

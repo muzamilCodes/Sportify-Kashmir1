@@ -2,6 +2,7 @@ const { User } = require("../models/userModel");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const sendEmail = require("../utilities/emailService");
+const { sendAdminNewUserNotification, sendUserWelcomeNotification } = require("../utilities/notificationService");
 require("dotenv").config();
 
 // ===================== REGISTER =====================
@@ -325,6 +326,10 @@ exports.verifyOTP = async (req, res) => {
     user.otpExpiry = null;
 
     await user.save();
+
+    // 🔔 Trigger Admin Alert (In-App + Email) & User Welcome (In-App + Email)
+    sendAdminNewUserNotification(user).catch((err) => console.error("Admin user notification error:", err));
+    sendUserWelcomeNotification(user).catch((err) => console.error("User welcome notification error:", err));
 
     const token = jwt.sign(
       { userId: user._id, email: user.email },

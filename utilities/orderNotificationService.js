@@ -1,6 +1,11 @@
 const sendEmail = require("./emailService");
 const Order = require("../models/orderModel");
 const { User } = require("../models/userModel");
+const {
+  sendAdminNewOrderNotification,
+  sendUserOrderCreatedNotification,
+  sendUserOrderStatusNotification,
+} = require("./notificationService");
 
 const STATUS_LABELS = {
   pending: "Pending",
@@ -306,25 +311,35 @@ async function notifyOrderEventInternal(orderId, { type = "status", status = "pe
   const recipient = await getRecipientForOrder(order);
   const template = buildOrderNotification(order, normalizedStatus, type);
 
-  const emailPromise = recipient.email
-    ? sendEmail(recipient.email, template.subject, template.html).then((sent) => ({ sent, error: sent ? "" : sendEmail.getLastError() }))
-    : Promise.resolve(false);
-
+  // 1. WhatsApp Dispatch (if mobile available)
   const whatsappPromise = recipient.mobile
     ? sendWhatsAppNotification(recipient.mobile, template.whatsappText).then((sent) => ({ sent, error: sent ? "" : sendWhatsAppNotification.lastError }))
     : Promise.resolve(false);
 
-  const [emailResult, whatsappResult] = await Promise.allSettled([emailPromise, whatsappPromise]);
+  // 2. Dispatch Single Unified Email & In-App Notification (Customer + Admin)
+  let emailSent = false;
+  try {
+    if (type === "created") {
+      // Send 1 Customer Order Confirmation Email & in-app notification
+      await sendUserOrderCreatedNotification(order);
+      // Send 1 Admin New Order Notification Email & in-app alert
+      await sendAdminNewOrderNotification(order);
+      emailSent = Boolean(recipient.email);
+    } else {
+      // Send 1 Customer Status Update Email & in-app notification
+      await sendUserOrderStatusNotification(order, normalizedStatus);
+      emailSent = Boolean(recipient.email);
+    }
+  } catch (err) {
+    console.error("[orderNotificationService] Notification dispatch error:", err.message);
+  }
 
-  const emailSent = emailResult.status === "fulfilled" ? Boolean(emailResult.value?.sent ?? emailResult.value) : false;
+  const [whatsappResult] = await Promise.allSettled([whatsappPromise]);
   const whatsappSent = whatsappResult.status === "fulfilled" ? Boolean(whatsappResult.value?.sent ?? whatsappResult.value) : false;
   const errorMessages = [];
 
   if (!recipient.email) errorMessages.push("Email: recipient email is missing");
   if (!recipient.mobile) errorMessages.push("WhatsApp: recipient mobile is missing");
-
-  if (emailResult.status === "rejected") errorMessages.push(`Email: ${emailResult.reason?.message || "Email failed"}`);
-  else if (emailResult.value?.error) errorMessages.push(`Email: ${emailResult.value.error}`);
   if (whatsappResult.status === "rejected") errorMessages.push(`WhatsApp: ${whatsappResult.reason?.message || "WhatsApp failed"}`);
   else if (whatsappResult.value?.error) errorMessages.push(`WhatsApp: ${whatsappResult.value.error}`);
 
