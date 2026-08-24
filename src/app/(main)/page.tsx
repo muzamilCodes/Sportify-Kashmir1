@@ -16,7 +16,9 @@ import ProductCard from "@/components/ProductCard";
 import RecentlyViewed from "@/components/RecentlyViewed";
 import { ProductGridSkeleton } from "@/components/shared/SkeletonLoaders";
 import { resolveProductImage } from "@/lib/imageHelper";
-import HeroCarousel from "@/components/HeroCarousel";
+import AmazonHeroCarousel from "@/components/AmazonHeroCarousel";
+import AmazonRecommendationCards from "@/components/AmazonRecommendationCards";
+import SportsCategoryExplorer from "@/components/SportsCategoryExplorer";
 import { useLanguage } from "@/context/LanguageContext";
 
 interface Product {
@@ -173,11 +175,19 @@ export default function HomePage() {
   const displayedProducts = products.slice(0, visibleProducts);
 
   return (
-    <div className="min-h-screen bg-[var(--color-bg-primary)]">
-      {/* ─── Animated Full-Width Hero Carousel (3 Slides, Right to Left) ─── */}
-      <HeroCarousel />
+    <div className="min-h-screen bg-[#eaeded]/50 dark:bg-[var(--color-bg-primary)]">
+      {/* ─── Amazon Hero Carousel (Mobile 2x2 Swipe Cards + Desktop 4 Floating Overlay Cards) ─── */}
+      <AmazonHeroCarousel />
 
-      <div className="container mx-auto px-3 sm:px-4 py-8">
+      <div className="max-w-[1500px] mx-auto px-3 sm:px-6 py-2 sm:py-6">
+        {/* ─── Sports Department Explorer ─── */}
+        <SportsCategoryExplorer />
+
+        {/* ─── Amazon "Keep shopping for" & "Deal for you" Recommendation Cards ─── */}
+        <div className="my-6">
+          <AmazonRecommendationCards />
+        </div>
+
         {/* Featured Products Section */}
         <section className="mb-12">
           <div className="flex justify-between items-center mb-5">

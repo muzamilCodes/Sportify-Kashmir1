@@ -45,6 +45,9 @@ import {
   Gift,
   Check,
   Package,
+  Camera,
+  Mic,
+  QrCode,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import ThemeToggle from "@/components/shared/ThemeToggle";
@@ -53,6 +56,10 @@ import { resolveProductImage } from "@/lib/imageHelper";
 import ProductImage from "@/components/ProductImage";
 import { cachedJson } from "@/lib/clientCache";
 import { useLanguage, LANGUAGES, LanguageCode } from "@/context/LanguageContext";
+import AmazonQuickCategories from "@/components/shared/AmazonQuickCategories";
+import { VoiceSearchModal, VisualSearchModal, QrScannerModal } from "@/components/shared/SearchModals";
+import PrimeMembershipModal from "@/components/shared/PrimeMembershipModal";
+import RufusAIAssistant from "@/components/shared/RufusAIAssistant";
 
 const Cricket = ({ size = 24 }: { size?: number }) => (
   <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -256,6 +263,11 @@ export default function Header() {
   const [imageError, setImageError] = useState(false);
   const [quickBuyProducts, setQuickBuyProducts] = useState<any[]>([]);
   const [addingCartId, setAddingCartId] = useState<string | null>(null);
+  const [isVoiceModalOpen, setIsVoiceModalOpen] = useState(false);
+  const [isVisualModalOpen, setIsVisualModalOpen] = useState(false);
+  const [isQrModalOpen, setIsQrModalOpen] = useState(false);
+  const [isPrimeModalOpen, setIsPrimeModalOpen] = useState(false);
+  const [isRufusOpen, setIsRufusOpen] = useState(false);
   const [storeSettings, setStoreSettings] = useState<{
     logoUrl?: string;
     announcementText?: string;
@@ -284,6 +296,13 @@ export default function Header() {
   useEffect(() => {
     setImageError(false);
   }, [user?.profilePic, user?._id]);
+
+  // Listen for custom toggleAmazonSideDrawer event from bottom nav
+  useEffect(() => {
+    const handleDrawer = () => setIsSideDrawerOpen((prev) => !prev);
+    window.addEventListener("toggleAmazonSideDrawer", handleDrawer);
+    return () => window.removeEventListener("toggleAmazonSideDrawer", handleDrawer);
+  }, []);
 
   // Click outside handlers
   useEffect(() => {
@@ -459,18 +478,23 @@ export default function Header() {
 
   return (
     <header suppressHydrationWarning className="sticky top-0 z-50 shadow-md">
-      {/* ── Top Announcement Bar (Dynamic from /admin/settings) ── */}
+      {/* ── Top Announcement Bar (Desktop only, dynamic from /admin/settings) ── */}
       {storeSettings?.announcementText && (
-        <div className="bg-gradient-to-r from-orange-600 via-amber-600 to-red-600 text-white text-[11px] sm:text-xs font-semibold py-1 px-4 text-center tracking-wide flex items-center justify-center gap-2 shadow-xs">
+        <div className="hidden lg:flex bg-gradient-to-r from-orange-600 via-amber-600 to-red-600 text-white text-[11px] sm:text-xs font-semibold py-1 px-4 text-center tracking-wide items-center justify-center gap-2 shadow-xs">
           <span>{storeSettings.announcementText}</span>
         </div>
       )}
 
+      {/* ── Amazon-Style Top Category Quick Carousel on Mobile (< 1024px) ── */}
+      <div className="lg:hidden">
+        <AmazonQuickCategories />
+      </div>
+
       {/* ═══════════════════════════════════════════════════════════════════════
           ROW 1: Amazon-Style Main Header Bar (#131921 Navy/Black)
       ═══════════════════════════════════════════════════════════════════════ */}
-      <div className="bg-[#131921] text-white px-2 sm:px-4 py-1.5 sm:py-2">
-        <div className="max-w-[1500px] mx-auto flex items-center justify-between gap-2 sm:gap-4">
+      <div className="bg-[#131921] text-white px-2 sm:px-4 py-1 sm:py-2">
+        <div className="max-w-[1500px] mx-auto hidden lg:flex items-center justify-between gap-2 sm:gap-4">
           {/* ── Left: Hamburger Menu (Mobile) + Logo ── */}
           <div className="flex items-center gap-1 shrink-0">
             <button
@@ -562,6 +586,34 @@ export default function Header() {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="flex-1 px-3.5 text-sm text-gray-900 bg-white placeholder-gray-500 outline-none"
               />
+
+              {/* Desktop Visual, Voice & QR Suite Action Icons */}
+              <div className="flex items-center gap-0.5 px-2 bg-white text-gray-500 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setIsVisualModalOpen(true)}
+                  className="p-1.5 hover:text-orange-500 text-gray-500 transition rounded-full cursor-pointer"
+                  title="Visual Search / AI Lens"
+                >
+                  <Camera size={17} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsVoiceModalOpen(true)}
+                  className="p-1.5 hover:text-orange-500 text-gray-500 transition rounded-full cursor-pointer"
+                  title="Voice Search"
+                >
+                  <Mic size={17} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsQrModalOpen(true)}
+                  className="p-1.5 hover:text-orange-500 text-gray-500 transition rounded-full cursor-pointer"
+                  title="Website QR & AI Scanner"
+                >
+                  <QrCode size={17} />
+                </button>
+              </div>
 
               {/* Amber Search Submit Button */}
               <button
@@ -683,8 +735,8 @@ export default function Header() {
               )}
             </div>
 
-            {/* ── Account & Lists Dropdown (100% Mobile & Desktop Responsive) ── */}
-            <div className="relative" ref={userMenuRef}>
+            {/* ── Account & Lists Dropdown (Desktop Only, mobile has 'You' in bottom nav) ── */}
+            <div className="relative hidden lg:block" ref={userMenuRef}>
               <button
                 type="button"
                 onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
@@ -918,20 +970,20 @@ export default function Header() {
               </div>
             </div>
 
-            {/* ── Returns & Orders Button (Visible on both Mobile & Desktop) ── */}
+            {/* ── Returns & Orders Button (Desktop Only) ── */}
             <Link
               href="/orders"
-              className="flex flex-col leading-tight px-1.5 sm:px-2 py-1 sm:py-1.5 rounded-xs hover:outline-1 hover:outline-white text-left shrink-0"
+              className="hidden lg:flex flex-col leading-tight px-1.5 sm:px-2 py-1 sm:py-1.5 rounded-xs hover:outline-1 hover:outline-white text-left shrink-0"
               aria-label="Returns and orders"
             >
               <span className="text-[10px] sm:text-[11px] text-gray-300 font-normal">{t("nav.returnsOrders", "Returns")}</span>
               <span className="text-[11px] sm:text-xs font-bold text-white whitespace-nowrap">&amp; Orders</span>
             </Link>
 
-            {/* ── Cart Button (Visible on both Mobile & Desktop) ── */}
+            {/* ── Cart Button (Desktop Only, mobile has Cart in bottom nav) ── */}
             <Link
               href="/cart"
-              className="flex items-center gap-1 px-1.5 sm:px-2.5 py-1 sm:py-1.5 rounded-xs hover:outline-1 hover:outline-white shrink-0 relative"
+              className="hidden lg:flex items-center gap-1 px-1.5 sm:px-2.5 py-1 sm:py-1.5 rounded-xs hover:outline-1 hover:outline-white shrink-0 relative"
               aria-label="Shopping cart"
             >
               <div className="relative">
@@ -944,29 +996,18 @@ export default function Header() {
             </Link>
 
             {/* Theme Toggle */}
-            <div className="pl-0.5">
+            <div className="hidden lg:block pl-0.5">
               <ThemeToggle />
             </div>
           </div>
         </div>
 
-        {/* ── Mobile Search Bar Row (Clean Full Width on Mobile < 1024px) ── */}
+        {/* ── Amazon-Style Mobile Search Bar Row (Clean Full Width Pill) ── */}
         <div className="lg:hidden mt-1.5 px-0.5">
-          <form onSubmit={handleSearch} className="flex h-9 sm:h-10 rounded-lg overflow-hidden shadow-sm">
-            {/* Mobile Category Select */}
-            <div className="relative flex items-center bg-[#f3f3f3] text-gray-800 border-r border-gray-300 shrink-0">
-              <select
-                value={selectedSearchCat}
-                onChange={(e) => setSelectedSearchCat(e.target.value)}
-                className="h-full px-2 text-[11px] font-semibold bg-transparent appearance-none cursor-pointer outline-none pr-5 text-gray-800"
-              >
-                {SEARCH_CATEGORIES.map((c) => (
-                  <option key={c.id} value={c.id} className="text-gray-900 bg-white">
-                    {c.label}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown size={11} className="absolute right-1 text-gray-600 pointer-events-none" />
+          <form onSubmit={handleSearch} className="flex items-center h-10 bg-white rounded-xl overflow-hidden shadow-sm border border-gray-200 focus-within:ring-2 focus-within:ring-orange-500 transition">
+            {/* Search Icon */}
+            <div className="pl-3 pr-1 text-gray-500 flex items-center">
+              <Search size={18} />
             </div>
 
             {/* Mobile Search Input */}
@@ -974,44 +1015,74 @@ export default function Header() {
               id="header-search-mobile"
               name="search"
               type="text"
-              placeholder={t("nav.searchPlaceholder", "Search bats, balls, gym gear, wear...")}
+              placeholder="Search or ask a question"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="flex-1 px-2.5 text-xs text-gray-900 bg-white placeholder-gray-500 outline-none"
+              className="flex-1 px-1.5 text-xs text-gray-900 placeholder-gray-500 outline-none bg-transparent"
             />
 
-            {/* Mobile Search Button */}
-            <button
-              type="submit"
-              aria-label="Submit search"
-              className="w-10 bg-[#febd69] hover:bg-[#f3a847] text-gray-900 flex items-center justify-center transition shrink-0"
-            >
-              {isSearching ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />}
-            </button>
+            {/* Right Action Icons: Camera (Lens), Mic (Voice), QrCode (Barcode) */}
+            <div className="flex items-center gap-0.5 pr-1.5 shrink-0 text-gray-600">
+              <button
+                type="button"
+                onClick={() => setIsVisualModalOpen(true)}
+                className="p-1.5 hover:text-orange-500 text-gray-600 active:scale-95 transition rounded-full cursor-pointer"
+                title="Visual Search"
+              >
+                <Camera size={18} />
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setIsVoiceModalOpen(true)}
+                className="p-1.5 hover:text-orange-500 text-gray-600 active:scale-95 transition rounded-full cursor-pointer"
+                title="Voice Search"
+              >
+                <Mic size={18} />
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setIsQrModalOpen(true)}
+                className="p-1.5 hover:text-orange-500 text-gray-600 active:scale-95 transition rounded-full cursor-pointer"
+                title="Scan Barcode / QR"
+              >
+                <QrCode size={18} />
+              </button>
+            </div>
           </form>
         </div>
       </div>
 
       {/* ═══════════════════════════════════════════════════════════════════════
-          ROW 2: Mobile Delivery Location Strip
+          ROW 2: Mobile Delivery Location & Prime Strip
       ═══════════════════════════════════════════════════════════════════════ */}
       <div className="lg:hidden bg-[#232f3e] text-white px-3 py-1.5 text-[11px] flex items-center justify-between border-t border-[#37475a]">
         <Link
           href={isLoggedIn ? "/profile?tab=addresses" : "/login"}
-          className="flex items-center gap-1.5 text-gray-200 hover:text-white truncate"
+          className="flex items-center gap-1.5 text-gray-200 hover:text-white truncate flex-1"
         >
           <MapPin size={13} className="text-amber-400 shrink-0" />
           <span className="truncate">
-            {t("nav.deliverTo", "Deliver to")} {isLoggedIn && user ? (user.username || "User") : "Kashmir"} - <strong>Srinagar 190009</strong>
+            {t("nav.deliverTo", "Deliver to")} <strong>190009</strong>
           </span>
+          <ChevronDown size={11} className="text-gray-400 shrink-0" />
         </Link>
-        <ChevronRight size={13} className="text-gray-400 shrink-0 ml-1" />
+
+        {/* Join Prime button */}
+        <button
+          type="button"
+          onClick={() => setIsPrimeModalOpen(true)}
+          className="ml-2 px-3 py-0.8 bg-[#00a8e1] hover:bg-[#0092c7] text-white text-[11px] font-bold rounded-full shadow-xs shrink-0 transition active:scale-95 cursor-pointer"
+        >
+          Join Prime
+        </button>
       </div>
 
       {/* ═══════════════════════════════════════════════════════════════════════
-          ROW 3: Amazon-Style Sub-Navigation Bar (#232f3e Navy)
+          ROW 3: Amazon-Style Sub-Navigation Bar (#232f3e Navy) - Desktop Only
       ═══════════════════════════════════════════════════════════════════════ */}
-      <div className="bg-[#232f3e] text-white px-2 sm:px-4 py-1.5 text-xs font-medium border-t border-[#37475a] overflow-x-auto scrollbar-none">
+      <div className="hidden lg:block bg-[#232f3e] text-white px-2 sm:px-4 py-1.5 text-xs font-medium border-t border-[#37475a] overflow-x-auto scrollbar-none">
         <div className="max-w-[1500px] mx-auto flex items-center justify-between gap-4">
           <div className="flex items-center gap-1 sm:gap-2 whitespace-nowrap">
             {/* ☰ All Drawer Button */}
@@ -1024,14 +1095,15 @@ export default function Header() {
               <span>{t("nav.all", "All")}</span>
             </button>
 
-            {/* AI Assistant Badge */}
-            <Link
-              href="/products"
-              className="flex items-center gap-1 px-2 py-1 rounded-full bg-gradient-to-r from-orange-500/20 to-amber-500/20 border border-orange-400/40 text-amber-300 font-bold hover:bg-orange-500/30 transition"
+            {/* AI Assistant Badge / Rufus Trigger */}
+            <button
+              type="button"
+              onClick={() => setIsRufusOpen(true)}
+              className="flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-gradient-to-r from-orange-500/25 via-amber-500/25 to-red-500/25 border border-orange-400/50 text-amber-300 font-extrabold hover:bg-orange-500/40 transition cursor-pointer shadow-xs"
             >
-              <Sparkles size={13} className="text-amber-400" />
-              <span>⚡ {t("nav.kashmirExpress", "Kashmir Express")}</span>
-            </Link>
+              <Sparkles size={13} className="text-orange-400 fill-orange-400" />
+              <span>✨ Ask Rufus AI</span>
+            </button>
 
             {/* Sports Links */}
             <Link href="/products?search=cricket" className="px-2 py-1 rounded-xs hover:outline-1 hover:outline-white">
@@ -1058,6 +1130,14 @@ export default function Header() {
             <Link href="/contact" className="px-2 py-1 rounded-xs hover:outline-1 hover:outline-white">
               {t("nav.service", "Customer Service")}
             </Link>
+            <button
+              type="button"
+              onClick={() => setIsQrModalOpen(true)}
+              className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-cyan-500/20 border border-cyan-400/40 text-cyan-300 font-bold hover:bg-cyan-500/30 transition cursor-pointer"
+            >
+              <QrCode size={13} className="text-cyan-300" />
+              <span>📱 QR &amp; AI Scanner</span>
+            </button>
           </div>
 
           {/* Right Banner Promo Tag */}
@@ -1303,6 +1383,31 @@ export default function Header() {
           </div>
         </div>
       )}
+      {/* Search Modals (Voice, Visual, QR) */}
+      <VoiceSearchModal
+        isOpen={isVoiceModalOpen}
+        onClose={() => setIsVoiceModalOpen(false)}
+        onTranscript={(text) => {
+          setSearchQuery(text);
+          router.push(`/products?search=${encodeURIComponent(text)}`);
+        }}
+      />
+      <VisualSearchModal
+        isOpen={isVisualModalOpen}
+        onClose={() => setIsVisualModalOpen(false)}
+      />
+      <QrScannerModal
+        isOpen={isQrModalOpen}
+        onClose={() => setIsQrModalOpen(false)}
+      />
+      <PrimeMembershipModal
+        isOpen={isPrimeModalOpen}
+        onClose={() => setIsPrimeModalOpen(false)}
+      />
+      <RufusAIAssistant
+        isOpen={isRufusOpen}
+        onClose={() => setIsRufusOpen(false)}
+      />
     </header>
   );
 }
