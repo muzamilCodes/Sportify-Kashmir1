@@ -29,12 +29,13 @@ router.post("/delivery-rejection/verify-otp/:orderId", authorize, controller.ver
 router.get("/user-orders", authorize, controller.getUserOrders);
 router.get("/fetchAllOrders", admin, controller.fetchAllOrders);
 router.get("/fetchOrderById/:orderId", authorize, controller.fetchOrderById);
+router.get("/:id/invoice", authorize, controller.getOrderInvoice);
 
 // ✅ Order delete / remove routes (User & Admin)
 router.delete("/delete/:orderId", authorize, controller.deleteOrder);
 router.delete("/:orderId", authorize, controller.deleteOrder);
 
-// ✅ Admin only - update order value (make sure this controller exists)
+// ✅ Admin only - update order value
 router.put("/update-value/:orderId", admin, controller.updateOrderValue);
 
 module.exports = router;

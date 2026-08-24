@@ -128,18 +128,25 @@ app.use("/uploads", express.static(require("path").join(__dirname, "uploads"), {
 app.use("/user", require("./routes/userRoutes"));
 app.use("/product", require("./routes/productRoutes"));
 app.use("/reviews", require("./routes/reviewRoutes"));
+app.use("/api/reviews", require("./routes/reviewRoutes"));
 app.use("/stock-notifications", require("./routes/stockNotificationRoutes"));
 app.use("/category", require("./routes/categoryRoutes"));
 app.use("/brand", require("./routes/brandRoutes"));
 app.use("/orders", require("./routes/orderRoutes"));
+app.use("/api/orders", require("./routes/orderRoutes"));
 app.use("/addresses", require("./routes/addressRoutes"));
 app.use("/cart", require("./routes/cartRoutes"));
 app.use("/api/payment", require("./routes/paymentRoutes"));
 app.use("/refund", require("./routes/refundRoutes"));
+app.use("/returns", require("./routes/returnRoutes"));
+app.use("/api/returns", require("./routes/returnRoutes"));
+app.use("/shipping", require("./routes/shippingRoutes"));
+app.use("/api/shipping", require("./routes/shippingRoutes"));
 app.use("/admin", require("./routes/adminRoutes"));
 app.use("/contact", require("./routes/contactRoutes"));
 app.use("/posts", require("./routes/postRoutes"));
 app.use("/coupon", require("./routes/couponRoutes"));
+app.use("/coupons", require("./routes/couponRoutes"));
 app.use("/banners", require("./routes/bannerRoutes"));
 app.use("/notifications", require("./routes/notificationRoutes"));
 

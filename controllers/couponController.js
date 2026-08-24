@@ -1,6 +1,6 @@
 const Coupon = require("../models/couponModel");
 
-// Get all coupons
+// 1. Get All Coupons (Admin or Public listing of active promo codes)
 exports.getAllCoupons = async (req, res) => {
   try {
     const coupons = await Coupon.find().sort({ createdAt: -1 });
@@ -17,10 +17,20 @@ exports.getAllCoupons = async (req, res) => {
   }
 };
 
-// Add new coupon
+// 2. Add New Coupon (Admin)
 exports.addCoupon = async (req, res) => {
   try {
-    const { code, discountType, discountValue, minOrderValue, expiryDate } = req.body;
+    const {
+      code,
+      discountType,
+      discountValue,
+      maxDiscountAmount,
+      minOrderValue,
+      startDate,
+      expiryDate,
+      usageLimit,
+      perUserLimit,
+    } = req.body;
 
     if (!code || !discountValue || !expiryDate) {
       return res.status(400).json({
@@ -42,8 +52,12 @@ exports.addCoupon = async (req, res) => {
       code: cleanCode,
       discountType: discountType || "Percentage",
       discountValue: Number(discountValue),
+      maxDiscountAmount: Number(maxDiscountAmount || 0),
       minOrderValue: Number(minOrderValue || 0),
+      startDate: startDate ? new Date(startDate) : new Date(),
       expiryDate: new Date(expiryDate),
+      usageLimit: Number(usageLimit || 0),
+      perUserLimit: Number(perUserLimit || 1),
     });
 
     return res.status(201).json({
@@ -60,7 +74,52 @@ exports.addCoupon = async (req, res) => {
   }
 };
 
-// Toggle coupon status
+// 3. Edit / Update Coupon (Admin)
+exports.updateCoupon = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const {
+      code,
+      discountType,
+      discountValue,
+      maxDiscountAmount,
+      minOrderValue,
+      startDate,
+      expiryDate,
+      usageLimit,
+      perUserLimit,
+      isActive,
+    } = req.body;
+
+    const coupon = await Coupon.findById(id);
+    if (!coupon) {
+      return res.status(404).json({ success: false, message: "Coupon not found" });
+    }
+
+    if (code) coupon.code = String(code).trim().toUpperCase();
+    if (discountType) coupon.discountType = discountType;
+    if (discountValue !== undefined) coupon.discountValue = Number(discountValue);
+    if (maxDiscountAmount !== undefined) coupon.maxDiscountAmount = Number(maxDiscountAmount);
+    if (minOrderValue !== undefined) coupon.minOrderValue = Number(minOrderValue);
+    if (startDate) coupon.startDate = new Date(startDate);
+    if (expiryDate) coupon.expiryDate = new Date(expiryDate);
+    if (usageLimit !== undefined) coupon.usageLimit = Number(usageLimit);
+    if (perUserLimit !== undefined) coupon.perUserLimit = Number(perUserLimit);
+    if (isActive !== undefined) coupon.isActive = Boolean(isActive);
+
+    await coupon.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Coupon updated successfully",
+      data: coupon,
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// 4. Toggle Coupon Status (Admin)
 exports.toggleCouponStatus = async (req, res) => {
   try {
     const { id } = req.params;
@@ -89,7 +148,7 @@ exports.toggleCouponStatus = async (req, res) => {
   }
 };
 
-// Delete coupon
+// 5. Delete Coupon (Admin)
 exports.deleteCoupon = async (req, res) => {
   try {
     const { id } = req.params;
@@ -111,5 +170,86 @@ exports.deleteCoupon = async (req, res) => {
       success: false,
       message: error.message || "Failed to delete coupon",
     });
+  }
+};
+
+// 6. Validate Coupon during Checkout (Customer)
+exports.validateCoupon = async (req, res) => {
+  try {
+    const { code, orderAmount = 0 } = req.body;
+    const userId = req.userId;
+
+    if (!code) {
+      return res.status(400).json({ success: false, message: "Coupon code is required" });
+    }
+
+    const cleanCode = String(code).trim().toUpperCase();
+    const coupon = await Coupon.findOne({ code: cleanCode, isActive: true });
+
+    if (!coupon) {
+      return res.status(404).json({ success: false, message: "Invalid or inactive coupon code" });
+    }
+
+    const now = new Date();
+    if (coupon.startDate && now < coupon.startDate) {
+      return res.status(400).json({ success: false, message: "This coupon is not active yet" });
+    }
+
+    if (coupon.expiryDate && now > coupon.expiryDate) {
+      return res.status(400).json({ success: false, message: "This coupon has expired" });
+    }
+
+    const subtotal = Number(orderAmount);
+    if (coupon.minOrderValue > 0 && subtotal < coupon.minOrderValue) {
+      return res.status(400).json({
+        success: false,
+        message: `Minimum order amount of ₹${coupon.minOrderValue} required for this coupon`,
+      });
+    }
+
+    // Check usage limits
+    if (coupon.usageLimit > 0 && coupon.usedCount >= coupon.usageLimit) {
+      return res.status(400).json({ success: false, message: "This coupon has reached its maximum total usage limit" });
+    }
+
+    // Check per-user usage limit if logged in
+    if (userId && coupon.perUserLimit > 0) {
+      const userUsage = (coupon.usedBy || []).find((u) => u.user && u.user.toString() === userId.toString());
+      if (userUsage && userUsage.count >= coupon.perUserLimit) {
+        return res.status(400).json({
+          success: false,
+          message: `You have already used this coupon maximum (${coupon.perUserLimit}) allowed time(s)`,
+        });
+      }
+    }
+
+    // Calculate discount
+    let discountAmount = 0;
+    if (coupon.discountType === "Percentage") {
+      discountAmount = (subtotal * coupon.discountValue) / 100;
+      if (coupon.maxDiscountAmount > 0 && discountAmount > coupon.maxDiscountAmount) {
+        discountAmount = coupon.maxDiscountAmount;
+      }
+    } else {
+      discountAmount = coupon.discountValue;
+    }
+
+    discountAmount = Math.min(discountAmount, subtotal);
+    discountAmount = Number(discountAmount.toFixed(2));
+
+    return res.status(200).json({
+      success: true,
+      message: `Coupon applied! You saved ₹${discountAmount}`,
+      data: {
+        code: coupon.code,
+        discountType: coupon.discountType,
+        discountValue: coupon.discountValue,
+        discountAmount: discountAmount,
+        finalAmount: Number((subtotal - discountAmount).toFixed(2)),
+      },
+    });
+  } catch (error) {
+    console.error("Validate coupon error:", error);
+    return res.status(500).json({ success: false, message: error.message });
   }
 };

@@ -3,6 +3,7 @@ const router = express.Router();
 const authorize = require("../middlewares/authorize");
 const admin = require("../middlewares/admin");
 const adminController = require("../controllers/adminController");
+const upload = require("../middlewares/multer");
 
 // Admin dashboard routes
 router.get("/dashboard", authorize, admin, adminController.getDashboardStats);
@@ -10,12 +11,12 @@ router.get("/revenue-chart", authorize, admin, adminController.getRevenueChart);
 
 // Admin inventory routes
 router.get("/inventory", authorize, admin, adminController.getInventoryData);
+router.get("/inventory/history", authorize, admin, adminController.getInventoryHistory);
 router.put("/inventory/stock/:productId", authorize, admin, adminController.updateProductStock);
 
-// Admin analytics & reports route
+// Admin analytics & reports routes
 router.get("/reports", authorize, admin, adminController.getReportsData);
-
-const upload = require("../middlewares/multer");
+router.get("/reports/export-csv", authorize, admin, adminController.exportSalesCSV);
 
 // Admin store settings routes
 router.get("/public/settings", adminController.getStoreSettings);

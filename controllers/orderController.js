@@ -1088,3 +1088,93 @@ exports.deleteOrder = async (req, res) => {
     return res.status(500).json({ success: false, message: error.message || "Failed to remove order" });
   }
 };
+
+// ===================== GET ORDER INVOICE =====================
+exports.getOrderInvoice = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.userId;
+
+    const order = await Order.findById(id)
+      .populate("userId", "username email mobile")
+      .populate("shippingAddress")
+      .populate("products.productId", "name price productImgUrls sku");
+
+    if (!order) {
+      return res.status(404).json({ success: false, message: "Order not found" });
+    }
+
+    const actingUser = await User.findById(userId).select("isAdmin");
+    const isOwner = order.userId && order.userId._id.toString() === userId.toString();
+    if (!actingUser?.isAdmin && !isOwner) {
+      return res.status(403).json({ success: false, message: "Unauthorized to view this invoice" });
+    }
+
+    const orderNumber = order.orderId || order._id.toString().slice(-8);
+    const invoiceNumber = order.invoiceNumber || `INV-${new Date(order.createdAt).getFullYear()}-${orderNumber}`;
+
+    const items = (order.products || []).map((p) => {
+      const unitPrice = p.price || p.productId?.price || 0;
+      const total = unitPrice * p.quantity;
+      return {
+        productId: p.productId?._id,
+        name: p.productId?.name || "Sports Equipment",
+        sku: p.productId?.sku || p.size || "SK-PRO",
+        unitPrice,
+        quantity: p.quantity,
+        total,
+      };
+    });
+
+    const subtotal = order.subtotal || items.reduce((acc, item) => acc + item.total, 0);
+    const discount = order.discount || 0;
+    const shipping = order.shippingCharge || 0;
+    const tax = order.tax || 0;
+    const grandTotal = order.totalAmount || order.orderValue || subtotal - discount + shipping + tax;
+
+    const invoiceData = {
+      invoiceNumber,
+      orderNumber,
+      orderDate: order.createdAt,
+      paymentMethod: order.paymentMethod?.toUpperCase() || "COD",
+      paymentStatus: order.paymentStatus?.toUpperCase() || "PENDING",
+      orderStatus: order.orderStatus?.toUpperCase() || "CONFIRMED",
+      customer: {
+        name: order.shippingAddress?.firstName
+          ? `${order.shippingAddress.firstName} ${order.shippingAddress.lastName || ""}`.trim()
+          : order.guestAddress?.fullName || order.userId?.username || "Customer",
+        email: order.shippingAddress?.email || order.guestAddress?.email || order.userId?.email || "",
+        mobile: order.shippingAddress?.mobile || order.guestAddress?.mobileNumber || order.userId?.mobile || "",
+        address: order.shippingAddress
+          ? `${order.shippingAddress.addressLine1 || ""}, ${order.shippingAddress.city || ""}, ${order.shippingAddress.state || "J&K"} - ${order.shippingAddress.pincode || ""}`
+          : order.guestAddress
+          ? `${order.guestAddress.street || ""}, ${order.guestAddress.city || ""}, ${order.guestAddress.state || "J&K"} - ${order.guestAddress.postalCode || ""}`
+          : "Delivery Address Provided",
+      },
+      seller: {
+        name: "Sportify Kashmir",
+        address: "Handwara, Qalamabad, Kashmir 193221",
+        contact: "+91 9682645127 | sportify68@gmail.com",
+        gst: "GSTIN-01SPORTIFYKMR",
+      },
+      items,
+      financials: {
+        subtotal,
+        discount,
+        couponCode: order.couponCode || "",
+        shipping,
+        tax,
+        grandTotal,
+      },
+    };
+
+    return res.status(200).json({
+      success: true,
+      data: invoiceData,
+    });
+  } catch (error) {
+    console.error("getOrderInvoice error:", error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+

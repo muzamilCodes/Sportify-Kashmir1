@@ -669,3 +669,117 @@ exports.deleteMyAccount = async (req, res) => {
     return res.status(500).json({ success: false, message: "Server error" });
   }
 };
+
+// ===================== WISHLIST HANDLERS =====================
+exports.getWishlist = async (req, res) => {
+  try {
+    const user = await User.findById(req.userId)
+      .populate("wishlist", "name price discount productImgUrls category brand isAvailable stock")
+      .select("wishlist")
+      .lean();
+
+    return res.status(200).json({
+      success: true,
+      data: user?.wishlist || [],
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+exports.addToWishlist = async (req, res) => {
+  try {
+    const { productId } = req.body;
+    if (!productId) {
+      return res.status(400).json({ success: false, message: "Product ID is required" });
+    }
+
+    const user = await User.findByIdAndUpdate(
+      req.userId,
+      { $addToSet: { wishlist: productId } },
+      { new: true }
+    ).populate("wishlist", "name price discount productImgUrls category brand isAvailable stock");
+
+    return res.status(200).json({
+      success: true,
+      message: "Product added to wishlist",
+      data: user.wishlist,
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+exports.removeFromWishlist = async (req, res) => {
+  try {
+    const { productId } = req.params;
+    const user = await User.findByIdAndUpdate(
+      req.userId,
+      { $pull: { wishlist: productId } },
+      { new: true }
+    ).populate("wishlist", "name price discount productImgUrls category brand isAvailable stock");
+
+    return res.status(200).json({
+      success: true,
+      message: "Product removed from wishlist",
+      data: user.wishlist,
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// ===================== RECENTLY VIEWED HANDLERS =====================
+exports.getRecentlyViewed = async (req, res) => {
+  try {
+    const user = await User.findById(req.userId)
+      .populate("recentlyViewed", "name price discount productImgUrls category brand isAvailable stock")
+      .select("recentlyViewed")
+      .lean();
+
+    return res.status(200).json({
+      success: true,
+      data: user?.recentlyViewed || [],
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+exports.addRecentlyViewed = async (req, res) => {
+  try {
+    const { productId } = req.body;
+    if (!productId) {
+      return res.status(400).json({ success: false, message: "Product ID is required" });
+    }
+
+    // Keep max 12 recent products, most recent first
+    const user = await User.findById(req.userId);
+    if (!user) return res.status(404).json({ success: false, message: "User not found" });
+
+    let recent = (user.recentlyViewed || []).map((id) => id.toString());
+    recent = recent.filter((id) => id !== productId.toString());
+    recent.unshift(productId);
+    if (recent.length > 12) recent = recent.slice(0, 12);
+
+    user.recentlyViewed = recent;
+    await user.save();
+
+    return res.status(200).json({
+      success: true,
+      data: user.recentlyViewed,
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+exports.clearRecentlyViewed = async (req, res) => {
+  try {
+    await User.findByIdAndUpdate(req.userId, { $set: { recentlyViewed: [] } });
+    return res.status(200).json({ success: true, message: "Recently viewed cleared" });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+

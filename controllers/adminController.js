@@ -504,3 +504,107 @@ exports.updateStoreSettings = async (req, res) => {
     });
   }
 };
+
+// ===================== GET INVENTORY HISTORY =====================
+exports.getInventoryHistory = async (req, res) => {
+  try {
+    const InventoryHistory = require("../models/inventoryHistoryModel");
+    const { page = 1, limit = 50, productId } = req.query;
+    const query = {};
+    if (productId) query.product = productId;
+
+    const pageNum = parseInt(page);
+    const limitNum = parseInt(limit);
+    const skip = (pageNum - 1) * limitNum;
+
+    const total = await InventoryHistory.countDocuments(query);
+    const history = await InventoryHistory.find(query)
+      .populate("product", "name productImgUrls stock")
+      .populate("performedBy", "username email")
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limitNum)
+      .lean();
+
+    return res.status(200).json({
+      success: true,
+      data: history,
+      pagination: {
+        total,
+        page: pageNum,
+        pages: Math.ceil(total / limitNum),
+      },
+    });
+  } catch (error) {
+    console.error("getInventoryHistory error:", error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// ===================== EXPORT SALES CSV =====================
+exports.exportSalesCSV = async (req, res) => {
+  try {
+    const { days = 90 } = req.query;
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - parseInt(days));
+
+    const orders = await Order.find({ createdAt: { $gte: startDate } })
+      .populate("userId", "username email mobile")
+      .populate("shippingAddress")
+      .populate("products.productId", "name price sku")
+      .sort({ createdAt: -1 })
+      .lean();
+
+    // Generate CSV String
+    const headers = [
+      "Order ID",
+      "Date",
+      "Customer Name",
+      "Email",
+      "Mobile",
+      "Payment Method",
+      "Payment Status",
+      "Order Status",
+      "Total Amount (INR)",
+      "Products Count",
+    ];
+
+    const rows = orders.map((o) => {
+      const orderId = o.orderId || o._id.toString().slice(-8);
+      const date = new Date(o.createdAt).toISOString().split("T")[0];
+      const customer = o.shippingAddress?.firstName
+        ? `${o.shippingAddress.firstName} ${o.shippingAddress.lastName || ""}`.trim()
+        : o.guestAddress?.fullName || o.userId?.username || "Customer";
+      const email = o.shippingAddress?.email || o.guestAddress?.email || o.userId?.email || "";
+      const mobile = o.shippingAddress?.mobile || o.guestAddress?.mobileNumber || o.userId?.mobile || "";
+      const paymentMethod = o.paymentMethod || "COD";
+      const paymentStatus = o.paymentStatus || "PENDING";
+      const orderStatus = o.orderStatus || "PENDING";
+      const total = o.orderValue || 0;
+      const count = (o.products || []).reduce((acc, p) => acc + (p.quantity || 1), 0);
+
+      return [
+        `"${orderId}"`,
+        `"${date}"`,
+        `"${customer.replace(/"/g, '""')}"`,
+        `"${email}"`,
+        `"${mobile}"`,
+        `"${paymentMethod.toUpperCase()}"`,
+        `"${paymentStatus.toUpperCase()}"`,
+        `"${orderStatus.toUpperCase()}"`,
+        total,
+        count,
+      ].join(",");
+    });
+
+    const csvContent = [headers.join(","), ...rows].join("\n");
+
+    res.setHeader("Content-Type", "text/csv");
+    res.setHeader("Content-Disposition", `attachment; filename=sportify_sales_report_${Date.now()}.csv`);
+    return res.status(200).send(csvContent);
+  } catch (error) {
+    console.error("exportSalesCSV error:", error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+

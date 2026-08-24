@@ -1,6 +1,6 @@
 const express = require("express");
 const controller = require("../controllers/userController");
-const authorize  = require("../middlewares/authorize");
+const authorize = require("../middlewares/authorize");
 const admin = require("../middlewares/admin");
 const upload = require("../middlewares/multer");
 const router = express.Router();
@@ -41,13 +41,25 @@ router.post("/forgot-pass", controller.forgotPass);
 router.post("/change/password", controller.changePass);
 router.post("/edit/user", authorize, upload.any(), controller.changeUsername);
 
-router.get("/verify" ,  authorize, controller.verifyUser )
-router.get("/verify/admin" ,  authorize, controller.verifyAdmin )
+router.get("/verify", authorize, controller.verifyUser);
+router.get("/verify/admin", authorize, controller.verifyAdmin);
 router.post("/init-first-admin", authorize, controller.initializeFirstAdmin);
+
+// Wishlist Endpoints
+router.get("/wishlist", authorize, controller.getWishlist);
+router.post("/wishlist", authorize, controller.addToWishlist);
+router.delete("/wishlist/:productId", authorize, controller.removeFromWishlist);
+
+// Recently Viewed Endpoints
+router.get("/recently-viewed", authorize, controller.getRecentlyViewed);
+router.post("/recently-viewed", authorize, controller.addRecentlyViewed);
+router.delete("/recently-viewed", authorize, controller.clearRecentlyViewed);
+
+// Admin User Management
 router.get("/getAll", authorize, admin, controller.getAllUsers);
 router.put("/:userId", authorize, admin, controller.updateUserStatus);
 router.delete("/:userId", authorize, admin, controller.deleteUser);
 router.put("/make-admin/:userId", authorize, admin, controller.makeAdmin);
 router.delete("/account/me", authorize, controller.deleteMyAccount);
 
-module.exports = router
+module.exports = router;

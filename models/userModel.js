@@ -8,18 +8,17 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: true,
       unique: true,
-      lowercase: true
+      lowercase: true,
     },
 
     password: {
       type: String,
       required: true,
-      minlength: 6
+      minlength: 6,
     },
 
     profilePic: { type: String },
 
-    // 🔥 FIXED MOBILE FIELD
     mobile: {
       type: String,
       required: true,
@@ -28,8 +27,8 @@ const userSchema = new mongoose.Schema(
         validator: function (v) {
           return /^[0-9]{10}$/.test(v);
         },
-        message: "Mobile number must be 10 digits"
-      }
+        message: "Mobile number must be 10 digits",
+      },
     },
 
     isAdmin: { type: Boolean, default: false },
@@ -37,7 +36,23 @@ const userSchema = new mongoose.Schema(
 
     otp: { type: String },
     otpExpiry: { type: Date },
-    isVerified: { type: Boolean, default: false }
+    otpAttempts: { type: Number, default: 0 },
+    lastOtpSentAt: { type: Date },
+    isVerified: { type: Boolean, default: false },
+
+    wishlist: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Product",
+      },
+    ],
+
+    recentlyViewed: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Product",
+      },
+    ],
   },
   { timestamps: true }
 );
