@@ -50,6 +50,7 @@ import {
   QrCode,
 } from "lucide-react";
 import toast from "react-hot-toast";
+import dynamic from "next/dynamic";
 import ThemeToggle from "@/components/shared/ThemeToggle";
 import { useCartCount } from "@/components/providers/CartCountProvider";
 import { resolveProductImage } from "@/lib/imageHelper";
@@ -57,10 +58,31 @@ import ProductImage from "@/components/ProductImage";
 import { cachedJson } from "@/lib/clientCache";
 import { useLanguage, LANGUAGES, LanguageCode } from "@/context/LanguageContext";
 import AmazonQuickCategories from "@/components/shared/AmazonQuickCategories";
-import { VoiceSearchModal, VisualSearchModal, QrScannerModal } from "@/components/shared/SearchModals";
-import NotificationCenter from "@/components/shared/NotificationCenter";
-import PrimeMembershipModal from "@/components/shared/PrimeMembershipModal";
-import RufusAIAssistant from "@/components/shared/RufusAIAssistant";
+
+const VoiceSearchModal = dynamic(
+  () => import("@/components/shared/SearchModals").then((m) => m.VoiceSearchModal),
+  { ssr: false }
+);
+const VisualSearchModal = dynamic(
+  () => import("@/components/shared/SearchModals").then((m) => m.VisualSearchModal),
+  { ssr: false }
+);
+const QrScannerModal = dynamic(
+  () => import("@/components/shared/SearchModals").then((m) => m.QrScannerModal),
+  { ssr: false }
+);
+const NotificationCenter = dynamic(
+  () => import("@/components/shared/NotificationCenter"),
+  { ssr: false }
+);
+const PrimeMembershipModal = dynamic(
+  () => import("@/components/shared/PrimeMembershipModal"),
+  { ssr: false }
+);
+const RufusAIAssistant = dynamic(
+  () => import("@/components/shared/RufusAIAssistant"),
+  { ssr: false }
+);
 
 const Cricket = ({ size = 24 }: { size?: number }) => (
   <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -284,14 +306,18 @@ export default function Header() {
   const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000").replace(/\/$/, "");
 
   useEffect(() => {
-    fetch(`${API_URL}/admin/public/settings`)
-      .then((r) => r.json())
+    let isMounted = true;
+    cachedJson<any>(`${API_URL}/admin/public/settings`)
       .then((res) => {
-        if (res.success && res.data) {
+        if (isMounted && res?.success && res.data) {
           setStoreSettings(res.data);
         }
       })
       .catch(() => {});
+
+    return () => {
+      isMounted = false;
+    };
   }, [API_URL]);
 
   useEffect(() => {

@@ -11,8 +11,13 @@ import {
   Menu, 
   Sparkles 
 } from "lucide-react";
+import dynamic from "next/dynamic";
 import { useCartCount } from "@/components/providers/CartCountProvider";
-import RufusAIAssistant from "@/components/shared/RufusAIAssistant";
+
+const RufusAIAssistant = dynamic(
+  () => import("@/components/shared/RufusAIAssistant"),
+  { ssr: false }
+);
 
 /**
  * MobileBottomNav

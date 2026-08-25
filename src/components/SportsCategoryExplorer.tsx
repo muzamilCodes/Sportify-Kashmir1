@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
+import { cachedJson } from "@/lib/clientCache";
 
 interface DbCategory {
   _id: string;
@@ -39,18 +40,16 @@ export default function SportsCategoryExplorer() {
   const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000").replace(/\/$/, "");
 
   useEffect(() => {
+    let isMounted = true;
     const fetchCategories = async () => {
       try {
-        const [catRes, prodRes] = await Promise.all([
-          fetch(`${API_URL}/category/all`),
-          fetch(`${API_URL}/product/getAll`),
+        const [catData, prodData] = await Promise.all([
+          cachedJson<any>(`${API_URL}/category/all`),
+          cachedJson<any>(`${API_URL}/product/getAll`),
         ]);
 
-        const catData = await catRes.json();
-        const prodData = await prodRes.json();
-
-        if (catData.success && Array.isArray(catData.data)) {
-          const prods: any[] = prodData.success && Array.isArray(prodData.data) ? prodData.data : [];
+        if (isMounted && catData?.success && Array.isArray(catData.data)) {
+          const prods: any[] = prodData?.success && Array.isArray(prodData.data) ? prodData.data : [];
 
           const tiles: CategoryTile[] = catData.data.map((cat: DbCategory) => {
             const count = prods.filter((p) => {
@@ -78,6 +77,9 @@ export default function SportsCategoryExplorer() {
     };
 
     fetchCategories();
+    return () => {
+      isMounted = false;
+    };
   }, [API_URL]);
 
   if (categories.length === 0) return null;

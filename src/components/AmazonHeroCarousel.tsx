@@ -13,6 +13,7 @@ import {
   Percent
 } from "lucide-react";
 import { resolveProductImage } from "@/lib/imageHelper";
+import { cachedJson } from "@/lib/clientCache";
 
 interface DbProduct {
   _id: string;
@@ -63,24 +64,25 @@ export default function AmazonHeroCarousel() {
 
   const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000").replace(/\/$/, "");
 
-  // Fetch real products from database
+  // Fetch real products from database using cached request deduplication
   useEffect(() => {
-    const fetchRealProducts = async () => {
-      try {
-        const res = await fetch(`${API_URL}/product/getAll`);
-        const data = await res.json();
-        if (data.success && Array.isArray(data.data)) {
+    let isMounted = true;
+    cachedJson<any>(`${API_URL}/product/getAll`)
+      .then((data) => {
+        if (isMounted && data?.success && Array.isArray(data.data)) {
           setDbProducts(data.data);
         }
-      } catch (err) {
+      })
+      .catch((err) => {
         console.error("Failed to load real products:", err);
-      }
-    };
+      });
 
-    fetchRealProducts();
+    return () => {
+      isMounted = false;
+    };
   }, [API_URL]);
 
-  // Desktop Background Carousel Slides (Full-Width)
+  // Desktop Background Carousel Slides (Full-Width with modern WebP compression)
   const heroSlides: HeroSlide[] = [
     {
       id: 1,
@@ -88,7 +90,7 @@ export default function AmazonHeroCarousel() {
       title: "Authentic Kashmir",
       highlight: "Willow Cricket Bats",
       subtitle: "Direct from Sangam & Anantnag workshops. Monster punch, thick edges & feather-light balance.",
-      image: "/hero-banner-1.jpg",
+      image: "/hero-banner-1.webp",
       link: "/products?search=cricket",
       bgClass: "from-[#4a0e17] via-[#2d050a] to-[#120205]",
     },
@@ -98,7 +100,7 @@ export default function AmazonHeroCarousel() {
       title: "Pro Footballs, Studs",
       highlight: "& Match Day Kits",
       subtitle: "Thermal bonded match balls, hard-ground turf cleats, pro goalkeeper gloves & team jerseys.",
-      image: "/hero-banner-2.jpg",
+      image: "/hero-banner-2.webp",
       link: "/products?search=football",
       bgClass: "from-[#0c2340] via-[#081728] to-[#040d17]",
     },
@@ -108,7 +110,7 @@ export default function AmazonHeroCarousel() {
       title: "Home Gym Dumbbells",
       highlight: "& Power Benches",
       subtitle: "Rubber hex dumbbells, multi-angle workout benches & heavy resistance bands.",
-      image: "/hero-banner-3.jpg",
+      image: "/hero-banner-3.webp",
       link: "/products?search=gym",
       bgClass: "from-[#3e2723] via-[#271410] to-[#140a08]",
     },
@@ -289,6 +291,10 @@ export default function AmazonHeroCarousel() {
                       <img
                         src={prod.image}
                         alt={prod.name}
+                        width={140}
+                        height={80}
+                        loading="lazy"
+                        decoding="async"
                         className="w-full h-full object-cover rounded group-hover:scale-105 transition-transform"
                       />
                       {prod.discount && (
@@ -346,6 +352,12 @@ export default function AmazonHeroCarousel() {
                 <img
                   src={slide.image}
                   alt={slide.title}
+                  width={1600}
+                  height={560}
+                  loading={idx === 0 ? "eager" : "lazy"}
+                  // @ts-ignore
+                  fetchpriority={idx === 0 ? "high" : "low"}
+                  decoding="async"
                   className="absolute inset-0 w-full h-full object-cover mix-blend-overlay opacity-40 scale-105 transition-transform duration-7000"
                 />
 
@@ -437,6 +449,10 @@ export default function AmazonHeroCarousel() {
                           <img
                             src={prod.image}
                             alt={prod.name}
+                            width={160}
+                            height={96}
+                            loading="lazy"
+                            decoding="async"
                             className="w-full h-full object-cover rounded-md group-hover/item:scale-105 transition-transform"
                           />
                           {prod.discount && (

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { ChevronRight, Sparkles, Flame, Tag } from "lucide-react";
 import { resolveProductImage } from "@/lib/imageHelper";
+import { cachedJson } from "@/lib/clientCache";
 
 interface DbProduct {
   _id: string;
@@ -31,11 +32,11 @@ export default function AmazonRecommendationCards() {
   const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000").replace(/\/$/, "");
 
   useEffect(() => {
+    let isMounted = true;
     const fetchRealRecommendations = async () => {
       try {
-        const res = await fetch(`${API_URL}/product/getAll`);
-        const data = await res.json();
-        if (data.success && Array.isArray(data.data) && data.data.length > 0) {
+        const data = await cachedJson<any>(`${API_URL}/product/getAll`);
+        if (isMounted && data?.success && Array.isArray(data.data) && data.data.length > 0) {
           const prods: DbProduct[] = data.data;
 
           // Pick 3 real products: 1 deal (highest discount), 2 keep shopping
@@ -56,7 +57,7 @@ export default function AmazonRecommendationCards() {
             },
             {
               id: recProd2._id,
-              type: "keep_shopping",
+              type: "trending",
               title: "Trending in Kashmir",
               productName: recProd2.name,
               image: resolveProductImage(recProd2),
@@ -84,6 +85,9 @@ export default function AmazonRecommendationCards() {
     };
 
     fetchRealRecommendations();
+    return () => {
+      isMounted = false;
+    };
   }, [API_URL]);
 
   if (items.length === 0) return null;
@@ -93,9 +97,9 @@ export default function AmazonRecommendationCards() {
       <div className="container mx-auto px-2.5 sm:px-4">
         {/* Horizontal scroll cards on mobile, 3-col on desktop */}
         <div className="flex sm:grid sm:grid-cols-3 gap-3 overflow-x-auto scrollbar-none snap-x snap-mandatory">
-          {items.map((item) => (
+          {items.map((item, idx) => (
             <Link
-              key={item.id}
+              key={`${item.id}-${item.type}-${idx}`}
               href={item.link}
               className="bg-white dark:bg-gray-900 rounded-2xl p-3.5 shadow-sm border border-gray-200/70 dark:border-gray-800 flex flex-col justify-between shrink-0 w-[240px] sm:w-auto snap-start hover:shadow-md transition group"
             >
@@ -116,6 +120,10 @@ export default function AmazonRecommendationCards() {
                 <img
                   src={item.image}
                   alt={item.productName}
+                  width={240}
+                  height={160}
+                  loading="lazy"
+                  decoding="async"
                   className="w-full h-full object-contain rounded-lg"
                 />
 

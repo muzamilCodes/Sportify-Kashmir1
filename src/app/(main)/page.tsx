@@ -16,6 +16,7 @@ import ProductCard from "@/components/ProductCard";
 import RecentlyViewed from "@/components/RecentlyViewed";
 import { ProductGridSkeleton } from "@/components/shared/SkeletonLoaders";
 import { resolveProductImage } from "@/lib/imageHelper";
+import { cachedJson } from "@/lib/clientCache";
 import AmazonHeroCarousel from "@/components/AmazonHeroCarousel";
 import AmazonRecommendationCards from "@/components/AmazonRecommendationCards";
 import SportsCategoryExplorer from "@/components/SportsCategoryExplorer";
@@ -61,12 +62,13 @@ export default function HomePage() {
   };
 
   useEffect(() => {
+    let isMounted = true;
     fetchProducts();
-    // Fetch public store settings for hero promo banner
-    fetch(`${API_URL}/admin/public/settings`)
-      .then((r) => r.json())
+    
+    // Fetch public store settings for hero promo banner with deduplication
+    cachedJson<any>(`${API_URL}/admin/public/settings`)
       .then((res) => {
-        if (res.success && res.data?.bannerUrl) {
+        if (isMounted && res?.success && res.data?.bannerUrl) {
           const bUrl = res.data.bannerUrl.startsWith("http") || res.data.bannerUrl.startsWith("data:")
             ? res.data.bannerUrl
             : `${API_URL}${res.data.bannerUrl}`;
@@ -83,18 +85,18 @@ export default function HomePage() {
         setWishlist([]);
       }
     }
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const fetchProducts = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_URL}/product/getAll`);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const result = await response.json();
+      const result = await cachedJson<any>(`${API_URL}/product/getAll`);
 
-      if (result.success && result.data) {
+      if (result?.success && result.data) {
         const rawList = Array.isArray(result.data) ? result.data : result.data?.items || [];
         const availableProducts = rawList.filter(
           (product: any) => product.isAvailable !== false && !product.isArchived
@@ -207,7 +209,7 @@ export default function HomePage() {
             <ProductGridSkeleton count={5} />
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4 md:gap-4.5">
-              {featuredProducts.map((product) => {
+              {featuredProducts.map((product, idx) => {
                 const discountedPrice = calculateDiscountedPrice(product.price, product.discount);
                 const hasDiscount = !!(product.discount && product.discount > 0);
                 
@@ -215,6 +217,7 @@ export default function HomePage() {
                   <ProductCard
                     key={product._id}
                     product={product}
+                    priority={idx < 2}
                     discountedPrice={discountedPrice}
                     hasDiscount={hasDiscount}
                     wishlist={wishlist}

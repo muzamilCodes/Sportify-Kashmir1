@@ -54,6 +54,10 @@ export const metadata: Metadata = {
     description:
       "Kashmir's premier destination for premium sports equipment, athletic apparel, and expert advice.",
   },
+  verification: {
+    google: "SGFKbVbcg_kobHDJwrMpSDIszpsvZ-Dt7gBJ39tITdo",
+
+  },
   other: {
     "mobile-web-app-capable": "yes",
     "apple-mobile-web-app-capable": "yes",
@@ -83,12 +87,15 @@ export default function RootLayout({
   return (
     <html lang="en" className={inter.variable} suppressHydrationWarning>
       <head>
+        <meta name="google-site-verification" content="SGFKbVbcg_kobHDJwrMpSDIszpsvZ-Dt7gBJ39tITdo" />
         <link rel="icon" href="/favicon.png" type="image/png" />
         <link rel="shortcut icon" href="/favicon.ico" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <link rel="manifest" href="/manifest.json" />
         <link rel="preconnect" href="https://res.cloudinary.com" crossOrigin="anonymous" />
         <link rel="dns-prefetch" href="https://res.cloudinary.com" />
+        <link rel="preconnect" href="https://images.unsplash.com" crossOrigin="anonymous" />
+        <link rel="dns-prefetch" href="https://images.unsplash.com" />
         <meta name="theme-color" content="#f97316" />
       </head>
       <body className={`${inter.className} bg-[var(--color-bg-primary)] font-sans text-[var(--color-text-primary)] transition-colors duration-300`} suppressHydrationWarning>
