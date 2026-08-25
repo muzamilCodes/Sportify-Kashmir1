@@ -53,6 +53,12 @@ const userSchema = new mongoose.Schema(
         ref: "Product",
       },
     ],
+
+    isPrime: { type: Boolean, default: false },
+    primePlan: { type: String, enum: ["trial", "annual", "quarterly", "none"], default: "none" },
+    primeMemberId: { type: String },
+    primeExpiresAt: { type: Date },
+    primePaymentId: { type: String },
   },
   { timestamps: true }
 );
