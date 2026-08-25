@@ -320,6 +320,15 @@ function ProductCardComponent({
                 Save ₹{Math.round(product.price - resolvedDiscountPrice).toLocaleString("en-IN")} ({discountPercent}%)
               </span>
             )}
+
+            {/* Sportify Prime 24h Express Badge */}
+            <div className="flex items-center gap-1 mt-1">
+              <span className="flex items-center bg-[#002f36] text-white px-1.5 py-0.2 rounded text-[9px] font-black tracking-tight">
+                <span>sportify</span>
+                <span className="text-[#00a8e1] ml-0.5">prime</span>
+              </span>
+              <span className="text-[10px] text-emerald-700 dark:text-emerald-400 font-bold">24h Valley Delivery</span>
+            </div>
           </div>
         </div>
       </Link>

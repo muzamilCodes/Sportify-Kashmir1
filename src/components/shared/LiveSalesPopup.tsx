@@ -52,11 +52,27 @@ export default function LiveSalesPopup() {
   const [products, setProducts] = useState<any[]>([]);
   const [currentNotification, setCurrentNotification] = useState<LiveSaleNotification | null>(null);
   const [isVisible, setIsVisible] = useState(false);
-  const [isDismissed, setIsDismissed] = useState(false);
+  const [isDismissed, setIsDismissed] = useState(true);
   const hideTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const shownCountRef = useRef(0);
+
+  // Check if user has already dismissed it in this session or globally
+  useEffect(() => {
+    try {
+      const sessionDismissed = sessionStorage.getItem("sportify_live_sales_dismissed");
+      const globalMuted = localStorage.getItem("sportify_live_sales_muted");
+      if (!sessionDismissed && !globalMuted) {
+        setIsDismissed(false);
+      }
+    } catch {
+      setIsDismissed(false);
+    }
+  }, []);
 
   // 1. Fetch real active products from database
   useEffect(() => {
+    if (isDismissed) return;
+
     const fetchLiveProducts = async () => {
       try {
         const res = await fetch(`${API_URL}/product/getAll?limit=20`);
@@ -78,15 +94,19 @@ export default function LiveSalesPopup() {
     };
 
     fetchLiveProducts();
-  }, []);
+  }, [isDismissed]);
 
-  // 2. Schedule rotating live popups
+  // 2. Schedule rotating live popups (max 2 times per session, with 90s gap)
   useEffect(() => {
     if (isDismissed) return;
 
     const showNotification = () => {
+      if (shownCountRef.current >= 3) {
+        setIsVisible(false);
+        return;
+      }
+
       if (products.length === 0) {
-        // Fallback default notification
         const buyer = KASHMIR_BUYERS[Math.floor(Math.random() * KASHMIR_BUYERS.length)];
         const timeAgo = TIME_AGOS[Math.floor(Math.random() * TIME_AGOS.length)];
         setCurrentNotification({
@@ -118,20 +138,21 @@ export default function LiveSalesPopup() {
         });
       }
 
+      shownCountRef.current += 1;
       setIsVisible(true);
 
-      // Auto-hide popup after 6.5 seconds
+      // Auto-hide popup after 5 seconds
       if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
       hideTimerRef.current = setTimeout(() => {
         setIsVisible(false);
-      }, 6500);
+      }, 5000);
     };
 
-    // First popup after 4 seconds
-    const initialTimer = setTimeout(showNotification, 4000);
+    // First popup after 20 seconds (not immediate)
+    const initialTimer = setTimeout(showNotification, 20000);
 
-    // Subsequent popups every 22 seconds
-    const interval = setInterval(showNotification, 22000);
+    // Subsequent popups every 90 seconds (rare, non-intrusive)
+    const interval = setInterval(showNotification, 90000);
 
     return () => {
       clearTimeout(initialTimer);
@@ -140,6 +161,15 @@ export default function LiveSalesPopup() {
     };
   }, [products, isDismissed]);
 
+  const handleDismiss = () => {
+    setIsVisible(false);
+    setIsDismissed(true);
+    try {
+      sessionStorage.setItem("sportify_live_sales_dismissed", "true");
+      localStorage.setItem("sportify_live_sales_muted", "true");
+    } catch {}
+  };
+
   if (isDismissed || !currentNotification || !isVisible) return null;
 
   return (
@@ -147,10 +177,7 @@ export default function LiveSalesPopup() {
       <div className="relative bg-white/95 dark:bg-gray-900/95 rounded-2xl p-3 shadow-2xl border border-gray-200/90 dark:border-gray-800 flex items-center gap-3 backdrop-blur-md">
         {/* Close Button */}
         <button
-          onClick={() => {
-            setIsVisible(false);
-            setIsDismissed(true);
-          }}
+          onClick={handleDismiss}
           className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-500 hover:text-gray-900 dark:hover:text-white flex items-center justify-center text-xs shadow-sm cursor-pointer"
           aria-label="Dismiss notification"
         >

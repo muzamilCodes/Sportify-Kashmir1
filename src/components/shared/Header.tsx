@@ -1153,9 +1153,14 @@ export default function Header() {
             <Link href="/products" className="px-2 py-1 rounded-xs hover:outline-1 hover:outline-white">
               {t("nav.buyAgain", "Buy Again")}
             </Link>
-            <Link href="/profile" className="px-2 py-1 rounded-xs hover:outline-1 hover:outline-white">
-              {t("nav.prime", "Sportify Prime")}
-            </Link>
+            <button
+              type="button"
+              onClick={() => setIsPrimeModalOpen(true)}
+              className="px-2 py-1 rounded-xs hover:outline-1 hover:outline-white text-left cursor-pointer flex items-center gap-1"
+            >
+              <span>{t("nav.prime", "Sportify Prime")}</span>
+              <span className="text-[9px] bg-amber-400 text-gray-950 font-black px-1 rounded-xs">VIP</span>
+            </button>
             <Link href="/wholesale" className="px-2 py-1 rounded-xs hover:outline-1 hover:outline-white font-bold text-amber-300">
               {t("nav.wholesale", "Academy Wholesale")}
             </Link>
@@ -1353,13 +1358,17 @@ export default function Header() {
                     </Link>
                   </li>
                   <li>
-                    <Link
-                      href="/profile"
-                      onClick={() => setIsSideDrawerOpen(false)}
-                      className="block py-2 px-2.5 rounded-lg hover:bg-gray-100 hover:text-orange-600"
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsSideDrawerOpen(false);
+                        setIsPrimeModalOpen(true);
+                      }}
+                      className="w-full text-left py-2 px-2.5 rounded-lg hover:bg-gray-100 hover:text-orange-600 font-semibold flex items-center justify-between cursor-pointer"
                     >
-                      Sportify Prime Membership
-                    </Link>
+                      <span>Sportify Prime Membership</span>
+                      <span className="text-[10px] bg-amber-400 text-gray-900 font-bold px-1.5 py-0.5 rounded-sm">VIP</span>
+                    </button>
                   </li>
                   <li>
                     <Link

@@ -46,6 +46,11 @@ import toast from "react-hot-toast";
 import { cachedJson } from "@/lib/clientCache";
 import ProductImage from "@/components/ProductImage";
 import { useLanguage, LANGUAGES } from "@/context/LanguageContext";
+import dynamic from "next/dynamic";
+
+const PrimeMembershipModal = dynamic(() => import("@/components/shared/PrimeMembershipModal"), {
+  ssr: false,
+});
 
 interface UserProfile {
   _id: string;
@@ -67,24 +72,22 @@ function ProfileContent() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState(tabParam || "overview");
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isPrimeModalOpen, setIsPrimeModalOpen] = useState(false);
+  const [primeData, setPrimeData] = useState<any>(null);
   const [editForm, setEditForm] = useState({
     username: "",
     email: "",
     mobile: "",
-    city: "Srinagar",
-    pincode: "190009",
     newPassword: "",
     confirmPassword: "",
+    currentPassword: "",
+    sportsInterests: [] as string[],
   });
-  const [showPassword, setShowPassword] = useState(false);
-  const [selectedSports, setSelectedSports] = useState<string[]>(["Cricket", "Gym & Fitness"]);
-  const [updatingProfile, setUpdatingProfile] = useState(false);
-  const [uploadingPhoto, setUploadingPhoto] = useState(false);
-  const [selectedProfilePic, setSelectedProfilePic] = useState<File | null>(null);
+  const [updating, setUpdating] = useState(false);
+  const [uploadingPic, setUploadingPic] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [imageError, setImageError] = useState(false);
+  const [selectedProfilePic, setSelectedProfilePic] = useState<File | null>(null);
   const [buyAgainProducts, setBuyAgainProducts] = useState<any[]>([]);
-  const [addingCartId, setAddingCartId] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const modalFileInputRef = useRef<HTMLInputElement>(null);
@@ -101,8 +104,30 @@ function ProfileContent() {
   };
 
   useEffect(() => {
+    const checkPrime = () => {
+      try {
+        const saved = localStorage.getItem("sportify_prime_membership");
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          setPrimeData(parsed?.isActive ? parsed : null);
+        } else {
+          setPrimeData(null);
+        }
+      } catch {
+        setPrimeData(null);
+      }
+    };
+
+    checkPrime();
+    window.addEventListener("primeMembershipUpdated", checkPrime);
+    return () => window.removeEventListener("primeMembershipUpdated", checkPrime);
+  }, []);
+
+  useEffect(() => {
     if (tabParam === "edit" || tabParam === "settings") {
       setIsEditModalOpen(true);
+    } else if (tabParam === "prime") {
+      setIsPrimeModalOpen(true);
     }
   }, [tabParam]);
 
@@ -446,9 +471,18 @@ function ProfileContent() {
                     Admin
                   </span>
                 )}
-                <span className="text-[10px] font-bold bg-cyan-100 dark:bg-cyan-950 text-cyan-700 dark:text-cyan-300 px-2 py-0.5 rounded-full uppercase">
-                  Sportify Prime
-                </span>
+                <button
+                  type="button"
+                  onClick={() => setIsPrimeModalOpen(true)}
+                  className={`text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase cursor-pointer hover:opacity-90 transition flex items-center gap-1 ${
+                    primeData?.isActive
+                      ? "bg-gradient-to-r from-amber-400 to-amber-500 text-gray-950 shadow-xs"
+                      : "bg-cyan-100 dark:bg-cyan-950 text-cyan-700 dark:text-cyan-300"
+                  }`}
+                >
+                  <Crown size={11} className={primeData?.isActive ? "fill-current" : ""} />
+                  <span>{primeData?.isActive ? "Kashmir VIP Member" : "Sportify Prime"}</span>
+                </button>
               </div>
               <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-500 dark:text-gray-400">
                 <span className="flex items-center gap-1">
@@ -533,24 +567,37 @@ function ProfileContent() {
           </button>
 
           {/* Card 3: Sportify Prime */}
-          <div className="flex items-start gap-4 p-4 sm:p-5 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 hover:border-orange-500 dark:hover:border-orange-500 hover:shadow-md transition-all group">
+          <button
+            type="button"
+            onClick={() => setIsPrimeModalOpen(true)}
+            className="flex items-start gap-4 p-4 sm:p-5 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 hover:border-orange-500 dark:hover:border-orange-500 hover:shadow-md transition-all group text-left cursor-pointer"
+          >
             <div className="w-14 h-14 rounded-2xl bg-cyan-50 dark:bg-cyan-950/40 border border-cyan-200/60 dark:border-cyan-800/40 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
               <Crown className="w-7 h-7 text-cyan-600 dark:text-cyan-400" />
             </div>
             <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-1.5">
-                <h2 className="text-base font-bold text-gray-900 dark:text-white group-hover:text-orange-600 transition">
-                  Sportify Prime
-                </h2>
-                <span className="text-[10px] font-bold bg-cyan-100 dark:bg-cyan-950 text-cyan-700 dark:text-cyan-300 px-1.5 py-0.2 rounded-full uppercase">
-                  Active
-                </span>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  <h2 className="text-base font-bold text-gray-900 dark:text-white group-hover:text-orange-600 transition">
+                    Sportify Prime
+                  </h2>
+                  <span className={`text-[10px] font-black px-2 py-0.5 rounded-full uppercase ${
+                    primeData?.isActive
+                      ? "bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300"
+                      : "bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300"
+                  }`}>
+                    {primeData?.isActive ? "Kashmir VIP Active" : "30-Day Free Trial"}
+                  </span>
+                </div>
+                <span className="text-[11px] font-bold text-cyan-600 hover:underline">Manage ›</span>
               </div>
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 leading-relaxed">
-                Free Kashmir 24h express delivery, priority bat knocking & VIP deals
+                {primeData?.isActive
+                  ? `ID: ${primeData.memberId} • Free 24h Valley Express & 5% Cashback Active`
+                  : "Free Kashmir 24h express delivery, priority bat knocking & VIP deals"}
               </p>
             </div>
-          </div>
+          </button>
 
           {/* Card 4: Your Addresses */}
           <Link
@@ -1029,6 +1076,12 @@ function ProfileContent() {
           </div>
         </div>
       )}
+
+      {/* Sportify Prime VIP Modal */}
+      <PrimeMembershipModal
+        isOpen={isPrimeModalOpen}
+        onClose={() => setIsPrimeModalOpen(false)}
+      />
     </div>
   );
 }

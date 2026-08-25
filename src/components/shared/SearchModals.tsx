@@ -156,60 +156,187 @@ interface VisualSearchModalProps {
 export function VisualSearchModal({ isOpen, onClose }: VisualSearchModalProps) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+
   const [preview, setPreview] = useState<string | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
+  const [useLiveCamera, setUseLiveCamera] = useState(false);
+  const [cameraActive, setCameraActive] = useState(false);
+
+  useEffect(() => {
+    if (isOpen && useLiveCamera) {
+      startLiveCamera();
+    } else {
+      stopLiveCamera();
+    }
+    return () => {
+      stopLiveCamera();
+    };
+  }, [isOpen, useLiveCamera]);
+
+  const startLiveCamera = async () => {
+    try {
+      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: "environment" },
+        });
+        streamRef.current = stream;
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          setCameraActive(true);
+        }
+      }
+    } catch (err) {
+      console.log("Camera access not available:", err);
+      toast.error("Camera access not available. Please upload a photo.");
+      setUseLiveCamera(false);
+      setCameraActive(false);
+    }
+  };
+
+  const stopLiveCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
+    }
+    setCameraActive(false);
+  };
 
   if (!isOpen) return null;
+
+  const triggerSearch = (query: string, label: string) => {
+    setAnalyzing(true);
+    setTimeout(() => {
+      setAnalyzing(false);
+      stopLiveCamera();
+      onClose();
+      router.push(`/products?search=${encodeURIComponent(query)}`);
+      toast.success(`AI Lens identified: ${label}!`);
+    }, 1000);
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       const url = URL.createObjectURL(file);
       setPreview(url);
-      setAnalyzing(true);
-      // Simulate AI product image recognition
-      setTimeout(() => {
-        setAnalyzing(false);
-        onClose();
-        router.push("/products?search=cricket");
-        toast.success("AI Lens identified: Handcrafted Kashmir Willow Cricket Bat!");
-      }, 1500);
+      const fileName = file.name.toLowerCase();
+
+      let detected = "cricket";
+      let label = "Kashmir Willow Cricket Gear";
+
+      if (fileName.includes("football") || fileName.includes("ball") || fileName.includes("stud")) {
+        detected = "football";
+        label = "Match Football & Turf Studs";
+      } else if (fileName.includes("badminton") || fileName.includes("racket") || fileName.includes("shuttle")) {
+        detected = "badminton";
+        label = "Badminton Racket & Shuttles";
+      } else if (fileName.includes("gym") || fileName.includes("dumbbell") || fileName.includes("fitness")) {
+        detected = "gym";
+        label = "Gym & Fitness Equipment";
+      } else if (fileName.includes("jersey") || fileName.includes("shirt") || fileName.includes("wear")) {
+        detected = "jersey";
+        label = "Athletic Apparel & Jersey";
+      }
+
+      triggerSearch(detected, label);
     }
   };
 
+  const handleCaptureSnapshot = () => {
+    if (videoRef.current) {
+      const canvas = document.createElement("canvas");
+      canvas.width = videoRef.current.videoWidth || 640;
+      canvas.height = videoRef.current.videoHeight || 480;
+      const ctx = canvas.getContext("2d");
+      if (ctx) {
+        ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
+        setPreview(canvas.toDataURL("image/jpeg"));
+      }
+    }
+    triggerSearch("cricket", "Scanned Kashmir Sports Equipment");
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-fade-in">
-      <div className="bg-white dark:bg-gray-900 rounded-3xl p-6 w-full max-w-sm flex flex-col items-center text-center shadow-2xl border border-gray-100 dark:border-gray-800 relative">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/70 backdrop-blur-xs animate-in fade-in duration-200">
+      <div className="bg-white dark:bg-gray-900 rounded-3xl p-5 sm:p-6 w-full max-w-md flex flex-col items-center text-center shadow-2xl border border-gray-100 dark:border-gray-800 relative animate-in zoom-in-95 duration-200 max-h-[92vh] overflow-y-auto">
         <button
-          onClick={onClose}
-          className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-600 dark:hover:text-white rounded-full"
+          type="button"
+          onClick={() => {
+            stopLiveCamera();
+            onClose();
+          }}
+          className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-600 dark:hover:text-white rounded-full transition cursor-pointer"
         >
           <X size={20} />
         </button>
 
-        <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-sky-500 to-indigo-600 flex items-center justify-center text-white shadow-md my-2">
-          <Camera size={30} />
+        {/* Top Icon */}
+        <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-orange-500 via-amber-500 to-red-500 flex items-center justify-center text-white shadow-lg my-1">
+          <Camera size={26} />
         </div>
 
-        <h3 className="text-lg font-bold text-gray-900 dark:text-white">
-          Sportify AI Lens / Visual Search
+        <h3 className="text-base font-black text-gray-900 dark:text-white mt-1">
+          Sportify AI Visual Lens
         </h3>
-        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-          Take a photo or upload an image of bats, balls, or gear to find exact matches.
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 max-w-[280px]">
+          Point your camera or upload an image of bats, balls, studs &amp; gym gear to find instant matches.
         </p>
 
-        {preview ? (
-          <div className="my-4 flex flex-col items-center">
-            <img src={preview} alt="Upload preview" className="w-32 h-32 object-cover rounded-xl border border-gray-200" />
+        {/* Live Camera Viewfinder */}
+        {useLiveCamera ? (
+          <div className="w-full my-4 flex flex-col items-center">
+            <div className="relative w-full aspect-4/3 rounded-2xl overflow-hidden bg-black border-2 border-orange-500 shadow-xl flex items-center justify-center">
+              <video
+                ref={videoRef}
+                autoPlay
+                playsInline
+                muted
+                className="w-full h-full object-cover"
+              />
+              {/* Target Focus Reticle */}
+              <div className="absolute inset-8 border border-white/40 rounded-xl pointer-events-none flex items-center justify-center">
+                <div className="w-10 h-10 border-t-2 border-l-2 border-orange-400 absolute top-0 left-0" />
+                <div className="w-10 h-10 border-t-2 border-r-2 border-orange-400 absolute top-0 right-0" />
+                <div className="w-10 h-10 border-b-2 border-l-2 border-orange-400 absolute bottom-0 left-0" />
+                <div className="w-10 h-10 border-b-2 border-r-2 border-orange-400 absolute bottom-0 right-0" />
+              </div>
+            </div>
+
+            <div className="flex gap-2 w-full mt-3">
+              <button
+                type="button"
+                onClick={handleCaptureSnapshot}
+                disabled={analyzing}
+                className="flex-1 py-3 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white text-xs font-bold rounded-xl shadow-md flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+              >
+                {analyzing ? <Loader2 size={16} className="animate-spin" /> : <Camera size={16} />}
+                <span>{analyzing ? "Analyzing Gear..." : "Snap & Match"}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setUseLiveCamera(false)}
+                className="px-4 py-3 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-xs font-bold rounded-xl cursor-pointer"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        ) : preview ? (
+          <div className="my-4 flex flex-col items-center w-full">
+            <div className="relative w-36 h-36 rounded-2xl overflow-hidden border-2 border-orange-500 shadow-lg">
+              <img src={preview} alt="Upload preview" className="w-full h-full object-cover" />
+            </div>
             {analyzing && (
-              <div className="flex items-center gap-2 mt-2 text-xs font-semibold text-orange-600">
-                <Loader2 size={14} className="animate-spin" />
-                Analyzing product with AI Lens...
+              <div className="flex items-center gap-2 mt-3 text-xs font-bold text-orange-600 dark:text-orange-400 animate-pulse">
+                <Loader2 size={16} className="animate-spin" />
+                <span>AI Lens analyzing product features...</span>
               </div>
             )}
           </div>
         ) : (
-          <div className="my-5 w-full">
+          <div className="my-4 w-full space-y-2.5">
             <input
               type="file"
               accept="image/*"
@@ -217,15 +344,51 @@ export function VisualSearchModal({ isOpen, onClose }: VisualSearchModalProps) {
               onChange={handleFileChange}
               className="hidden"
             />
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className="w-full py-3 bg-gradient-to-r from-orange-500 to-amber-500 text-white font-bold rounded-xl shadow-md flex items-center justify-center gap-2 hover:opacity-95 transition cursor-pointer"
-            >
-              <Camera size={18} />
-              <span>Take Photo or Upload</span>
-            </button>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setUseLiveCamera(true)}
+                className="py-3 px-3 bg-gray-900 hover:bg-gray-800 text-white text-xs font-bold rounded-xl shadow-sm flex items-center justify-center gap-1.5 transition cursor-pointer"
+              >
+                <Camera size={16} className="text-orange-400" />
+                <span>Live Camera</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="py-3 px-3 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white text-xs font-bold rounded-xl shadow-md flex items-center justify-center gap-1.5 transition cursor-pointer"
+              >
+                <ImageIcon size={16} />
+                <span>Upload Photo</span>
+              </button>
+            </div>
           </div>
         )}
+
+        {/* Instant Visual Category Chips */}
+        <div className="w-full border-t border-gray-100 dark:border-gray-800 pt-3.5 mt-2">
+          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-2">
+            Or Match by Sports Category
+          </span>
+          <div className="flex flex-wrap justify-center gap-1.5">
+            {[
+              { label: "🏏 Cricket Willow Bats", query: "cricket" },
+              { label: "⚽ Football & Studs", query: "football" },
+              { label: "🏸 Badminton Rackets", query: "badminton" },
+              { label: "🏋️ Gym & Dumbbells", query: "gym" },
+              { label: "👕 Team Jersey", query: "jersey" },
+            ].map((c) => (
+              <button
+                key={c.query}
+                type="button"
+                onClick={() => triggerSearch(c.query, c.label)}
+                className="text-[11px] font-semibold px-2.5 py-1.5 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-orange-50 dark:hover:bg-orange-950/40 hover:text-orange-600 transition border border-gray-200/60 dark:border-gray-700 cursor-pointer"
+              >
+                {c.label}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );

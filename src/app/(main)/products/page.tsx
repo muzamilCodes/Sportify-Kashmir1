@@ -126,6 +126,13 @@ function ProductsContent() {
     };
   }, [API_URL]);
 
+  useEffect(() => {
+    const currentSearch = searchParams.get("search") || searchParams.get("q") || "";
+    const currentCategory = searchParams.get("category") || "all";
+    setSearchTerm(currentSearch);
+    setSelectedCategory(currentCategory);
+  }, [searchParams]);
+
   const allSizes = useMemo(() => {
     return Array.from(new Set(products.flatMap((product) => product.sizes || []))).sort();
   }, [products]);
@@ -139,19 +146,80 @@ function ProductsContent() {
     let filtered = products;
 
     if (searchTerm.trim()) {
-      const q = searchTerm.toLowerCase();
-      filtered = filtered.filter(
-        (product) =>
-          product.name.toLowerCase().includes(q) ||
-          product.description.toLowerCase().includes(q)
-      );
+      const q = searchTerm.toLowerCase().trim();
+      const words = q.split(/\s+/).filter(Boolean);
+
+      filtered = filtered.filter((product) => {
+        const catName = typeof product.category === "object" ? product.category?.name?.toLowerCase() || "" : String(product.category || "").toLowerCase();
+        const brandName = typeof product.brand === "object" ? product.brand?.name?.toLowerCase() || "" : String(product.brand || "").toLowerCase();
+        const tags = Array.isArray(product.tags) ? product.tags.join(" ").toLowerCase() : "";
+        const name = (product.name || "").toLowerCase();
+        const desc = (product.description || "").toLowerCase();
+        const fullContent = `${name} ${desc} ${catName} ${brandName} ${tags}`;
+
+        // Sport category aliases
+        if (q === "cricket" || q === "willow") {
+          if (
+            fullContent.includes("cricket") ||
+            fullContent.includes("bat") ||
+            fullContent.includes("willow") ||
+            fullContent.includes("sg") ||
+            fullContent.includes("ss") ||
+            fullContent.includes("leather") ||
+            fullContent.includes("ball") ||
+            fullContent.includes("wicket")
+          ) {
+            return true;
+          }
+        }
+        if (q === "football" || q === "soccer") {
+          if (
+            fullContent.includes("football") ||
+            fullContent.includes("stud") ||
+            fullContent.includes("soccer") ||
+            fullContent.includes("turf") ||
+            fullContent.includes("nivia")
+          ) {
+            return true;
+          }
+        }
+        if (q === "badminton") {
+          if (
+            fullContent.includes("badminton") ||
+            fullContent.includes("racket") ||
+            fullContent.includes("shuttle") ||
+            fullContent.includes("yonex") ||
+            fullContent.includes("lining")
+          ) {
+            return true;
+          }
+        }
+        if (q === "gym" || q === "fitness") {
+          if (
+            fullContent.includes("gym") ||
+            fullContent.includes("fitness") ||
+            fullContent.includes("dumbbell") ||
+            fullContent.includes("weight") ||
+            fullContent.includes("bench") ||
+            fullContent.includes("workout")
+          ) {
+            return true;
+          }
+        }
+
+        return words.every((w) => fullContent.includes(w));
+      });
     }
 
     if (selectedCategory !== "all") {
+      const catLower = selectedCategory.toLowerCase();
       filtered = filtered.filter((product) => {
         const catId = typeof product.category === "object" ? product.category?._id : product.category;
-        const catName = typeof product.category === "object" ? product.category?.name : "";
-        return catId === selectedCategory || (catName && catName.toLowerCase() === selectedCategory.toLowerCase());
+        const catName = typeof product.category === "object" ? product.category?.name?.toLowerCase() : String(product.category || "").toLowerCase();
+        return (
+          catId === selectedCategory ||
+          (catName && (catName === catLower || catName.includes(catLower) || catLower.includes(catName)))
+        );
       });
     }
 

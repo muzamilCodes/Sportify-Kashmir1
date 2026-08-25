@@ -1,5 +1,4 @@
 "use client";
-"use client";
 
 import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
@@ -42,6 +41,10 @@ const ProductCard = dynamic(() => import("@/components/ProductCard"), {
   loading: () => <div className="h-80 rounded-xl bg-gray-100 animate-pulse" />,
 });
 
+const PrimeMembershipModal = dynamic(() => import("@/components/shared/PrimeMembershipModal"), {
+  ssr: false,
+});
+
 interface Product {
   _id: string;
   name: string;
@@ -73,63 +76,151 @@ interface RelatedProduct {
 interface Review { _id: string; rating: number; title?: string; comment: string; createdAt: string; user?: { username?: string } }
 
 /* ─── Kashmir & J&K Instant Pincode Knowledge Map ─── */
-const KASHMIR_PINCODES: Record<string, { location: string; speed: string; express: boolean }> = {
-  // Srinagar
-  "190001": { location: "Lal Chowk / Amirakadal, Srinagar", speed: "Delivery Tomorrow by 4 PM (Free Valley Express & COD)", express: true },
-  "190002": { location: "Khanyar / Rainawari, Srinagar", speed: "Delivery Tomorrow by 4 PM (Free Valley Express & COD)", express: true },
-  "190003": { location: "Nowhatta / Bohri Kadal, Srinagar", speed: "Delivery Tomorrow by 4 PM (Free Valley Express & COD)", express: true },
-  "190004": { location: "Batmaloo / Tengpora, Srinagar", speed: "Delivery Tomorrow by 4 PM (Free Valley Express & COD)", express: true },
-  "190005": { location: "Karan Nagar / SMHS, Srinagar", speed: "Delivery Tomorrow by 4 PM (Free Valley Express & COD)", express: true },
-  "190006": { location: "Hazratbal / Kashmir University, Srinagar", speed: "Delivery Tomorrow by 4 PM (Free Valley Express & COD)", express: true },
-  "190007": { location: "Rajbagh / Jawahar Nagar, Srinagar", speed: "Delivery Tomorrow by 4 PM (Free Valley Express & COD)", express: true },
-  "190008": { location: "Soura / SKIMS Hospital, Srinagar", speed: "Delivery Tomorrow by 4 PM (Free Valley Express & COD)", express: true },
-  "190009": { location: "Barzulla / Bone & Joint, Srinagar", speed: "Delivery Tomorrow by 4 PM (Free Valley Express & COD)", express: true },
-  "190010": { location: "Natipora / Chanapora, Srinagar", speed: "Delivery Tomorrow by 4 PM (Free Valley Express & COD)", express: true },
-  "190011": { location: "Bemina / Qamarwari, Srinagar", speed: "Delivery Tomorrow by 4 PM (Free Valley Express & COD)", express: true },
-  "190014": { location: "Baghat / Hyderpora, Srinagar", speed: "Delivery Tomorrow by 4 PM (Free Valley Express & COD)", express: true },
-  "190015": { location: "Sanat Nagar / Rawalpora, Srinagar", speed: "Delivery Tomorrow by 4 PM (Free Valley Express & COD)", express: true },
-  "190019": { location: "Shalteng / Parimpora, Srinagar", speed: "Delivery Tomorrow by 4 PM (Free Valley Express & COD)", express: true },
-  "190021": { location: "Nishat / Harwan / Shalimar, Srinagar", speed: "Delivery Tomorrow by 4 PM (Free Valley Express & COD)", express: true },
-  "190023": { location: "Pantha Chowk / Lasjan, Srinagar", speed: "Delivery Tomorrow by 4 PM (Free Valley Express & COD)", express: true },
-  
-  // Anantnag & Pulwama (Bat Manufacturing Hub)
-  "192121": { location: "Sangam (Kashmir Willow Bat Hub), Anantnag", speed: "24–48 Hours Valley Express Delivery (Free Shipping)", express: true },
-  "192101": { location: "Anantnag Head Post Office / KP Road", speed: "24–48 Hours Valley Express Delivery (Free Shipping)", express: true },
-  "192124": { location: "Pampore (Saffron Town), Pulwama", speed: "24–48 Hours Valley Express Delivery (Free Shipping)", express: true },
-  "192301": { location: "Pulwama Town / Murran Chowk", speed: "24–48 Hours Valley Express Delivery (Free Shipping)", express: true },
-  "192122": { location: "Bijbehara Town, Anantnag", speed: "24–48 Hours Valley Express Delivery (Free Shipping)", express: true },
-  "192125": { location: "Awantipora / IUST Campus, Pulwama", speed: "24–48 Hours Valley Express Delivery (Free Shipping)", express: true },
-  "192126": { location: "Mattan / Pahalgam Road, Anantnag", speed: "24–48 Hours Valley Express Delivery (Free Shipping)", express: true },
-  "192129": { location: "Pahalgam Tourist Hub, Anantnag", speed: "24–48 Hours Valley Express Delivery (Free Shipping)", express: true },
-  "192302": { location: "Tral Main Town, Pulwama", speed: "24–48 Hours Valley Express Delivery (Free Shipping)", express: true },
+interface PincodeData {
+  location: string;
+  areas?: string[];
+  district?: string;
+  speed: string;
+  express: boolean;
+}
 
-  // Baramulla, Sopore, Kupwara, Bandipora
-  "193201": { location: "Baramulla Head Post Office / Stadium", speed: "24–48 Hours Valley Express Delivery (Free Shipping)", express: true },
-  "193121": { location: "Sopore Main Town / Iqbal Market", speed: "24–48 Hours Valley Express Delivery (Free Shipping)", express: true },
-  "193222": { location: "Kupwara Town / Rigipora", speed: "24–48 Hours Valley Express Delivery (Free Shipping)", express: true },
-  "193224": { location: "Handwara Main Town, Kupwara", speed: "24–48 Hours Valley Express Delivery (Free Shipping)", express: true },
-  "193123": { location: "Pattan Town, Baramulla", speed: "24–48 Hours Valley Express Delivery (Free Shipping)", express: true },
-  "193502": { location: "Bandipora Main Town / Gulshan Chowk", speed: "24–48 Hours Valley Express Delivery (Free Shipping)", express: true },
-  "193403": { location: "Uri Border Town, Baramulla", speed: "2–3 Days Express Delivery", express: true },
-  "193401": { location: "Tangmarg / Gulmarg Sports Hub", speed: "24–48 Hours Valley Express Delivery (Free Shipping)", express: true },
+const KASHMIR_PINCODES: Record<string, PincodeData> = {
+  // ─── 1. SRINAGAR & CENTRAL VALLEY ───
+  "190001": { location: "Lal Chowk / Residency Road / GPO, Srinagar", district: "Srinagar", areas: ["Lal Chowk", "Residency Road", "GPO Srinagar", "Badami Bagh", "Munshi Bagh", "Maisuma", "Polo View", "Amira Kadal"], speed: "Delivery Tomorrow by 4 PM • 24h Valley Express (Free Shipping & COD)", express: true },
+  "190002": { location: "SR Gunj / Zaina Kadal / Maharaj Gunj / Downtown, Srinagar", district: "Srinagar", areas: ["SR Gunj", "Zaina Kadal", "Maharaj Gunj", "Downtown Srinagar", "Bohri Kadal", "Fateh Kadal", "Nowhatta"], speed: "Delivery Tomorrow by 4 PM • 24h Valley Express (Free Shipping & COD)", express: true },
+  "190003": { location: "Batamaloo / Dalgate / Sonwar / Civil Lines, Srinagar", district: "Srinagar", areas: ["Batamaloo", "Dalgate", "Sonwar Bagh", "Civil Lines", "Boulevard Road", "TRC", "Nehru Park"], speed: "Delivery Tomorrow by 4 PM • 24h Valley Express (Free Shipping & COD)", express: true },
+  "190004": { location: "Soura / SKIMS Medical Institute / Buchpora, Srinagar", district: "Srinagar", areas: ["Soura", "SKIMS Institute", "Buchpora", "Illahi Bagh", "Umerhair", "Anchar"], speed: "Delivery Tomorrow by 4 PM • 24h Valley Express (Free Shipping & COD)", express: true },
+  "190005": { location: "Hazratbal Shrine / Kashmir University / Naseem Bagh, Srinagar", district: "Srinagar", areas: ["Hazratbal", "Kashmir University Campus", "Naseem Bagh", "Habak", "Saderbal", "Nigeen Lake"], speed: "Delivery Tomorrow by 4 PM • 24h Valley Express (Free Shipping & COD)", express: true },
+  "190006": { location: "Nowshera / Hawal / Alamgari Bazar / Zadibal, Srinagar", district: "Srinagar", areas: ["Nowshera", "Hawal", "Alamgari Bazar", "Zadibal", "Gojwara", "Khanyar Road"], speed: "Delivery Tomorrow by 4 PM • 24h Valley Express (Free Shipping & COD)", express: true },
+  "190007": { location: "Jawahar Nagar / Rajbagh / Mehjoor Nagar / Kursu, Srinagar", district: "Srinagar", areas: ["Jawahar Nagar", "Rajbagh", "Mehjoor Nagar", "Kursu Rajbagh", "Zero Bridge", "Padshahi Bagh"], speed: "Delivery Tomorrow by 4 PM • 24h Valley Express (Free Shipping & COD)", express: true },
+  "190008": { location: "Natipora / Chanapora / Rambagh / Sanat Nagar, Srinagar", district: "Srinagar", areas: ["Natipora", "Chanapora", "Rambagh", "Sanat Nagar", "Methan", "Azad Bast"], speed: "Delivery Tomorrow by 4 PM • 24h Valley Express (Free Shipping & COD)", express: true },
+  "190009": { location: "Hyderpora / Rawalpora / Peerbagh / Baghi Mehtab, Srinagar", district: "Srinagar", areas: ["Hyderpora Chowk", "Peerbagh", "Rawalpora", "Baghi Mehtab", "Gulberg Colony", "Airport Road"], speed: "Delivery Tomorrow by 4 PM • 24h Valley Express (Free Shipping & COD)", express: true },
+  "190010": { location: "Bemina / Qamarwari / Jhelum Valley Medical College, Srinagar", district: "Srinagar", areas: ["Bemina Main", "Qamarwari Chowk", "JVC Medical College", "Firdousabad", "Hamdania Colony", "Parimpora Crossing"], speed: "Delivery Tomorrow by 4 PM • 24h Valley Express (Free Shipping & COD)", express: true },
+  "190011": { location: "Chanapora Main / Housing Colony, Srinagar", district: "Srinagar", areas: ["Chanapora Main Town", "Housing Colony", "Lal Nagar", "Tengpora", "Budshah Nagar"], speed: "Delivery Tomorrow by 4 PM • 24h Valley Express (Free Shipping & COD)", express: true },
+  "190012": { location: "Baghat / Barzulla / Bone & Joint Hospital, Srinagar", district: "Srinagar", areas: ["Baghat Kanipora", "Barzulla", "Bone & Joint Hospital", "Parraypora", "Sanat Nagar Byepass"], speed: "Delivery Tomorrow by 4 PM • 24h Valley Express (Free Shipping & COD)", express: true },
+  "190013": { location: "Eidgah / Safa Kadal / Ali Jan Road, Srinagar", district: "Srinagar", areas: ["Eidgah", "Safa Kadal", "Ali Jan Road", "Sekidafar", "Wanganpora", "Noorbagh"], speed: "Delivery Tomorrow by 4 PM • 24h Valley Express (Free Shipping & COD)", express: true },
+  "190014": { location: "Rawalpora / Rangreth Industrial & IT Park, Srinagar", district: "Srinagar", areas: ["Rawalpora", "Rangreth IT Park", "Wanbal", "Gogoo Land", "Old Airfield Road"], speed: "Delivery Tomorrow by 4 PM • 24h Valley Express (Free Shipping & COD)", express: true },
+  "190015": { location: "Rangreth SIDCO Industrial Estate / Airforce Station, Srinagar", district: "Srinagar", areas: ["Rangreth SIDCO", "Airforce Station Area", "Industrial Complex", "Kralpora Crossing"], speed: "Delivery Tomorrow by 4 PM • 24h Valley Express (Free Shipping & COD)", express: true },
+  "190017": { location: "Karan Nagar / SMHS Hospital / GMC, Srinagar", district: "Srinagar", areas: ["Karan Nagar", "SMHS Hospital Area", "GMC Srinagar", "Kak Saraf", "Balgarden", "Chotta Bazar"], speed: "Delivery Tomorrow by 4 PM • 24h Valley Express (Free Shipping & COD)", express: true },
+  "190018": { location: "Rainawari / JLNM Hospital / Saida Kadal, Srinagar", district: "Srinagar", areas: ["Rainawari", "JLNM Hospital Area", "Saida Kadal", "Naidyar", "Miskeen Bagh", "Kathi Darwaza"], speed: "Delivery Tomorrow by 4 PM • 24h Valley Express (Free Shipping & COD)", express: true },
+  "190019": { location: "Shalteng / Parimpora Fruit Mandi / Maloora, Srinagar", district: "Srinagar", areas: ["Shalteng", "Parimpora Fruit Mandi", "Maloora", "HMT Crossing", "Zainkote Industrial Area"], speed: "Delivery Tomorrow by 4 PM • 24h Valley Express (Free Shipping & COD)", express: true },
+  "190020": { location: "Humhama / Srinagar International Airport / Old Airfield, Srinagar", district: "Srinagar", areas: ["Humhama", "Srinagar International Airport", "Old Airfield", "Gogoland", "Friends Colony"], speed: "Delivery Tomorrow by 4 PM • 24h Valley Express (Free Shipping & COD)", express: true },
+  "190021": { location: "Nishat / Harwan / Shalimar Gardens / Brein / Dal Lake East, Srinagar", district: "Srinagar", areas: ["Nishat", "Harwan", "Shalimar Gardens", "Brein", "Dal Lake East", "Foreshore Road", "Dara"], speed: "Delivery Tomorrow by 4 PM • 24h Valley Express (Free Shipping & COD)", express: true },
+  "190022": { location: "Zakura / Tailbal / Gulab Bagh / Alasteng, Srinagar", district: "Srinagar", areas: ["Zakura", "Tailbal", "Gulab Bagh", "Alasteng", "Batamaloo Crossing Zakura", "Wussan Route"], speed: "Delivery Tomorrow by 4 PM • 24h Valley Express (Free Shipping & COD)", express: true },
+  "190023": { location: "Pantha Chowk / Lasjan / Nowgam Railway Station Hub, Srinagar", district: "Srinagar", areas: ["Pantha Chowk", "Lasjan", "Nowgam Railway Station", "Zewan Crossing", "Soiteng", "Padshahi Bagh Byepass"], speed: "Delivery Tomorrow by 4 PM • 24h Valley Express (Free Shipping & COD)", express: true },
+  "190024": { location: "Lawaypora / Mujgund / Shalteng West, Srinagar", district: "Srinagar", areas: ["Lawaypora", "Mujgund", "Shalteng West", "Gund Hassi Bhat", "Narbal Border"], speed: "Delivery Tomorrow by 4 PM • 24h Valley Express (Free Shipping & COD)", express: true },
+  "190025": { location: "Zewan / Khanmoh Industrial Estate / Balhama, Srinagar", district: "Srinagar", areas: ["Zewan", "Khanmoh Industrial Estate", "Balhama", "Wuyan Crossing", "Sampora"], speed: "Delivery Tomorrow by 4 PM • 24h Valley Express (Free Shipping & COD)", express: true },
+  "191104": { location: "Pampore Post Office / Saffron Belt (Srinagar-Pulwama Corridor)", district: "Pulwama / Srinagar", areas: ["Pampore Post Office", "Kadlabal", "Frestabal", "Saffron Colony", "Drangbal"], speed: "24–48 Hours Valley Express Delivery (Free Shipping & COD)", express: true },
+  "191105": { location: "Pampore / Khrew Industrial & Cement Belt, Srinagar/Pulwama", district: "Pulwama / Srinagar", areas: ["Pampore East", "Khrew Industrial Area", "Wuyan", "Shar Shali", "Nagander"], speed: "24–48 Hours Valley Express Delivery (Free Shipping & COD)", express: true },
+  "191106": { location: "Tral Road Junction / Awantipora Sector, Srinagar/Pulwama", district: "Pulwama / Srinagar", areas: ["Tral Road Junction", "Dadsara Route", "Awantipora North", "Padgampora Crossing"], speed: "24–48 Hours Valley Express Delivery (Free Shipping & COD)", express: true },
+  "191107": { location: "Awantipora Road Area / AIIMS & IUST Corridor, Srinagar/Pulwama", district: "Pulwama / Srinagar", areas: ["Awantipora Road", "AIIMS Kashmir Corridor", "IUST Campus Area", "Jawbrara"], speed: "24–48 Hours Valley Express Delivery (Free Shipping & COD)", express: true },
 
-  // Budgam & Ganderbal
-  "191111": { location: "Budgam Main Town / Ompora", speed: "24–48 Hours Valley Express Delivery (Free Shipping)", express: true },
-  "191113": { location: "Chadoora Town, Budgam", speed: "24–48 Hours Valley Express Delivery (Free Shipping)", express: true },
-  "191112": { location: "Beerwah Town, Budgam", speed: "24–48 Hours Valley Express Delivery (Free Shipping)", express: true },
-  "191201": { location: "Ganderbal Main Town / Beehama", speed: "24–48 Hours Valley Express Delivery (Free Shipping)", express: true },
-  "191202": { location: "Kangan / Sonamarg Highway, Ganderbal", speed: "24–48 Hours Valley Express Delivery (Free Shipping)", express: true },
+  // ─── 2. GANDERBAL DISTRICT ───
+  "191201": { location: "Ganderbal Main Town / Beehama / Duderhama / Qamaria Stadium, Ganderbal", district: "Ganderbal", areas: ["Ganderbal Main Town", "Beehama Chowk", "Duderhama", "Qamaria Stadium Ground", "Tawheed Chowk", "Salora", "Wussan"], speed: "24–48 Hours Valley Express Delivery (Free Shipping & COD)", express: true },
+  "191202": { location: "Kangan Town / Sindh Valley / Sonamarg Route, Ganderbal", district: "Ganderbal", areas: ["Kangan Main Market", "Sindh Valley", "Sonamarg Route", "Wangath", "Preng", "Gund Kangan"], speed: "24–48 Hours Valley Express Delivery (Free Shipping & COD)", express: true },
+  "191203": { location: "Lar / Manasbal Lake / Repora Apple Belt, Ganderbal", district: "Ganderbal", areas: ["Lar Main Town", "Manasbal Lake Belt", "Repora Apple & Grapes Belt", "Watlar", "Benhama"], speed: "24–48 Hours Valley Express Delivery (Free Shipping & COD)", express: true },
+  "191204": { location: "Wakura / Dab / Batwina, Ganderbal", district: "Ganderbal", areas: ["Wakura Town", "Dab", "Batwina", "Chundina", "Kurhama"], speed: "24–48 Hours Valley Express Delivery (Free Shipping & COD)", express: true },
+  "191205": { location: "Tullamulla / Mata Kheer Bhawani Shrine / Central Ganderbal", district: "Ganderbal", areas: ["Tullamulla Town", "Mata Kheer Bhawani Shrine Area", "Central Ganderbal", "Dangerpora Ganderbal"], speed: "24–48 Hours Valley Express Delivery (Free Shipping & COD)", express: true },
 
-  // Kulgam & Shopian
-  "192231": { location: "Kulgam Main Town / Qazigund Road", speed: "24–48 Hours Valley Express Delivery (Free Shipping)", express: true },
-  "192221": { location: "Qazigund Gate of Kashmir", speed: "24–48 Hours Valley Express Delivery (Free Shipping)", express: true },
-  "192303": { location: "Shopian Main Town / Batapora", speed: "24–48 Hours Valley Express Delivery (Free Shipping)", express: true },
+  // ─── 3. BUDGAM DISTRICT ───
+  "191111": { location: "Budgam Main Town / Ompora Housing Colony / Railway Station / Beerwah Road, Budgam", district: "Budgam", areas: ["Budgam Main Town", "Ompora Housing Colony", "Railway Station Budgam", "Beerwah Road", "Humhama Road", "Narkara"], speed: "24–48 Hours Valley Express Delivery (Free Shipping & COD)", express: true },
+  "191112": { location: "Chadoora Main Town / Nagam / Wathora / Budgam Road Area, Budgam", district: "Budgam", areas: ["Chadoora Main Town", "Nagam", "Wathora", "Budgam Road", "Kralpora Budgam", "Zoolwah"], speed: "24–48 Hours Valley Express Delivery (Free Shipping & COD)", express: true },
+  "191113": { location: "Charar-i-Sharief Sufi Shrine / Yousmarg Sports Meadow / Chadoora Road, Budgam", district: "Budgam", areas: ["Charar-i-Sharief Town", "Sufi Shrine Complex", "Yousmarg Sports Meadow Route", "Chadoora Road", "Pakherpora Crossing"], speed: "24–48 Hours Valley Express Delivery (Free Shipping & COD)", express: true },
+  "191121": { location: "Khansahib Town / Doodhpathri Tourism Valley, Budgam", district: "Budgam", areas: ["Khansahib Town", "Doodhpathri Tourism Valley", "Raithan", "Kremshore", "Yarikha"], speed: "24–48 Hours Valley Express Delivery (Free Shipping & COD)", express: true },
+  "193401": { location: "Magam Main Town / Kanihama (Kani Shawl Hub) / Kunzer / Tangmarg Gateway, Budgam/Baramulla", district: "Budgam / Baramulla", areas: ["Magam Main Town", "Kanihama (Kani Shawl Hub)", "Kunzer", "Tangmarg Gateway", "Aripanthan", "Mazhama Railway Station"], speed: "24–48 Hours Valley Express Delivery (Free Shipping & COD)", express: true },
+  "193411": { location: "Beerwah Main Town / Chewdara / Chandanwari Rural Belt, Budgam/Baramulla", district: "Budgam / Baramulla", areas: ["Beerwah Main Town", "Chewdara", "Chandanwari Rural Belt", "Gondipora", "Utligam"], speed: "24–48 Hours Valley Express Delivery (Free Shipping & COD)", express: true },
 
-  // Jammu & Outer J&K
-  "180001": { location: "Jammu Tawi / Raghunath Bazaar", speed: "2–3 Days Priority Express Delivery", express: true },
-  "180004": { location: "Gandhi Nagar / Bahu Plaza, Jammu", speed: "2–3 Days Priority Express Delivery", express: true },
-  "182101": { location: "Udhampur Main Town", speed: "2–3 Days Priority Express Delivery", express: true },
-  "182141": { location: "Katra Holy City, Reasi", speed: "2–3 Days Priority Express Delivery", express: true },
+  // ─── 4. PULWAMA & SHOPIAN DISTRICTS (SOUTH BAT & APPLE BELT) ───
+  "192121": { location: "Sangam (Cricket Bat Hub) / Pampore (Saffron Capital) / Kadlabal, Pulwama/Anantnag", district: "Pulwama / Anantnag", areas: ["Sangam Bat Market", "Pampore Saffron Town", "Kadlabal", "Frestabal", "Namlabal", "Halmulla Sangam"], speed: "24–48 Hours Valley Express Delivery (Direct Factory Hub & Free COD)", express: true },
+  "192122": { location: "Awantipora / Islamic University (IUST) / AIIMS Kashmir / Bijbehara, Pulwama/Anantnag", district: "Pulwama / Anantnag", areas: ["Awantipora Main Town", "Islamic University (IUST) Campus", "AIIMS Kashmir", "Bijbehara Town", "Padgampora Industrial Area"], speed: "24–48 Hours Valley Express Delivery (Free Shipping & COD)", express: true },
+  "192123": { location: "Tral Main Town / Bus Stand / Dadsara / Lurgam, Pulwama", district: "Pulwama", areas: ["Tral Main Town", "General Bus Stand Tral", "Dadsara", "Lurgam", "Pinglish", "Aripal Tral"], speed: "24–48 Hours Valley Express Delivery (Free Shipping & COD)", express: true },
+  "192128": { location: "Sambora / Khrew Cement & Industrial Town, Pulwama", district: "Pulwama", areas: ["Sambora", "Khrew Cement Town", "Wuyan", "Shar Shali", "Ladhoo Industrial Complex"], speed: "24–48 Hours Valley Express Delivery (Free Shipping & COD)", express: true },
+  "192301": { location: "Pulwama Town / Murran Chowk / Washbugh / Tahab, Pulwama", district: "Pulwama", areas: ["Pulwama Main Town", "Murran Chowk", "Washbugh", "Tahab Road", "Chatapora", "Prichoo", "Pinglena"], speed: "24–48 Hours Valley Express Delivery (Free Shipping & COD)", express: true },
+  "192302": { location: "Hawal / Tral Sub-division / Pulwama West", district: "Pulwama", areas: ["Hawal Pulwama", "Tral Sub-division", "Rajpora Crossing", "Dadsara Route"], speed: "24–48 Hours Valley Express Delivery (Free Shipping & COD)", express: true },
+  "192303": { location: "Kakapora / Ratnipora / Railway Station & Shopian Border, Pulwama/Shopian", district: "Pulwama / Shopian", areas: ["Kakapora Town", "Kakapora Railway Station", "Ratnipora", "Marval", "Shopian Border Area"], speed: "24–48 Hours Valley Express Delivery (Free Shipping & COD)", express: true },
+  "192304": { location: "Rajpora Town / Lassipora SIDCO Industrial Complex & Shopian Rural, Pulwama/Shopian", district: "Pulwama / Shopian", areas: ["Rajpora Town", "Lassipora SIDCO Complex", "Hawal Pulwama", "Shopian Rural Belt", "Tujan", "Qasbayar"], speed: "24–48 Hours Valley Express Delivery (Free Shipping & COD)", express: true },
+  "192305": { location: "Achan / Litter / Hawal & Shopian Apple Belt, Pulwama/Shopian", district: "Pulwama / Shopian", areas: ["Achan", "Litter Belt", "Shopian Apple Belt", "Heff Shirmal", "Zainapora Route"], speed: "24–48 Hours Valley Express Delivery (Free Shipping & COD)", express: true },
+  "192306": { location: "Litter / Shadimarg & Shopian District Area, Pulwama/Shopian", district: "Pulwama / Shopian", areas: ["Litter Main Chowk", "Shadimarg", "Shopian District Area", "Aglar", "Naina"], speed: "24–48 Hours Valley Express Delivery (Free Shipping & COD)", express: true },
+  "192307": { location: "Shopian Main Town / Golu / Batapora / Hirpora Wildlife Sanctuary, Shopian", district: "Shopian", areas: ["Shopian Main Town", "Golu Chowk", "Batapora", "Hirpora Wildlife Sanctuary", "Bongam", "Memander"], speed: "24–48 Hours Valley Express Delivery (Free Shipping & COD)", express: true },
+  "192308": { location: "Shopian Rural Belt / Keller / Sedow / Peer Ki Gali Route, Shopian", district: "Shopian", areas: ["Shopian Rural Belt", "Keller", "Sedow", "Peer Ki Gali Route", "Zawoora Apple Belt", "Dobispora"], speed: "24–48 Hours Valley Express Delivery (Free Shipping & COD)", express: true },
+  "192309": { location: "Arihal / Tahab Road, Pulwama", district: "Pulwama", areas: ["Arihal", "Tahab Road", "Wasura", "Gudoora"], speed: "24–48 Hours Valley Express Delivery (Free Shipping & COD)", express: true },
+
+  // ─── 5. KULGAM DISTRICT ───
+  "192231": { location: "Kulgam Main Town / Ashmuji / Chawalgam / Ahrabal Falls Route, Kulgam", district: "Kulgam", areas: ["Kulgam Main Town", "Ashmuji", "Chawalgam", "Ahrabal Falls Route", "Brazloo", "Bugam", "Lirrow"], speed: "24–48 Hours Valley Express Delivery (Free Shipping & COD)", express: true },
+  "192232": { location: "Qaimoh / Khudwani / Mirbazar Junction, Kulgam", district: "Kulgam", areas: ["Qaimoh Town", "Khudwani", "Mirbazar Junction", "Wanpoh Route", "Redwani"], speed: "24–48 Hours Valley Express Delivery (Free Shipping & COD)", express: true },
+  "192233": { location: "Devsar / Kund Valley / Razloo, Kulgam", district: "Kulgam", areas: ["Devsar Town", "Kund Valley", "Razloo", "Hablish", "Kilam", "Manzgam"], speed: "24–48 Hours Valley Express Delivery (Free Shipping & COD)", express: true },
+  "192234": { location: "Yaripora Town / Frisal / Kulgam Apple Belt, Kulgam", district: "Kulgam", areas: ["Yaripora Town", "Frisal", "Kulgam Apple Belt", "Munand", "Matibugh", "Kanjikulla"], speed: "24–48 Hours Valley Express Delivery (Free Shipping & COD)", express: true },
+
+  // ─── 6. ANANTNAG (ISLAMABAD) DISTRICT ───
+  "192101": { location: "Anantnag Head Post Office / KP Road / Lal Chowk Islamabad, Anantnag", district: "Anantnag", areas: ["Anantnag Head Post Office", "KP Road", "Lal Chowk Islamabad", "Reshi Bazar", "Court Road", "Mattan Adda"], speed: "24–48 Hours Valley Express Delivery (Free Shipping & COD)", express: true },
+  "192102": { location: "Janglat Mandi / District Hospital / Nai Basti, Anantnag", district: "Anantnag", areas: ["Janglat Mandi", "District Hospital Area", "Nai Basti", "Ashajipora", "Donipawa", "Brakpora Road"], speed: "24–48 Hours Valley Express Delivery (Free Shipping & COD)", express: true },
+  "192124": { location: "Sethar / Halmulla (Cricket Bat Manufacturing Cluster) / Bijbehara, Anantnag", district: "Anantnag", areas: ["Sethar Cricket Bat Cluster", "Halmulla Bat Industry", "Bijbehara Town", "Padgampora", "Pujteng", "Charsoo Bat Belt"], speed: "24–48 Hours Valley Express Delivery (Direct Factory Hub & Free COD)", express: true },
+  "192125": { location: "Martand / Mattan Sun Temple / Akura / Bumzoo, Anantnag", district: "Anantnag", areas: ["Martand / Mattan Town", "Sun Temple Belt", "Akura", "Bumzoo", "Ranipora"], speed: "24–48 Hours Valley Express Delivery (Free Shipping & COD)", express: true },
+  "192126": { location: "Pahalgam Tourist & Sports Valley / Lidder, Anantnag", district: "Anantnag", areas: ["Pahalgam Main Market", "Lidder River Valley", "Betaab Valley Route", "Aru Valley Road", "Laripora", "Bhavani Nagar"], speed: "24–48 Hours Valley Express Delivery (Free Shipping & COD)", express: true },
+  "192129": { location: "S.K. Gund / Sallar / Lidder Valley, Anantnag", district: "Anantnag", areas: ["S.K. Gund", "Sallar", "Lidder Valley Route", "Overa Wildlife Belt"], speed: "24–48 Hours Valley Express Delivery (Free Shipping & COD)", express: true },
+  "192201": { location: "Achabal Mughal Gardens / Dialgam / Ashajipora / Muniwar, Anantnag", district: "Anantnag", areas: ["Achabal Mughal Gardens", "Dialgam", "Ashajipora", "Muniwar", "Shangus Route"], speed: "24–48 Hours Valley Express Delivery (Free Shipping & COD)", express: true },
+  "192202": { location: "Kokernag Botanical Valley / Sarnal / Khanabal Junction / NH-44, Anantnag", district: "Anantnag", areas: ["Kokernag Botanical Garden", "Sarnal", "Khanabal Junction", "NH-44 Highway", "Batengoo"], speed: "24–48 Hours Valley Express Delivery (Free Shipping & COD)", express: true },
+  "192210": { location: "Dialgam / Shangus Tehsil / Muniwar, Anantnag", district: "Anantnag", areas: ["Dialgam", "Shangus Tehsil", "Muniwar", "Nowgam Shangus", "Chattergul"], speed: "24–48 Hours Valley Express Delivery (Free Shipping & COD)", express: true },
+  "192211": { location: "Dooru Shahabad / Brakpora / Chee / Anantnag South", district: "Anantnag", areas: ["Dooru Shahabad", "Brakpora", "Chee", "Anantnag South", "Larkipora Route"], speed: "24–48 Hours Valley Express Delivery (Free Shipping & COD)", express: true },
+  "192212": { location: "Verinag Spring Origin Hub / Vailoo / Bringi, Anantnag", district: "Anantnag", areas: ["Verinag Spring Origin", "Vailoo", "Bringi Valley", "Omoh", "Zadoora"], speed: "24–48 Hours Valley Express Delivery (Free Shipping & COD)", express: true },
+  "192215": { location: "Larkipora / Dooru Road Junction, Anantnag", district: "Anantnag", areas: ["Larkipora Town", "Dooru Road Junction", "Fatehpora", "Kamad"], speed: "24–48 Hours Valley Express Delivery (Free Shipping & COD)", express: true },
+  "192221": { location: "Qazigund (Gateway of Kashmir) / Lower Munda / Tunnel Road, Anantnag", district: "Anantnag", areas: ["Qazigund Town", "Lower Munda", "Tunnel Road", "Nawa", "Chursoo"], speed: "24–48 Hours Valley Express Delivery (Free Shipping & COD)", express: true },
+  "192241": { location: "Dooru Shahabad / Verinag Spring Origin Hub, Anantnag", district: "Anantnag", areas: ["Dooru Town", "Verinag Hub", "Hiller", "Batamaloo Dooru"], speed: "24–48 Hours Valley Express Delivery (Free Shipping & COD)", express: true },
+  "192244": { location: "Qazigund Lower Munda / NH-44 Hub, Anantnag", district: "Anantnag", areas: ["Lower Munda", "NH-44 Corridor", "Zig Post", "Malpora"], speed: "24–48 Hours Valley Express Delivery (Free Shipping & COD)", express: true },
+  "192245": { location: "Aishmuqam Sufi Shrine / Lidder Valley, Anantnag", district: "Anantnag", areas: ["Aishmuqam Sufi Shrine", "Lidder Valley Route", "Hapatnar", "Khelan"], speed: "24–48 Hours Valley Express Delivery (Free Shipping & COD)", express: true },
+  "192246": { location: "Seer Hamdan / Mattan Belt, Anantnag", district: "Anantnag", areas: ["Seer Hamdan", "Mattan Belt", "Hutmarah", "Kanganhall"], speed: "24–48 Hours Valley Express Delivery (Free Shipping & COD)", express: true },
+  "192401": { location: "Srigufwara / Dachnipora / Apple Valley, Anantnag", district: "Anantnag", areas: ["Srigufwara", "Dachnipora", "Apple Valley", "Khiram", "Sirhama"], speed: "24–48 Hours Valley Express Delivery (Free Shipping & COD)", express: true },
+
+  // ─── 7. BANDIPORA DISTRICT ───
+  "193501": { location: "Sonawari / Safapora / Sumbal / Wular Lake Belt, Bandipora/Ganderbal/Baramulla", district: "Bandipora / Ganderbal / Baramulla", areas: ["Sonawari", "Safapora", "Sumbal", "Shadipora", "Manasbal Lake Belt", "Ajas"], speed: "24–48 Hours Valley Express Delivery (Free Shipping & COD)", express: true },
+  "193502": { location: "Bandipora Main Town / Gulshan Chowk / Kaloosa / Nishat Park, Bandipora", district: "Bandipora", areas: ["Bandipora Main Town", "Gulshan Chowk", "Kaloosa", "Nishat Park", "Plan Bandipora", "Gamroo", "Nadihal"], speed: "24–48 Hours Valley Express Delivery (Free Shipping & COD)", express: true },
+  "193503": { location: "Sumbal Town / Shadipora / Wular Delta, Bandipora", district: "Bandipora", areas: ["Sumbal Town", "Shadipora", "Wular Delta", "Nesbal", "Nowgam Sumbal"], speed: "24–48 Hours Valley Express Delivery (Free Shipping & COD)", express: true },
+  "193504": { location: "Safapora / Manasbal North / Bandipora", district: "Bandipora", areas: ["Safapora Town", "Manasbal North", "Kondabal", "Chewa"], speed: "24–48 Hours Valley Express Delivery (Free Shipping & COD)", express: true },
+  "193505": { location: "Hajin Town / Naidkhai / Vijpara, Bandipora", district: "Bandipora", areas: ["Hajin Town", "Naidkhai", "Vijpara", "Shahgund", "Banyari"], speed: "24–48 Hours Valley Express Delivery (Free Shipping & COD)", express: true },
+
+  // ─── 8. KUPWARA DISTRICT ───
+  "193221": { location: "Handwara Main Town / Chogal / Main Market, Kupwara", district: "Kupwara", areas: ["Handwara Main Town", "Chogal", "Main Market Handwara", "Kulangam", "Wadipora Handwara", "Magam Handwara", "Braripora"], speed: "24–48 Hours Valley Express Delivery (Free Shipping & COD)", express: true },
+  "193222": { location: "Kupwara Main Town / Rigipora / Bus Stand / Zangli, Kupwara", district: "Kupwara", areas: ["Kupwara Main Town", "Rigipora", "General Bus Stand Kupwara", "Zangli Army Garrison", "Batergam", "Galgossa", "Bumhama"], speed: "24–48 Hours Valley Express Delivery (Free Shipping & COD)", express: true },
+  "193223": { location: "Sogam / Lolab Valley / Chandigam / Kalaroos, Kupwara", district: "Kupwara", areas: ["Sogam Lolab", "Lolab Valley", "Chandigam", "Kalaroos Caves Belt", "Khurhama", "Warnow", "Dever"], speed: "24–48 Hours Valley Express Delivery (Free Shipping & COD)", express: true },
+  "193224": { location: "Trehgam Town / Meelyal / Kupwara North, Kupwara", district: "Kupwara", areas: ["Trehgam Town", "Meelyal", "Guzriyal", "Kupwara North Belt", "Gulgam", "Hiri"], speed: "24–48 Hours Valley Express Delivery (Free Shipping & COD)", express: true },
+  "193225": { location: "Kralpora Town / Chowkibal / Keran Route, Kupwara", district: "Kupwara", areas: ["Kralpora Town", "Chowkibal", "Keran Border Route", "Pheelpora", "Guzrial"], speed: "24–48 Hours Valley Express Delivery (Free Shipping & COD)", express: true },
+  "193226": { location: "Lolab Valley / Lalpora / Khurhama, Kupwara", district: "Kupwara", areas: ["Lalpora Lolab", "Lolab Valley Central", "Khurhama", "Kanthpora", "Kalaroos"], speed: "24–48 Hours Valley Express Delivery (Free Shipping & COD)", express: true },
+  "193227": { location: "Tangdhar / Karnah Valley / Teetwal Border, Kupwara", district: "Kupwara", areas: ["Tangdhar Town", "Karnah Valley", "Teetwal Border", "Chamkot", "Kandi Karnah"], speed: "2–3 Days Priority Express Delivery", express: true },
+  "193228": { location: "Vilgam / Ramhal / Tarathpora, Kupwara", district: "Kupwara", areas: ["Vilgam Town", "Ramhal", "Tarathpora", "Champora", "Dolipora"], speed: "24–48 Hours Valley Express Delivery (Free Shipping & COD)", express: true },
+  "193302": { location: "Langate / Rohama Border Belt, Kupwara/Baramulla", district: "Kupwara / Baramulla", areas: ["Langate Main Town", "Rohama", "Ladoora", "Wadipora", "Hadipora", "Kalamabad Route", "Upper Rafiabad", "Chakla"], speed: "24–48 Hours Valley Express Delivery (Free Shipping & COD)", express: true },
+  "193305": { location: "Langate / Qalamabad / Mawar Valley, Handwara, Kupwara", district: "Kupwara", areas: ["Langate", "Qalamabad", "Mawar Valley", "Sanzippora", "Nowgam Handwara"], speed: "24–48 Hours Valley Express Delivery (Free Shipping & COD)", express: true },
+  "193306": { location: "Chogal / Drugmulla / Nutnussa, Kupwara", district: "Kupwara", areas: ["Chogal", "Drugmulla", "Nutnussa", "Kandi Kupwara", "Waterkhani"], speed: "24–48 Hours Valley Express Delivery (Free Shipping & COD)", express: true },
+
+  // ─── 9. BARAMULLA DISTRICT ───
+  "193101": { location: "Baramulla Main Town / Tehsil Road / Cariappa Park, Baramulla", district: "Baramulla", areas: ["Baramulla Main Town", "Tehsil Road", "Cariappa Park", "Old Town Baramulla", "Kanthbagh", "Noorbagh", "Ushkara"], speed: "24–48 Hours Valley Express Delivery (Free Shipping & COD)", express: true },
+  "193103": { location: "Khawaja Bagh / Kanispora / Delina, Baramulla", district: "Baramulla", areas: ["Khawaja Bagh", "Kanispora", "Delina", "Singhpora Crossing", "Juhama"], speed: "24–48 Hours Valley Express Delivery (Free Shipping & COD)", express: true },
+  "193121": { location: "Pattan Main Town / Hygam Wetland / Palhalan, Baramulla", district: "Baramulla", areas: ["Pattan Main Town", "Hygam Wetland", "Palhalan", "Nihalpora", "Mirgund", "Tapper"], speed: "24–48 Hours Valley Express Delivery (Free Shipping & COD)", express: true },
+  "193122": { location: "Seelu / Dangerpora / Sopore North, Baramulla", district: "Baramulla", areas: ["Seelu", "Dangerpora", "Sopore North", "Botingoo", "Watlab Wular"], speed: "24–48 Hours Valley Express Delivery (Free Shipping & COD)", express: true },
+  "193123": { location: "Pattan Rural / Nihalpora / Mirgund, Baramulla", district: "Baramulla", areas: ["Pattan Rural", "Nihalpora", "Mirgund", "Wanigam", "Goshbugh"], speed: "24–48 Hours Valley Express Delivery (Free Shipping & COD)", express: true },
+  "193201": { location: "Sopore Main Town / Iqbal Market / Fruit Mandi / Degree College, Baramulla", district: "Baramulla", areas: ["Sopore Main Town", "Iqbal Market", "Fruit Mandi Sopore", "Degree College Road", "Main Chowk Sopore", "Arampora", "Bagh-i-Islam"], speed: "24–48 Hours Valley Express Delivery (Free Shipping & COD)", express: true },
+  "193202": { location: "Kanispora / Delina / Singhpora, Baramulla", district: "Baramulla", areas: ["Kanispora", "Delina", "Singhpora Pattan", "Sheri", "Gohan"], speed: "24–48 Hours Valley Express Delivery (Free Shipping & COD)", express: true },
+  "193301": { location: "Rohama / Watergam / Rafiabad / Hadipora, Baramulla", district: "Baramulla", areas: ["Rohama", "Watergam", "Rafiabad Apple Belt", "Hadipora", "Achabal Rafiabad", "Chatloora"], speed: "24–48 Hours Valley Express Delivery (Free Shipping & COD)", express: true },
+  "193303": { location: "Dangiwacha / Rafiabad Apple Belt, Baramulla", district: "Baramulla", areas: ["Dangiwacha", "Rafiabad Apple Belt", "Bahrampora", "Zandfaran", "Pajpora"], speed: "24–48 Hours Valley Express Delivery (Free Shipping & COD)", express: true },
+  "193402": { location: "Tangmarg / Gulmarg International Winter Sports Hub / Ski Resort, Baramulla", district: "Baramulla", areas: ["Tangmarg Main Chowk", "Gulmarg Resort & Gondola Base", "Kunzer", "Ferozpora", "Drung Waterfall", "Baba Reshi"], speed: "24–48 Hours Valley Express Delivery (Free Shipping & COD)", express: true },
+  "193403": { location: "Uri Border Town / Lagama / Trade Center, Baramulla", district: "Baramulla", areas: ["Uri Main Town", "Lagama", "Trade Center", "Salamabad", "Boniyar Route"], speed: "2–3 Days Valley Express Delivery", express: true },
+  "193404": { location: "Boniyar / Limber Wildlife Sanctuary, Baramulla", district: "Baramulla", areas: ["Boniyar", "Limber Wildlife Sanctuary", "Nowshera Uri", "Trikanjan"], speed: "2–3 Days Valley Express Delivery", express: true },
+};
+
+/* ─── Kashmir Postal Circle & J&K District Knowledge Base ─── */
+const JK_POSTAL_REGIONS: Record<string, { district: string; speed: string; express: boolean }> = {
+  // Kashmir Valley (190xxx - 193xxx)
+  "190": { district: "Srinagar & Central Valley", speed: "Delivery Tomorrow by 4 PM • 24h Valley Express (Free Shipping & COD)", express: true },
+  "191": { district: "Ganderbal & Budgam Districts", speed: "24–48 Hours Valley Express Delivery (Free Shipping & COD)", express: true },
+  "192": { district: "Anantnag, Pulwama, Kulgam & Shopian (South Kashmir Bat Belt)", speed: "24–48 Hours Valley Express Delivery (Direct Factory Hub & Free COD)", express: true },
+  "193": { district: "Baramulla, Sopore, Kupwara & Bandipora (North Kashmir)", speed: "24–48 Hours Valley Express Delivery (Free Shipping & COD)", express: true },
+  "194": { district: "Leh & Kargil (Ladakh Division)", speed: "3–4 Days Priority Express Delivery", express: true },
+
+  // Jammu Division (180xxx - 185xxx)
+  "180": { district: "Jammu City & Tawi Region", speed: "2–3 Days Priority Express Delivery", express: true },
+  "181": { district: "Samba & Reasi / Katra", speed: "2–3 Days Priority Express Delivery", express: true },
+  "182": { district: "Udhampur, Ramban, Doda & Kishtwar", speed: "2–3 Days Priority Express Delivery", express: true },
+  "184": { district: "Kathua & Outer Jammu Belt", speed: "2–3 Days Priority Express Delivery", express: true },
+  "185": { district: "Rajouri & Poonch Districts", speed: "2–3 Days Priority Express Delivery", express: true },
 };
 
 export default function ProductDetailPage() {
@@ -151,15 +242,20 @@ export default function ProductDetailPage() {
   const [reviewForm, setReviewForm] = useState({ rating: 5, title: "", comment: "" });
   const [reviewing, setReviewing] = useState(false);
   const [pincode, setPincode] = useState("");
+  const [selectedArea, setSelectedArea] = useState("");
   const [pincodeLoading, setPincodeLoading] = useState(false);
   const [deliveryResult, setDeliveryResult] = useState<{
+    pincode: string;
     location: string;
+    district?: string;
+    areas: string[];
     speed: string;
     express: boolean;
     valid: boolean;
   } | null>(null);
   const [showSizeGuide, setShowSizeGuide] = useState(false);
   const [sizeGuideTab, setSizeGuideTab] = useState<"bats" | "shoes" | "apparel">("bats");
+  const [showPrimeModal, setShowPrimeModal] = useState(false);
   const [notifyEmail, setNotifyEmail] = useState("");
   const [notifying, setNotifying] = useState(false);
   const relatedSectionRef = useRef<HTMLDivElement>(null);
@@ -174,6 +270,12 @@ export default function ProductDetailPage() {
     const savedWishlist = localStorage.getItem("wishlist");
     if (savedWishlist) {
       setWishlist(JSON.parse(savedWishlist));
+    }
+    const savedPin = localStorage.getItem("deliveryPincode");
+    const savedArea = localStorage.getItem("selectedDeliveryArea");
+    if (savedPin) {
+      setPincode(savedPin);
+      if (savedArea) setSelectedArea(savedArea);
     }
   }, [productId]);
 
@@ -205,21 +307,39 @@ export default function ProductDetailPage() {
     const pin = (pinValue || pincode).trim();
     if (!/^\d{6}$/.test(pin)) {
       setDeliveryResult({
+        pincode: pin,
         location: "Invalid Pincode",
-        speed: "Please enter a valid 6-digit Indian postal code (e.g. 190001, 192121)",
+        areas: [],
+        speed: "Please enter a valid 6-digit Indian postal code (e.g. 190001, 192121, 193302)",
         express: false,
         valid: false,
       });
+      setSelectedArea("");
       return;
     }
 
     setPincodeLoading(true);
 
-    // 1. Fast local Kashmir & J&K match
+    // 1. Fast local Kashmir & J&K instant match
     if (KASHMIR_PINCODES[pin]) {
       const info = KASHMIR_PINCODES[pin];
+      const parsedAreas = info.areas && info.areas.length > 0
+        ? info.areas
+        : info.location
+            .split("/")
+            .map((s) => s.replace(/\(.*?\)/g, "").replace(/,.*$/, "").trim())
+            .filter((s) => s.length > 1);
+
+      const defaultArea = parsedAreas[0] || info.location;
+      setSelectedArea(defaultArea);
+      localStorage.setItem("selectedDeliveryArea", defaultArea);
+      localStorage.setItem("deliveryPincode", pin);
+
       setDeliveryResult({
+        pincode: pin,
         location: `${info.location} (${pin})`,
+        district: info.district,
+        areas: parsedAreas,
         speed: info.speed,
         express: info.express,
         valid: true,
@@ -228,45 +348,80 @@ export default function ProductDetailPage() {
       return;
     }
 
-    // 2. Fetch live exact post office location from Postal API
     try {
+      // 2. Fetch live exact post offices from India Post API
       const res = await fetch(`https://api.postalpincode.in/pincode/${pin}`);
       const data = await res.json();
+
       if (data && data[0]?.Status === "Success" && data[0]?.PostOffice?.length > 0) {
-        const po = data[0].PostOffice[0];
-        const locationName = `${po.Name}, ${po.District}, ${po.State} (${pin})`;
+        const postOffices = data[0].PostOffice;
+        const mainPO = postOffices[0];
+        const areasList = Array.from(new Set(postOffices.map((p: any) => p.Name).filter(Boolean))) as string[];
+        
+        const defaultArea = areasList[0] || mainPO.Name;
+        setSelectedArea(defaultArea);
+        localStorage.setItem("selectedDeliveryArea", defaultArea);
+        localStorage.setItem("deliveryPincode", pin);
+
+        const officeNames = postOffices
+          .slice(0, 2)
+          .map((p: any) => p.Name)
+          .join(" / ");
+
+        const locationName = `${officeNames}, ${mainPO.District} (${pin})`;
         const isJK =
-          po.State?.toLowerCase().includes("jammu") ||
-          po.State?.toLowerCase().includes("kashmir") ||
+          mainPO.State?.toLowerCase().includes("jammu") ||
+          mainPO.State?.toLowerCase().includes("kashmir") ||
           pin.startsWith("19") ||
           pin.startsWith("18");
 
-        const speed = isJK
-          ? "24–48 Hours Valley Express Delivery (Free Shipping & COD Available)"
+        const isValley = pin.startsWith("19");
+        const speed = isValley
+          ? "Delivery Tomorrow by 4 PM • 24h Valley Express (Free Shipping & COD Available)"
+          : isJK
+          ? "24–48 Hours J&K Priority Express Delivery (Free Shipping & COD Available)"
           : "2–4 Days Priority Air Express Delivery (Free Shipping on ₹999+)";
 
         setDeliveryResult({
+          pincode: pin,
           location: locationName,
+          district: `${mainPO.District}, ${mainPO.State}`,
+          areas: areasList,
           speed,
           express: isJK,
           valid: true,
         });
       } else {
-        const prefix2 = Number(pin.slice(0, 2));
-        const isJK = prefix2 === 19 || prefix2 === 18;
+        // Fallback using official postal region prefixes
+        const prefix3 = pin.slice(0, 3);
+        const regionInfo = JK_POSTAL_REGIONS[prefix3];
+        const isJK = pin.startsWith("19") || pin.startsWith("18");
+        const fallbackDistrict = regionInfo ? regionInfo.district : isJK ? "Jammu & Kashmir" : "Pan-India";
+
+        setSelectedArea(fallbackDistrict);
         setDeliveryResult({
-          location: isJK ? `Jammu & Kashmir Delivery Hub (${pin})` : `Pan-India Delivery Hub (${pin})`,
-          speed: isJK ? "24–48 Hours Express Delivery (Free Shipping)" : "3–5 Days Express Delivery",
+          pincode: pin,
+          location: regionInfo ? `${regionInfo.district} (${pin})` : isJK ? `Jammu & Kashmir Delivery Circle (${pin})` : `Pan-India Delivery Hub (${pin})`,
+          district: fallbackDistrict,
+          areas: [fallbackDistrict],
+          speed: regionInfo ? regionInfo.speed : isJK ? "24–48 Hours Valley Express Delivery" : "3–5 Days Priority Delivery",
           express: isJK,
           valid: true,
         });
       }
     } catch {
-      const prefix2 = Number(pin.slice(0, 2));
-      const isJK = prefix2 === 19 || prefix2 === 18;
+      const prefix3 = pin.slice(0, 3);
+      const regionInfo = JK_POSTAL_REGIONS[prefix3];
+      const isJK = pin.startsWith("19") || pin.startsWith("18");
+      const fallbackDistrict = regionInfo ? regionInfo.district : isJK ? "Jammu & Kashmir" : "Pan-India";
+
+      setSelectedArea(fallbackDistrict);
       setDeliveryResult({
-        location: isJK ? `J&K Priority Delivery (${pin})` : `Pan-India Delivery (${pin})`,
-        speed: isJK ? "24–48 Hours Express Delivery" : "3–5 Days Delivery",
+        pincode: pin,
+        location: regionInfo ? `${regionInfo.district} (${pin})` : isJK ? `J&K Priority Delivery (${pin})` : `Pan-India Delivery (${pin})`,
+        district: fallbackDistrict,
+        areas: [fallbackDistrict],
+        speed: regionInfo ? regionInfo.speed : isJK ? "24–48 Hours Express Delivery" : "3–5 Days Delivery",
         express: isJK,
         valid: true,
       });
@@ -295,8 +450,13 @@ export default function ProductDetailPage() {
     const sizeText = selectedSize ? `, Size: ${selectedSize}` : "";
     const colorText = selectedColor ? `, Color: ${selectedColor}` : "";
     const knockingNote = isCricketProduct ? " (Include Free Machine Knocking & Oiling)" : "";
+    const locationText = selectedArea
+      ? `\n📍 Delivery Location: ${selectedArea}${deliveryResult?.district ? `, ${deliveryResult.district}` : ""} (${deliveryResult?.pincode || pincode})`
+      : deliveryResult?.location
+      ? `\n📍 Delivery Location: ${deliveryResult.location}`
+      : "";
 
-    const message = `Assalamu Alaikum Sportify Kashmir! I want to order this product:\n\n*${product.name}*\nPrice: ₹${finalPrice.toLocaleString()} (Qty: ${quantity}${sizeText}${colorText})${knockingNote}\n\nLink: ${currentUrl}\n\nPlease confirm availability & delivery details!`;
+    const message = `Assalamu Alaikum Sportify Kashmir! I want to order this product:\n\n*${product.name}*\nPrice: ₹${finalPrice.toLocaleString()} (Qty: ${quantity}${sizeText}${colorText})${locationText}${knockingNote}\n\nLink: ${currentUrl}\n\nPlease confirm availability & delivery details!`;
 
     const whatsappUrl = `https://wa.me/919682645127?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, "_blank");
@@ -649,7 +809,7 @@ export default function ProductDetailPage() {
               </div>
 
               {/* Price */}
-              <div className="mb-6">
+              <div className="mb-4">
                 <div className="flex items-baseline gap-3">
                   <span className="text-3xl md:text-4xl font-bold text-orange-600">
                     ₹{discountPrice.toFixed(2)}
@@ -672,6 +832,26 @@ export default function ProductDetailPage() {
                 )}
               </div>
 
+              {/* Sportify Prime VIP Benefits Strip */}
+              <div className="mb-6 p-3 rounded-2xl bg-gradient-to-r from-[#002f36]/10 via-[#005f73]/10 to-[#0a9396]/10 dark:from-[#002f36]/40 dark:via-[#005f73]/40 dark:to-[#0a9396]/30 border border-[#00a8e1]/40 flex items-center justify-between gap-3 shadow-xs">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="flex items-center bg-[#002f36] text-white px-2 py-0.5 rounded-md text-[11px] font-black tracking-tight shrink-0 shadow-xs">
+                    <span>sportify</span>
+                    <span className="text-[#00a8e1] ml-0.5">prime</span>
+                  </div>
+                  <div className="text-xs text-gray-800 dark:text-gray-200 min-w-0">
+                    <span className="font-bold text-gray-900 dark:text-white">FREE 24h Valley Delivery</span>
+                    <span className="text-gray-600 dark:text-gray-400"> &amp; earn <strong>₹{Math.round(discountPrice * 0.05)} Wallet Cashback</strong></span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowPrimeModal(true)}
+                  className="text-xs font-bold text-[#00a8e1] hover:text-[#0081ab] dark:text-cyan-400 whitespace-nowrap underline cursor-pointer shrink-0"
+                >
+                  Kashmir VIP Perks ›
+                </button>
+              </div>
               {/* Stock Info */}
               {product.stock < 10 && product.stock > 0 && (
                 <div className="mb-4 p-3 bg-yellow-50 rounded-lg flex items-center gap-2">
@@ -883,25 +1063,83 @@ export default function ProductDetailPage() {
                 </div>
                 {deliveryResult && (
                   <div
-                    className={`p-3.5 rounded-xl border animate-in fade-in duration-200 ${
+                    className={`p-4 rounded-2xl border transition-all duration-200 ${
                       deliveryResult.valid
-                        ? "bg-gradient-to-r from-orange-500/10 via-amber-500/5 to-transparent border-orange-500/30"
+                        ? "bg-gradient-to-r from-orange-500/10 via-amber-500/5 to-transparent border-orange-500/30 shadow-xs"
                         : "bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-900/40"
                     }`}
                   >
-                    <div className="flex items-start gap-2">
-                      <span className="text-base">{deliveryResult.express ? "⚡" : "📦"}</span>
-                      <div className="text-xs">
-                        <div className="font-bold text-gray-900 dark:text-white flex items-center gap-1.5">
-                          <span>{deliveryResult.location}</span>
-                          {deliveryResult.valid && (
-                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                              Serviceable
+                    <div className="flex items-start gap-2.5">
+                      <span className="text-xl shrink-0">{deliveryResult.express ? "⚡" : "📦"}</span>
+                      <div className="text-xs flex-1 min-w-0">
+                        <div className="flex flex-wrap items-center gap-1.5 justify-between">
+                          <div className="font-bold text-gray-900 dark:text-white flex items-center gap-1.5 flex-wrap">
+                            <span>
+                              {selectedArea ? `${selectedArea}` : deliveryResult.location}
+                              {deliveryResult.district && selectedArea ? ` (${deliveryResult.district} - ${deliveryResult.pincode})` : ""}
                             </span>
-                          )}
+                            {deliveryResult.valid && (
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                Serviceable
+                              </span>
+                            )}
+                          </div>
                         </div>
-                        <div className="text-gray-600 dark:text-gray-300 mt-1 font-medium">
-                          {deliveryResult.speed}
+
+                        {/* 📍 Select Specific Area Dropdown & Interactive Pills */}
+                        {deliveryResult.areas && deliveryResult.areas.length > 0 && (
+                          <div className="mt-2.5 pt-2.5 border-t border-orange-500/20">
+                            <label className="block text-[11px] font-bold text-gray-700 dark:text-gray-300 mb-1.5 flex items-center gap-1">
+                              <MapPin className="w-3.5 h-3.5 text-orange-600 shrink-0" />
+                              <span>Select your specific area / locality:</span>
+                            </label>
+                            
+                            <select
+                              value={selectedArea}
+                              onChange={(e) => {
+                                setSelectedArea(e.target.value);
+                                localStorage.setItem("selectedDeliveryArea", e.target.value);
+                                localStorage.setItem("deliveryPincode", deliveryResult.pincode);
+                              }}
+                              className="w-full bg-white dark:bg-gray-800 border border-orange-300 dark:border-gray-700 rounded-lg px-3 py-1.5 text-xs font-semibold text-gray-900 dark:text-gray-100 outline-none focus:ring-2 focus:ring-orange-500/40 focus:border-orange-500 cursor-pointer"
+                            >
+                              {deliveryResult.areas.map((area) => (
+                                <option key={area} value={area}>
+                                  📍 {area}
+                                </option>
+                              ))}
+                            </select>
+
+                            {deliveryResult.areas.length > 1 && (
+                              <div className="flex flex-wrap gap-1.5 mt-2">
+                                {deliveryResult.areas.slice(0, 8).map((area) => (
+                                  <button
+                                    key={area}
+                                    type="button"
+                                    onClick={() => {
+                                      setSelectedArea(area);
+                                      localStorage.setItem("selectedDeliveryArea", area);
+                                      localStorage.setItem("deliveryPincode", deliveryResult.pincode);
+                                    }}
+                                    className={`px-2 py-1 rounded-md text-[10px] font-semibold transition cursor-pointer flex items-center gap-1 ${
+                                      selectedArea === area
+                                        ? "bg-orange-500 text-white shadow-xs"
+                                        : "bg-white/90 dark:bg-gray-800/90 text-gray-700 dark:text-gray-300 hover:bg-orange-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700"
+                                    }`}
+                                  >
+                                    {selectedArea === area && <Check className="w-3 h-3 text-white" />}
+                                    <span>{area}</span>
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        <div className="text-gray-700 dark:text-gray-300 mt-2 font-medium flex items-center gap-1.5">
+                          <span className="font-semibold text-orange-600 dark:text-orange-400">Delivery:</span>
+                          <span>{deliveryResult.speed}</span>
                         </div>
                       </div>
                     </div>
@@ -1224,6 +1462,12 @@ export default function ProductDetailPage() {
             </div>
           </div>
         )}
+
+        {/* Sportify Prime VIP Modal */}
+        <PrimeMembershipModal
+          isOpen={showPrimeModal}
+          onClose={() => setShowPrimeModal(false)}
+        />
       </div>
     </div>
   );
