@@ -124,7 +124,7 @@ export default function InstallPrompt() {
         <button
           type="button"
           onClick={() => setIsModalOpen(true)}
-          className="fixed bottom-6 right-6 z-[90] hidden md:flex items-center gap-2 bg-gradient-to-r from-orange-500 via-orange-600 to-red-500 hover:from-orange-600 hover:to-red-600 text-white px-4 py-2.5 rounded-full shadow-xl shadow-orange-500/30 hover:shadow-2xl hover:scale-105 active:scale-95 transition-all duration-300 font-semibold text-xs border border-white/20 animate-bounce-subtle cursor-pointer"
+          className="fixed bottom-6 right-20 md:right-22 z-30 hidden md:flex items-center gap-2 bg-gradient-to-r from-orange-500 via-orange-600 to-red-500 hover:from-orange-600 hover:to-red-600 text-white px-3.5 py-2.5 rounded-full shadow-xl shadow-orange-500/20 hover:shadow-2xl hover:scale-105 active:scale-95 transition-all duration-300 font-semibold text-xs border border-white/20 cursor-pointer"
           aria-label="Install Sportify Kashmir App"
         >
           <div className="relative w-5 h-5 rounded-full overflow-hidden shrink-0 border border-white/40">
@@ -136,14 +136,14 @@ export default function InstallPrompt() {
               className="object-cover"
             />
           </div>
-          <span className="tracking-wide">Install App</span>
+          <span className="tracking-wide font-bold">Install App</span>
           <Download size={14} className="animate-pulse" />
         </button>
       )}
 
       {/* ─── 2. Auto Bottom Floating Banner ─── */}
       {showBanner && (
-        <div className="fixed bottom-20 md:bottom-6 left-4 right-4 md:left-auto md:right-6 md:w-[390px] z-[100] animate-slide-up">
+        <div className="fixed bottom-20 md:bottom-24 left-4 right-4 md:left-auto md:right-6 md:w-[380px] z-50 animate-slide-up">
           <div className="bg-[var(--color-bg-elevated)] border border-[var(--color-border-primary)] rounded-3xl shadow-2xl p-5 relative overflow-hidden backdrop-blur-xl">
             {/* Top Accent Gradient Line */}
             <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-orange-500 via-amber-500 to-red-500" />

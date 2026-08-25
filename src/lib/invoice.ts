@@ -203,7 +203,7 @@ export function generateAndDownloadInvoice(order: InvoiceOrder) {
     <div>
       <h1 class="brand-title">SPORTIFY KASHMIR</h1>
       <div class="brand-subtitle">Sports Excellence Delivered Across Kashmir & India</div>
-      <div class="brand-subtitle">support@sportifykashmir.com | +91 99060 00000</div>
+      <div class="brand-subtitle">support@sportifykashmir.com | +91 96826 45127</div>
     </div>
     <div class="invoice-badge">
       <span class="badge">TAX INVOICE</span>

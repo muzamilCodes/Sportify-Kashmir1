@@ -9,7 +9,12 @@ import { CartCountProvider } from "@/components/providers/CartCountProvider";
 import { installRequestDedupe } from "@/lib/requestDedupe";
 import PWARegister from "@/components/shared/PWARegister";
 
+import dynamic from "next/dynamic";
 import { LanguageProvider } from "@/context/LanguageContext";
+
+const FloatingWhatsApp = dynamic(() => import("@/components/shared/FloatingWhatsApp"), { ssr: false });
+const LiveSalesPopup = dynamic(() => import("@/components/shared/LiveSalesPopup"), { ssr: false });
+const SpinWheelModal = dynamic(() => import("@/components/shared/SpinWheelModal"), { ssr: false });
 
 /**
  * ClientProviders
@@ -34,6 +39,9 @@ export default function ClientProviders({
           <RouteChangeHandler />
           <InstallPrompt />
           <PWARegister />
+          <FloatingWhatsApp />
+          <LiveSalesPopup />
+          <SpinWheelModal />
         </CartCountProvider>
       </LanguageProvider>
     </ThemeProvider>

@@ -20,6 +20,7 @@ import { cachedJson } from "@/lib/clientCache";
 import AmazonHeroCarousel from "@/components/AmazonHeroCarousel";
 import AmazonRecommendationCards from "@/components/AmazonRecommendationCards";
 import SportsCategoryExplorer from "@/components/SportsCategoryExplorer";
+import SportsGearQuiz from "@/components/SportsGearQuiz";
 import { useLanguage } from "@/context/LanguageContext";
 
 interface Product {
@@ -230,6 +231,9 @@ export default function HomePage() {
             </div>
           )}
         </section>
+
+        {/* 🎯 30-Second AI Sports Gear Selector Quiz */}
+        <SportsGearQuiz />
 
         {/* Flash Sale Banner & Grid */}
         {!loading && saleProducts.length > 0 && (
