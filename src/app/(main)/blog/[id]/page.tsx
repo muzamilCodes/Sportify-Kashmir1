@@ -13,18 +13,13 @@ import {
   Share2,
   Clock,
   ChevronRight,
-  Sparkles,
   BookOpen,
   Check,
-  Flame,
   MessageCircle,
-  Bookmark,
-  Shield,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import {
   BlogPost,
-  FALLBACK_BLOG_POSTS,
   getBlogImageUrl,
   formatBlogDate,
   calculateReadTime,
@@ -36,45 +31,52 @@ export default function SinglePostPage() {
   const postId = params.id as string;
 
   const [post, setPost] = useState<BlogPost | null>(null);
+  const [allPosts, setAllPosts] = useState<BlogPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [liked, setLiked] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [imageError, setImageError] = useState(false);
 
   const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000").replace(/\/$/, "");
 
   useEffect(() => {
     if (postId) {
       fetchPost();
+      fetchAllPosts();
     }
   }, [postId]);
 
   const fetchPost = async () => {
     try {
       setLoading(true);
-      setImageError(false);
-
-      // Check if it's a fallback post first
-      const matchedFallback = FALLBACK_BLOG_POSTS.find((p) => p._id === postId);
-
       const response = await fetch(`${API_URL}/posts/${postId}`);
       const result = await response.json();
 
       if (result.success && result.post) {
         setPost(result.post);
-      } else if (matchedFallback) {
-        setPost(matchedFallback);
       } else {
-        // Fallback to first post if invalid ID
-        setPost(matchedFallback || FALLBACK_BLOG_POSTS[0] || null);
+        setPost(null);
       }
     } catch (error) {
       console.error("Error fetching post:", error);
-      const matchedFallback = FALLBACK_BLOG_POSTS.find((p) => p._id === postId);
-      setPost(matchedFallback || FALLBACK_BLOG_POSTS[0] || null);
+      setPost(null);
     } finally {
       setLoading(false);
     }
+  };
+
+  const fetchAllPosts = async () => {
+    try {
+      const response = await fetch(`${API_URL}/posts/getAll`);
+      const result = await response.json();
+      if (result.success) {
+        const raw = Array.isArray(result.posts)
+          ? result.posts
+          : Array.isArray(result.data)
+          ? result.data
+          : [];
+        setAllPosts(raw);
+      }
+    } catch {}
   };
 
   const handleLike = () => {
@@ -104,10 +106,10 @@ export default function SinglePostPage() {
     window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, "_blank");
   };
 
-  // Related posts (excluding current post)
+  // Related posts from real DB (excluding current post)
   const relatedPosts = useMemo(() => {
-    return FALLBACK_BLOG_POSTS.filter((p) => p._id !== postId).slice(0, 3);
-  }, [postId]);
+    return allPosts.filter((p) => p._id !== postId).slice(0, 3);
+  }, [allPosts, postId]);
 
   if (loading) {
     return (
@@ -131,7 +133,7 @@ export default function SinglePostPage() {
           </div>
           <h2 className="text-2xl font-black text-gray-900 dark:text-white">Article Not Found</h2>
           <p className="text-xs text-gray-600 dark:text-gray-400">
-            The sports guide or journal article you are looking for does not exist or has been relocated.
+            The article you requested could not be found or has been removed.
           </p>
           <Link
             href="/blog"
@@ -234,15 +236,16 @@ export default function SinglePostPage() {
           </div>
         </header>
 
-        {/* ─── Hero Cover Photo ─── */}
-        <div className="relative aspect-video rounded-3xl overflow-hidden shadow-xl border border-gray-200/80 dark:border-gray-800 bg-gray-100 dark:bg-gray-850">
-          <img
-            src={imageUrl}
-            alt={post.postTitle}
-            className="w-full h-full object-cover"
-            onError={() => setImageError(true)}
-          />
-        </div>
+        {/* ─── Hero Cover Photo (ONLY if real uploaded image exists) ─── */}
+        {imageUrl ? (
+          <div className="relative aspect-video rounded-3xl overflow-hidden shadow-xl border border-gray-200/80 dark:border-gray-800 bg-gray-100 dark:bg-gray-850">
+            <img
+              src={imageUrl}
+              alt={post.postTitle}
+              className="w-full h-full object-cover"
+            />
+          </div>
+        ) : null}
 
         {/* ─── Main Article Content Body ─── */}
         <div className="bg-white dark:bg-gray-850 rounded-3xl p-6 sm:p-10 border border-gray-200/90 dark:border-gray-700/80 shadow-xs space-y-6">
@@ -335,52 +338,59 @@ export default function SinglePostPage() {
         </div>
 
         {/* ─── RELATED STORIES SECTION ─── */}
-        <div className="pt-8 space-y-6">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg sm:text-2xl font-black text-gray-900 dark:text-white">
-              Recommended Kashmir Sports Guides
-            </h3>
-            <Link
-              href="/blog"
-              className="text-xs font-bold text-orange-600 dark:text-orange-400 hover:underline flex items-center gap-1"
-            >
-              <span>View All</span>
-              <ChevronRight size={14} />
-            </Link>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-            {relatedPosts.map((rel) => (
+        {relatedPosts.length > 0 && (
+          <div className="pt-8 space-y-6">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg sm:text-2xl font-black text-gray-900 dark:text-white">
+                Recommended Kashmir Sports Guides
+              </h3>
               <Link
-                key={rel._id}
-                href={`/blog/${rel._id}`}
-                className="bg-white dark:bg-gray-850 rounded-2xl border border-gray-200/90 dark:border-gray-750/80 overflow-hidden shadow-xs hover:shadow-lg hover:border-orange-500/50 transition group flex flex-col justify-between"
+                href="/blog"
+                className="text-xs font-bold text-orange-600 dark:text-orange-400 hover:underline flex items-center gap-1"
               >
-                <div>
-                  <div className="aspect-video relative overflow-hidden bg-gray-100 dark:bg-gray-800">
-                    <img
-                      src={getBlogImageUrl(rel.postImgUrl)}
-                      alt={rel.postTitle}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    />
-                  </div>
-                  <div className="p-4 space-y-1.5">
-                    <p className="text-[10px] text-orange-600 dark:text-orange-400 font-extrabold uppercase">
-                      {Array.isArray(rel.category) && rel.category.length > 0 ? rel.category[0] : "Sports Guide"}
-                    </p>
-                    <h4 className="text-xs sm:text-sm font-bold text-gray-900 dark:text-white group-hover:text-orange-600 transition-colors line-clamp-2 leading-snug">
-                      {rel.postTitle}
-                    </h4>
-                  </div>
-                </div>
-                <div className="p-4 pt-0 text-[11px] text-gray-400 flex items-center justify-between border-t border-gray-100 dark:border-gray-750">
-                  <span>{formatBlogDate(rel.createdAt)}</span>
-                  <span className="text-orange-600 font-bold group-hover:underline">Read ›</span>
-                </div>
+                <span>View All</span>
+                <ChevronRight size={14} />
               </Link>
-            ))}
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+              {relatedPosts.map((rel) => {
+                const relImg = getBlogImageUrl(rel.postImgUrl);
+                return (
+                  <Link
+                    key={rel._id}
+                    href={`/blog/${rel._id}`}
+                    className="bg-white dark:bg-gray-850 rounded-2xl border border-gray-200/90 dark:border-gray-750/80 overflow-hidden shadow-xs hover:shadow-lg hover:border-orange-500/50 transition group flex flex-col justify-between"
+                  >
+                    <div>
+                      {relImg && (
+                        <div className="aspect-video relative overflow-hidden bg-gray-100 dark:bg-gray-800">
+                          <img
+                            src={relImg}
+                            alt={rel.postTitle}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                          />
+                        </div>
+                      )}
+                      <div className="p-4 space-y-1.5">
+                        <p className="text-[10px] text-orange-600 dark:text-orange-400 font-extrabold uppercase">
+                          {Array.isArray(rel.category) && rel.category.length > 0 ? rel.category[0] : "Sports Guide"}
+                        </p>
+                        <h4 className="text-xs sm:text-sm font-bold text-gray-900 dark:text-white group-hover:text-orange-600 transition-colors line-clamp-2 leading-snug">
+                          {rel.postTitle}
+                        </h4>
+                      </div>
+                    </div>
+                    <div className="p-4 pt-0 text-[11px] text-gray-400 flex items-center justify-between border-t border-gray-100 dark:border-gray-750">
+                      <span>{formatBlogDate(rel.createdAt)}</span>
+                      <span className="text-orange-600 font-bold group-hover:underline">Read ›</span>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
           </div>
-        </div>
+        )}
       </article>
     </div>
   );

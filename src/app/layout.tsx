@@ -98,14 +98,60 @@ export default function RootLayout({
         <link rel="shortcut icon" href="/favicon.ico" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <link rel="manifest" href="/manifest.json" />
+        <link rel="preload" as="image" href="/hero-banner-1.webp" type="image/webp" fetchPriority="high" />
         <link rel="preconnect" href="https://res.cloudinary.com" crossOrigin="anonymous" />
         <link rel="dns-prefetch" href="https://res.cloudinary.com" />
         <link rel="preconnect" href="https://images.unsplash.com" crossOrigin="anonymous" />
         <link rel="dns-prefetch" href="https://images.unsplash.com" />
         <meta name="theme-color" content="#f97316" />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "SportsActivityLocation",
+              "name": "Sportify Kashmir",
+              "image": "https://sportify-kashmir1.vercel.app/logo.png",
+              "description": "Kashmir's premier destination for genuine handcrafted Kashmir willow cricket bats, football boots, badminton, gym fitness & athletic apparel.",
+              "url": "https://sportify-kashmir1.vercel.app",
+              "telephone": "+91-9682645127",
+              "address": {
+                "@type": "PostalAddress",
+                "streetAddress": "Main Market Sangam / Srinagar",
+                "addressLocality": "Srinagar",
+                "addressRegion": "Jammu and Kashmir",
+                "postalCode": "190001",
+                "addressCountry": "IN"
+              },
+              "geo": {
+                "@type": "GeoCoordinates",
+                "latitude": 34.0837,
+                "longitude": 74.7973
+              },
+              "openingHoursSpecification": {
+                "@type": "OpeningHoursSpecification",
+                "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
+                "opens": "09:00",
+                "closes": "21:00"
+              },
+              "priceRange": "₹₹",
+              "potentialAction": {
+                "@type": "SearchAction",
+                "target": "https://sportify-kashmir1.vercel.app/products?search={search_term_string}",
+                "query-input": "required name=search_term_string"
+              }
+            }),
+          }}
+        />
       </head>
       <body className={`${dmSans.className} bg-[var(--color-bg-primary)] font-sans text-[var(--color-text-primary)] transition-colors duration-300`} suppressHydrationWarning>
         <ClientProviders>
+          <a
+            href="#main-content"
+            className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-orange-600 focus:text-white focus:rounded-lg focus:shadow-xl focus:outline-none"
+          >
+            Skip to main content
+          </a>
           <Header />
           <Toaster
             position="top-right"
@@ -131,7 +177,9 @@ export default function RootLayout({
               },
             }}
           />
-          {children}
+          <main id="main-content" tabIndex={-1} className="outline-none">
+            {children}
+          </main>
           <Footer />
         </ClientProviders>
 

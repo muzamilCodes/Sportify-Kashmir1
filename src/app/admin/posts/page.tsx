@@ -199,13 +199,22 @@ export default function AdminPostsPage() {
                     className="hover:bg-gray-50 dark:hover:bg-gray-750/50 transition"
                   >
                     <td className="p-4">
-                      <div className="w-14 h-10 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700 shrink-0 border border-gray-200 dark:border-gray-600">
-                        <img
-                          src={getBlogImageUrl(post.postImgUrl)}
-                          alt={post.postTitle}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
+                      {(() => {
+                        const postImg = getBlogImageUrl(post.postImgUrl);
+                        return postImg ? (
+                          <div className="w-14 h-10 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700 shrink-0 border border-gray-200 dark:border-gray-600">
+                            <img
+                              src={postImg}
+                              alt={post.postTitle}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                        ) : (
+                          <div className="w-14 h-10 rounded-lg bg-orange-50 dark:bg-orange-950/40 flex items-center justify-center text-orange-500 border border-orange-200 dark:border-orange-800/40">
+                            <BookOpen size={16} />
+                          </div>
+                        );
+                      })()}
                     </td>
                     <td className="p-4 max-w-sm">
                       <p className="font-bold text-gray-900 dark:text-white text-xs sm:text-sm line-clamp-1">

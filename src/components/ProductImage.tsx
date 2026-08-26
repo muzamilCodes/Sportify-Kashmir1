@@ -20,8 +20,8 @@ export type ProductImageProps = {
 };
 
 /**
- * Universal Image component for Sportify Kashmir.
- * Highly optimized for Core Web Vitals (LCP, CLS, FCP) and WCAG Accessibility.
+ * Universal High-Performance Image component for Sportify Kashmir.
+ * Optimized for Core Web Vitals (LCP, CLS 0.00, FCP) and WCAG Accessibility.
  */
 function ProductImageComponent({
   product,
@@ -30,9 +30,9 @@ function ProductImageComponent({
   alt = "Sportify Kashmir product",
   className = "object-contain",
   priority = false,
-  fill,
-  width,
-  height,
+  fill = false,
+  width = 300,
+  height = 300,
   loading,
 }: ProductImageProps) {
   const target = src || url || product;
@@ -44,7 +44,6 @@ function ProductImageComponent({
     setImgSrc(resolved || FALLBACK_IMAGE);
   }, [target]);
 
-  const isFill = fill !== undefined ? fill : !Boolean(width && height);
   const safeAlt = alt || "Sportify Kashmir product gear";
   const displaySrc = imgSrc || FALLBACK_IMAGE;
 
@@ -53,13 +52,14 @@ function ProductImageComponent({
     <img
       src={displaySrc}
       alt={safeAlt}
-      width={!isFill ? width || 300 : undefined}
-      height={!isFill ? height || 300 : undefined}
+      width={width}
+      height={height}
       loading={priority ? "eager" : loading || "lazy"}
-      fetchPriority={priority ? "high" : "auto"}
+      fetchPriority={priority ? "high" : "low"}
       decoding="async"
       referrerPolicy="no-referrer"
-      className={`${isFill ? "absolute inset-0 w-full h-full" : ""} ${className}`}
+      style={{ aspectRatio: "1 / 1" }}
+      className={`${fill ? "absolute inset-0 w-full h-full" : ""} ${className}`}
       onError={(e) => {
         const targetEl = e.currentTarget;
         if (!targetEl.src.endsWith(FALLBACK_IMAGE)) {
@@ -73,4 +73,3 @@ function ProductImageComponent({
 
 const ProductImage = React.memo(ProductImageComponent);
 export default ProductImage;
-

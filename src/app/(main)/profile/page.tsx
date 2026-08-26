@@ -39,6 +39,7 @@ import {
   Globe,
   Languages,
   ExternalLink,
+  BookOpen,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -885,6 +886,27 @@ function ProfileContent() {
               </div>
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 leading-relaxed">
                 Contact Srinagar customer service via WhatsApp or direct phone
+              </p>
+            </div>
+          </Link>
+
+          {/* Card 8.5: Sports Blog & Equipment Guides */}
+          <Link
+            href="/blog"
+            className="flex items-start gap-3.5 sm:gap-4 p-4 sm:p-5 bg-white dark:bg-gray-850 rounded-2xl border border-gray-200/90 dark:border-gray-700/80 hover:border-orange-500 dark:hover:border-orange-500 hover:shadow-md transition active:scale-[0.99] group"
+          >
+            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-orange-50 dark:bg-orange-950/40 border border-orange-200/60 dark:border-orange-800/40 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+              <BookOpen className="w-6 h-6 sm:w-7 sm:h-7 text-orange-600 dark:text-orange-400" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center justify-between">
+                <h2 className="text-sm sm:text-base font-bold text-gray-900 dark:text-white group-hover:text-orange-600 transition">
+                  Sports Blog &amp; Guides
+                </h2>
+                <ChevronRight size={16} className="text-gray-400 group-hover:text-orange-600 group-hover:translate-x-0.5 transition" />
+              </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 leading-relaxed">
+                Kashmir willow maintenance, bat knocking tutorials &amp; athlete tips
               </p>
             </div>
           </Link>

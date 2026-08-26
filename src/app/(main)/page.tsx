@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { 
   Truck, 
   Shield, 
@@ -13,15 +14,18 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 import ProductCard from "@/components/ProductCard";
-import RecentlyViewed from "@/components/RecentlyViewed";
 import { ProductGridSkeleton } from "@/components/shared/SkeletonLoaders";
 import { resolveProductImage } from "@/lib/imageHelper";
 import { cachedJson, setCachedJson } from "@/lib/clientCache";
 import AmazonHeroCarousel from "@/components/AmazonHeroCarousel";
-import AmazonRecommendationCards from "@/components/AmazonRecommendationCards";
-import SportsCategoryExplorer from "@/components/SportsCategoryExplorer";
-import SportsGearQuiz from "@/components/SportsGearQuiz";
 import { useLanguage } from "@/context/LanguageContext";
+
+// High Performance: Lazy-load below-the-fold interactive widgets to reduce initial bundle & TBT
+const AmazonRecommendationCards = dynamic(() => import("@/components/AmazonRecommendationCards"), { ssr: false });
+const SportsCategoryExplorer = dynamic(() => import("@/components/SportsCategoryExplorer"), { ssr: false });
+const SportsGearQuiz = dynamic(() => import("@/components/SportsGearQuiz"), { ssr: false });
+const RecentlyViewed = dynamic(() => import("@/components/RecentlyViewed"), { ssr: false });
+const HomeBlogSection = dynamic(() => import("@/components/HomeBlogSection"), { ssr: false });
 
 interface Product {
   _id: string;
@@ -51,10 +55,12 @@ export default function HomePage() {
 
   const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000").replace(/\/$/, "");
 
-  const getImageUrl = (url: string) => {
-    return resolveProductImage(url);
+  // Safe image helper
+  const getImageUrl = (imgUrl: string) => {
+    return resolveProductImage(imgUrl, API_URL);
   };
 
+  // Safe price calculation
   const calculateDiscountedPrice = (price: number, discount?: number) => {
     if (discount && discount > 0) {
       return price - (price * discount) / 100;
@@ -117,7 +123,7 @@ export default function HomePage() {
         
         // Sale products (products with discount or onSale flag)
         const sale = availableProducts.filter((p: any) => p.onSale === true || (p.discount && p.discount > 0)).slice(0, 5);
-        setSaleProducts(sale);
+        setSaleProducts(sale.length > 0 ? sale : availableProducts.slice(0, 5));
       }
     } catch (error) {
       console.error("Error fetching products:", error);
@@ -126,99 +132,136 @@ export default function HomePage() {
     }
   };
 
-  const handleAddToCart = async (productId: string, e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    try {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        toast.error("Please login to add items to cart");
-        window.location.href = "/login";
-        return;
-      }
-
-      const headers: Record<string, string> = { 
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`
-      };
-
-      const response = await fetch(`${API_URL}/cart/addtoCart/${productId}`, {
-        method: "POST",
-        headers,
-        body: JSON.stringify({ quantity: 1 }),
-      });
-
-      const result = await response.json();
-      if (result.success) {
-        toast.success("Added to cart!");
-        window.dispatchEvent(new Event("cartUpdated"));
-      } else {
-        toast.error(result.message || "Failed to add to cart");
-      }
-    } catch {
-      toast.error("Failed to add to cart");
-    }
-  };
-
   const toggleWishlist = (productId: string, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    let newWishlist: string[];
+    
+    let updatedWishlist: string[];
     if (wishlist.includes(productId)) {
-      newWishlist = wishlist.filter(id => id !== productId);
+      updatedWishlist = wishlist.filter(id => id !== productId);
       toast.success("Removed from wishlist");
     } else {
-      newWishlist = [...wishlist, productId];
+      updatedWishlist = [...wishlist, productId];
       toast.success("Added to wishlist");
     }
-    setWishlist(newWishlist);
-    localStorage.setItem("wishlist", JSON.stringify(newWishlist));
+    
+    setWishlist(updatedWishlist);
+    localStorage.setItem("wishlist", JSON.stringify(updatedWishlist));
   };
 
-  const loadMoreProducts = () => {
-    setVisibleProducts(prev => prev + 10);
+  const handleAddToCart = async (productId: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const token = localStorage.getItem("token");
+    if (!token) {
+      toast.error("Please login to add items to cart");
+      return;
+    }
+
+    try {
+      const response = await fetch(`${API_URL}/cart/add`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          productId,
+          quantity: 1,
+        }),
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        toast.success("Added to cart!");
+        window.dispatchEvent(new Event("cartUpdated"));
+      } else {
+        toast.error(data.message || "Failed to add to cart");
+      }
+    } catch (error) {
+      console.error("Error adding to cart:", error);
+      toast.error("Network error. Try again.");
+    }
   };
 
-  const showLoadMore = products.length > visibleProducts;
-  const displayedProducts = products.slice(0, visibleProducts);
+  const handleBuyNow = async (productId: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const token = localStorage.getItem("token");
+    if (!token) {
+      toast.error("Please login to purchase");
+      return;
+    }
+
+    try {
+      const response = await fetch(`${API_URL}/cart/add`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          productId,
+          quantity: 1,
+        }),
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        window.dispatchEvent(new Event("cartUpdated"));
+        window.location.href = "/checkout";
+      } else {
+        toast.error(data.message || "Failed to process");
+      }
+    } catch (error) {
+      console.error("Error with buy now:", error);
+      toast.error("Network error. Try again.");
+    }
+  };
 
   return (
-    <div className="sk-page-shell">
-      {/* ─── Hero Carousel ─── */}
+    <div className="space-y-6 md:space-y-8 pb-16">
+      {/* 1. Amazon Prime / Flipkart Inspired Hero Section */}
       <AmazonHeroCarousel />
 
-      <div className="max-w-[1500px] mx-auto px-3 sm:px-6 py-4 sm:py-8">
-        {/* ─── Sports Department Explorer ─── */}
+      {/* Main Content Container with negative top margin to blend into hero banner on desktop */}
+      <div className="container max-w-[1500px] mx-auto px-3 sm:px-4 md:px-6 relative z-20">
+        {/* 2. Amazon 3-Column Multi-Card Recommendation Widgets */}
+        <AmazonRecommendationCards />
+
+        {/* 3. Sports Category Explorer */}
         <SportsCategoryExplorer />
 
-        {/* ─── Recommendation Cards ─── */}
-        <div className="my-8">
-          <AmazonRecommendationCards />
-        </div>
-
-        {/* Featured Products Section */}
-        <section className="mb-14">
-          <div className="flex justify-between items-end mb-6 gap-4">
+        {/* 4. Featured Products Grid */}
+        <section className="mb-14 cv-auto">
+          <div className="flex justify-between items-end mb-6">
             <div>
               <h2 className="sk-section-title text-[22px] sm:text-[26px] md:text-[30px] text-zinc-900 dark:text-white">
-                {t("home.featured", "Featured Products")}
+                {t("home.featuredProducts")}
               </h2>
-              <p className="text-[13px] sm:text-[14px] text-zinc-500 dark:text-zinc-400 mt-1">
-                {t("home.featuredSub", "New arrivals & trending picks")}
+              <p className="text-[13px] sm:text-[14px] text-zinc-500 dark:text-zinc-400 mt-0.5">
+                New arrivals &amp; trending picks for athletes
               </p>
             </div>
-            <Link href="/products" className="group text-[13px] sm:text-[14px] font-semibold text-orange-600 hover:text-orange-700 dark:text-orange-400 flex items-center gap-1 transition-all shrink-0">
-              {t("home.viewAll", "View All")} <ChevronRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
+            <Link
+              href="/products"
+              className="inline-flex items-center gap-1 text-xs sm:text-sm font-bold text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300 hover:underline group"
+            >
+              <span>{t("home.viewAll")}</span>
+              <ChevronRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
             </Link>
           </div>
+
           {loading ? (
             <ProductGridSkeleton count={5} />
-          ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4 md:gap-4.5">
+          ) : featuredProducts.length > 0 ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 md:gap-5">
               {featuredProducts.map((product, idx) => {
                 const discountedPrice = calculateDiscountedPrice(product.price, product.discount);
-                const hasDiscount = !!(product.discount && product.discount > 0);
-                
+                const hasDiscount = (product.discount ?? 0) > 0;
+
                 return (
                   <ProductCard
                     key={product._id}
@@ -229,42 +272,55 @@ export default function HomePage() {
                     wishlist={wishlist}
                     getImageUrl={getImageUrl}
                     handleAddToCart={handleAddToCart}
+                    handleBuyNow={handleBuyNow}
                     toggleWishlist={toggleWishlist}
                   />
                 );
               })}
             </div>
+          ) : (
+            <div className="text-center py-12 bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800">
+              <p className="text-zinc-500 dark:text-zinc-400 text-sm">
+                No featured products available at the moment.
+              </p>
+            </div>
           )}
         </section>
 
-        {/* 🎯 30-Second AI Sports Gear Selector Quiz */}
-        <SportsGearQuiz />
+        {/* 5. Interactive Sports Gear Matcher Quiz */}
+        <div className="cv-auto">
+          <SportsGearQuiz />
+        </div>
 
-        {/* Flash Sale Banner & Grid */}
-        {!loading && saleProducts.length > 0 && (
-          <section className="mb-12">
-            <div className="bg-gradient-to-r from-orange-500 via-orange-600 to-red-500 rounded-2xl p-5 sm:p-7 mb-6 shadow-[0_16px_40px_-16px_rgba(249,115,22,0.55)] relative overflow-hidden">
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_85%_20%,rgba(255,255,255,0.22),transparent_45%)] pointer-events-none" />
-              <div className="relative flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                <div>
-                  <h2 className="sk-section-title text-[22px] sm:text-[26px] md:text-[30px] text-white flex items-center gap-2">
-                    {t("home.specialDeals", "Flash Sale")}
-                  </h2>
-                  <p className="text-white/90 text-[13px] sm:text-[14px] mt-1">
-                    {t("home.specialDealsSub", "Limited time offers with discounts up to 50%")}
-                  </p>
+        {/* 6. Special Sale Section (Flash Deals) */}
+        {saleProducts.length > 0 && (
+          <section className="mb-14 cv-auto">
+            <div className="flex justify-between items-end mb-6">
+              <div>
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-red-500/10 dark:bg-red-950/60 border border-red-500/30 text-red-600 dark:text-red-400 text-[11px] font-extrabold uppercase tracking-wider mb-2">
+                  <span>⚡ Special Deals</span>
                 </div>
-                <Link href="/sale" className="bg-white text-orange-600 px-5 py-2.5 rounded-xl text-[13px] sm:text-[14px] font-bold hover:bg-orange-50 transition shadow-sm flex items-center gap-1">
-                  {t("home.viewAll", "View All Deals")} <ChevronRight size={16} />
-                </Link>
+                <h2 className="sk-section-title text-[22px] sm:text-[26px] md:text-[30px] text-zinc-900 dark:text-white">
+                  Limited Time Offers
+                </h2>
+                <p className="text-[13px] sm:text-[14px] text-zinc-500 dark:text-zinc-400 mt-0.5">
+                  Exclusive discounts on Kashmir willow, football studs &amp; sportswear
+                </p>
               </div>
+              <Link
+                href="/sale"
+                className="inline-flex items-center gap-1 text-xs sm:text-sm font-bold text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300 hover:underline group"
+              >
+                <span>Explore All Deals</span>
+                <ChevronRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
+              </Link>
             </div>
-            {/* 2 cols mobile, 3 sm, 4 md/lg, 5 xl */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4 md:gap-4.5">
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 md:gap-5">
               {saleProducts.map((product) => {
                 const discountedPrice = calculateDiscountedPrice(product.price, product.discount);
-                const hasDiscount = !!(product.discount && product.discount > 0);
-                
+                const hasDiscount = (product.discount ?? 0) > 0;
+
                 return (
                   <ProductCard
                     key={product._id}
@@ -274,6 +330,7 @@ export default function HomePage() {
                     wishlist={wishlist}
                     getImageUrl={getImageUrl}
                     handleAddToCart={handleAddToCart}
+                    handleBuyNow={handleBuyNow}
                     toggleWishlist={toggleWishlist}
                   />
                 );
@@ -282,103 +339,74 @@ export default function HomePage() {
           </section>
         )}
 
-        {/* All Products Section: Section Heading 24–28px */}
-        <section className="mb-14">
-          <div className="flex justify-between items-end mb-6 gap-4">
-            <div>
-              <h2 className="sk-section-title text-[22px] sm:text-[26px] md:text-[30px] text-zinc-900 dark:text-white">
-                {t("home.viewAll", "All Products")}
-              </h2>
-              <p className="text-[13px] sm:text-[14px] text-zinc-500 dark:text-zinc-400 mt-1">Explore our complete catalog</p>
-            </div>
-            <span className="bg-orange-100 dark:bg-orange-500/20 text-orange-700 dark:text-orange-400 px-3 py-1.5 rounded-lg font-semibold text-[12px] sm:text-[13px]">
-              {products.length} Items
-            </span>
-          </div>
+        {/* 7. Recently Viewed Products (Dynamic) */}
+        <div className="cv-auto">
+          <RecentlyViewed products={products} />
+        </div>
 
-          {loading ? (
-            <ProductGridSkeleton count={10} />
-          ) : products.length === 0 ? (
-            <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
-              <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-3">
-                <ShoppingCart className="w-8 h-8 text-gray-400 dark:text-gray-500" />
+        {/* 8. Kashmir Sports Blog & Equipment Guides */}
+        <div className="cv-auto">
+          <HomeBlogSection />
+        </div>
+
+        {/* 9. Trust & Value Features Grid */}
+        <section className="mt-8 mb-8 pt-8 border-t border-zinc-200 dark:border-zinc-800 cv-auto">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="p-4 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800/80 flex items-start gap-3.5 shadow-xs">
+              <div className="w-10 h-10 rounded-lg bg-orange-500/10 text-orange-600 dark:text-orange-400 flex items-center justify-center shrink-0">
+                <Truck size={20} />
               </div>
-              <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-1">No products found</h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Products will appear here once added</p>
-            </div>
-          ) : (
-            <>
-              {/* 2 cols mobile, 3 sm, 4 md/lg, 5 xl */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4 md:gap-4.5">
-                {displayedProducts.map((product) => {
-                  const discountedPrice = calculateDiscountedPrice(product.price, product.discount);
-                  const hasDiscount = !!(product.discount && product.discount > 0);
-                  
-                  return (
-                    <ProductCard
-                      key={product._id}
-                      product={product}
-                      discountedPrice={discountedPrice}
-                      hasDiscount={hasDiscount}
-                      wishlist={wishlist}
-                      getImageUrl={getImageUrl}
-                      handleAddToCart={handleAddToCart}
-                      toggleWishlist={toggleWishlist}
-                    />
-                  );
-                })}
+              <div>
+                <h4 className="text-xs sm:text-sm font-bold text-zinc-900 dark:text-white">
+                  {t("features.fastDelivery.title")}
+                </h4>
+                <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5 leading-snug">
+                  {t("features.fastDelivery.desc")}
+                </p>
               </div>
+            </div>
 
-              {/* Load More Button: Button Text 14–15px */}
-              {showLoadMore && (
-                <div className="text-center mt-8">
-                  <button
-                    onClick={loadMoreProducts}
-                    className="inline-flex items-center gap-2 sk-btn-primary px-7 py-3 rounded-xl text-[14px] font-semibold cursor-pointer"
-                  >
-                    {t("home.loadMore", "Load More Products")}
-                    <ArrowRight size={16} />
-                  </button>
-                  <p className="text-[12px] sm:text-[13px] text-gray-500 dark:text-gray-400 mt-2">
-                    Showing {displayedProducts.length} of {products.length} products
-                  </p>
-                </div>
-              )}
-            </>
-          )}
-        </section>
+            <div className="p-4 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800/80 flex items-start gap-3.5 shadow-xs">
+              <div className="w-10 h-10 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                <Shield size={20} />
+              </div>
+              <div>
+                <h4 className="text-xs sm:text-sm font-bold text-zinc-900 dark:text-white">
+                  {t("features.genuineGear.title")}
+                </h4>
+                <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5 leading-snug">
+                  {t("features.genuineGear.desc")}
+                </p>
+              </div>
+            </div>
 
-        <RecentlyViewed products={products} />
+            <div className="p-4 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800/80 flex items-start gap-3.5 shadow-xs">
+              <div className="w-10 h-10 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+                <Clock size={20} />
+              </div>
+              <div>
+                <h4 className="text-xs sm:text-sm font-bold text-zinc-900 dark:text-white">
+                  {t("features.support.title")}
+                </h4>
+                <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5 leading-snug">
+                  {t("features.support.desc")}
+                </p>
+              </div>
+            </div>
 
-        {/* Features Section */}
-        <section className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
-          <div className="bg-white/90 dark:bg-zinc-900 rounded-2xl p-5 text-center border border-zinc-200/80 dark:border-zinc-800 hover:-translate-y-1 hover:shadow-lg hover:border-orange-300/60 transition-all duration-300">
-            <div className="w-11 h-11 bg-emerald-100 dark:bg-emerald-500/20 rounded-xl flex items-center justify-center mx-auto mb-3">
-              <Truck className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+            <div className="p-4 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800/80 flex items-start gap-3.5 shadow-xs">
+              <div className="w-10 h-10 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0">
+                <Award size={20} />
+              </div>
+              <div>
+                <h4 className="text-xs sm:text-sm font-bold text-zinc-900 dark:text-white">
+                  {t("features.authenticWillow.title")}
+                </h4>
+                <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5 leading-snug">
+                  {t("features.authenticWillow.desc")}
+                </p>
+              </div>
             </div>
-            <h3 className="font-display font-semibold text-zinc-900 dark:text-white text-[14px] mb-0.5">{t("home.expressDelivery", "Free Delivery")}</h3>
-            <p className="text-zinc-500 dark:text-zinc-400 text-[12px]">{t("home.expressDeliveryDesc", "On orders above ₹999")}</p>
-          </div>
-          <div className="bg-white/90 dark:bg-zinc-900 rounded-2xl p-5 text-center border border-zinc-200/80 dark:border-zinc-800 hover:-translate-y-1 hover:shadow-lg hover:border-orange-300/60 transition-all duration-300">
-            <div className="w-11 h-11 bg-sky-100 dark:bg-sky-500/20 rounded-xl flex items-center justify-center mx-auto mb-3">
-              <Shield className="w-5 h-5 text-sky-600 dark:text-sky-400" />
-            </div>
-            <h3 className="font-display font-semibold text-zinc-900 dark:text-white text-[14px] mb-0.5">{t("home.securePayments", "Secure Payment")}</h3>
-            <p className="text-zinc-500 dark:text-zinc-400 text-[12px]">{t("home.securePaymentsDesc", "100% secure checkout")}</p>
-          </div>
-          <div className="bg-white/90 dark:bg-zinc-900 rounded-2xl p-5 text-center border border-zinc-200/80 dark:border-zinc-800 hover:-translate-y-1 hover:shadow-lg hover:border-orange-300/60 transition-all duration-300">
-            <div className="w-11 h-11 bg-orange-100 dark:bg-orange-500/20 rounded-xl flex items-center justify-center mx-auto mb-3">
-              <Clock className="w-5 h-5 text-orange-600 dark:text-orange-400" />
-            </div>
-            <h3 className="font-display font-semibold text-zinc-900 dark:text-white text-[14px] mb-0.5">{t("home.genuineWillow", "100% Handcrafted Willow")}</h3>
-            <p className="text-zinc-500 dark:text-zinc-400 text-[12px]">{t("home.genuineWillowDesc", "Direct from Sangam master craftsmen")}</p>
-          </div>
-          <div className="bg-white/90 dark:bg-zinc-900 rounded-2xl p-5 text-center border border-zinc-200/80 dark:border-zinc-800 hover:-translate-y-1 hover:shadow-lg hover:border-orange-300/60 transition-all duration-300">
-            <div className="w-11 h-11 bg-red-100 dark:bg-red-500/20 rounded-xl flex items-center justify-center mx-auto mb-3">
-              <Award className="w-5 h-5 text-red-600 dark:text-red-400" />
-            </div>
-            <h3 className="font-display font-semibold text-zinc-900 dark:text-white text-[14px] mb-0.5">{t("home.authenticQuality", "Authentic Gear")}</h3>
-            <p className="text-zinc-500 dark:text-zinc-400 text-[12px]">{t("home.authenticQualityDesc", "100% genuine guaranteed")}</p>
           </div>
         </section>
       </div>

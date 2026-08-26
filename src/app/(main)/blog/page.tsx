@@ -12,15 +12,10 @@ import {
   ArrowRight,
   Clock,
   ChevronRight,
-  TrendingUp,
-  Tag,
-  Share2,
   Flame,
-  CheckCircle2,
 } from "lucide-react";
 import {
   BlogPost,
-  FALLBACK_BLOG_POSTS,
   getBlogImageUrl,
   formatBlogDate,
   calculateReadTime,
@@ -36,7 +31,7 @@ const CATEGORIES = [
 ];
 
 export default function BlogPage() {
-  const [dbPosts, setDbPosts] = useState<BlogPost[]>([]);
+  const [posts, setPosts] = useState<BlogPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All Articles");
@@ -59,7 +54,7 @@ export default function BlogPage() {
           : Array.isArray(result.data)
           ? result.data
           : [];
-        setDbPosts(raw);
+        setPosts(raw);
       }
     } catch (error) {
       console.error("Error fetching posts:", error);
@@ -68,23 +63,9 @@ export default function BlogPage() {
     }
   };
 
-  // Combine database posts with curated fallback posts (avoiding duplicate IDs)
-  const allPosts = useMemo(() => {
-    const combined = [...dbPosts];
-    const dbIds = new Set(dbPosts.map((p) => p._id));
-
-    FALLBACK_BLOG_POSTS.forEach((fallback) => {
-      if (!dbIds.has(fallback._id)) {
-        combined.push(fallback);
-      }
-    });
-
-    return combined;
-  }, [dbPosts]);
-
-  // Filter posts by search query and category
+  // Filter real database posts
   const filteredPosts = useMemo(() => {
-    return allPosts.filter((post) => {
+    return posts.filter((post) => {
       const matchSearch =
         searchQuery.trim() === "" ||
         post.postTitle?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -104,12 +85,9 @@ export default function BlogPage() {
 
       return matchSearch && matchCategory;
     });
-  }, [allPosts, searchQuery, selectedCategory]);
+  }, [posts, searchQuery, selectedCategory]);
 
-  const featuredPost = allPosts.length > 0 ? allPosts[0] : null;
-  const regularPosts = featuredPost
-    ? filteredPosts.filter((p) => p._id !== featuredPost._id)
-    : filteredPosts;
+  const featuredPost = filteredPosts.length > 0 ? filteredPosts[0] : null;
 
   return (
     <div className="min-h-screen bg-[var(--color-bg-primary)] text-gray-900 dark:text-white pb-24 md:pb-16 transition-colors duration-200">
@@ -190,14 +168,14 @@ export default function BlogPage() {
             </p>
           </div>
         ) : filteredPosts.length === 0 ? (
-          /* Empty Search State */
+          /* Empty State */
           <div className="bg-white dark:bg-gray-850 rounded-3xl p-10 text-center max-w-md mx-auto border border-gray-200 dark:border-gray-800 shadow-sm space-y-4">
             <div className="w-16 h-16 rounded-full bg-orange-100 dark:bg-orange-950/60 text-orange-600 flex items-center justify-center mx-auto">
               <BookOpen size={28} />
             </div>
             <h3 className="text-lg font-black">No matching stories found</h3>
             <p className="text-xs text-gray-500 dark:text-gray-400">
-              We couldn&apos;t find any articles matching &ldquo;{searchQuery}&rdquo;. Try another sports keyword.
+              {searchQuery ? `No articles matching "${searchQuery}".` : "No articles published in this category yet."}
             </p>
             <button
               onClick={() => {
@@ -211,83 +189,93 @@ export default function BlogPage() {
           </div>
         ) : (
           <>
-            {/* ─── FEATURED SPOTLIGHT ARTICLE (When on "All Articles" and no search query) ─── */}
-            {selectedCategory === "All Articles" && !searchQuery && featuredPost && (
-              <div className="bg-white dark:bg-gray-850 rounded-3xl border border-gray-200/90 dark:border-gray-700/80 overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 group">
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-0">
-                  {/* Left Hero Image */}
-                  <Link
-                    href={`/blog/${featuredPost._id}`}
-                    className="lg:col-span-7 relative h-64 sm:h-80 lg:h-full min-h-[280px] overflow-hidden bg-gray-100 dark:bg-gray-800 block"
-                  >
-                    <img
-                      src={getBlogImageUrl(featuredPost.postImgUrl)}
-                      alt={featuredPost.postTitle}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                    />
-                    <div className="absolute top-4 left-4">
-                      <span className="px-3 py-1 bg-gradient-to-r from-orange-500 to-red-500 text-white text-[11px] font-black uppercase rounded-full shadow-md tracking-wider flex items-center gap-1">
-                        <Sparkles size={12} />
-                        <span>Featured Story</span>
-                      </span>
-                    </div>
-                  </Link>
-
-                  {/* Right Article Details */}
-                  <div className="lg:col-span-5 p-6 sm:p-8 flex flex-col justify-between space-y-4">
-                    <div className="space-y-3">
-                      {/* Meta chips */}
-                      <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400 flex-wrap">
-                        <span className="flex items-center gap-1">
-                          <Calendar size={13} className="text-orange-500" />
-                          <span>{formatBlogDate(featuredPost.createdAt)}</span>
-                        </span>
-                        <span>•</span>
-                        <span className="flex items-center gap-1">
-                          <Clock size={13} className="text-orange-500" />
-                          <span>{calculateReadTime(featuredPost.postDesc)}</span>
-                        </span>
-                      </div>
-
-                      {/* Title */}
-                      <Link href={`/blog/${featuredPost._id}`}>
-                        <h2 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors leading-tight">
-                          {featuredPost.postTitle}
-                        </h2>
-                      </Link>
-
-                      {/* Excerpt */}
-                      <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 line-clamp-3 leading-relaxed">
-                        {featuredPost.shortDesc || (featuredPost.postDesc ? featuredPost.postDesc.substring(0, 160) + "..." : "")}
-                      </p>
-                    </div>
-
-                    {/* Author & CTA Button */}
-                    <div className="pt-4 border-t border-gray-100 dark:border-gray-750 flex items-center justify-between">
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-r from-orange-500 to-red-500 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-xs">
-                          {featuredPost.postAuthorId?.username?.charAt(0).toUpperCase() || "S"}
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-xs font-bold truncate">
-                            {featuredPost.postAuthorId?.username || "Sportify Specialist"}
-                          </p>
-                          <span className="text-[10px] text-gray-400">Verified Contributor</span>
-                        </div>
-                      </div>
-
+            {/* ─── FEATURED SPOTLIGHT ARTICLE ─── */}
+            {selectedCategory === "All Articles" && !searchQuery && featuredPost && (() => {
+              const featImg = getBlogImageUrl(featuredPost.postImgUrl);
+              return (
+                <div className="bg-white dark:bg-gray-850 rounded-3xl border border-gray-200/90 dark:border-gray-700/80 overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 group">
+                  <div className={`grid grid-cols-1 ${featImg ? "lg:grid-cols-12" : ""} gap-0`}>
+                    {/* Left Hero Image (Only if real uploaded image exists) */}
+                    {featImg && (
                       <Link
                         href={`/blog/${featuredPost._id}`}
-                        className="px-4 py-2 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white rounded-xl text-xs font-bold shadow-xs hover:shadow-md transition flex items-center gap-1.5 shrink-0 active:scale-95"
+                        className="lg:col-span-7 relative h-64 sm:h-80 lg:h-full min-h-[280px] overflow-hidden bg-gray-100 dark:bg-gray-850 block"
                       >
-                        <span>Read Story</span>
-                        <ArrowRight size={13} />
+                        <img
+                          src={featImg}
+                          alt={featuredPost.postTitle}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                        />
+                        <div className="absolute top-4 left-4">
+                          <span className="px-3 py-1 bg-gradient-to-r from-orange-500 to-red-500 text-white text-[11px] font-black uppercase rounded-full shadow-md tracking-wider flex items-center gap-1">
+                            <Sparkles size={12} />
+                            <span>Featured Story</span>
+                          </span>
+                        </div>
                       </Link>
+                    )}
+
+                    {/* Right Article Details */}
+                    <div className={`${featImg ? "lg:col-span-5" : "w-full"} p-6 sm:p-8 flex flex-col justify-between space-y-4`}>
+                      <div className="space-y-3">
+                        {/* Meta chips */}
+                        <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400 flex-wrap">
+                          {!featImg && (
+                            <span className="px-2.5 py-0.5 bg-orange-100 dark:bg-orange-950 text-orange-600 dark:text-orange-400 font-extrabold text-[10px] rounded-full uppercase">
+                              Featured Story
+                            </span>
+                          )}
+                          <span className="flex items-center gap-1">
+                            <Calendar size={13} className="text-orange-500" />
+                            <span>{formatBlogDate(featuredPost.createdAt)}</span>
+                          </span>
+                          <span>•</span>
+                          <span className="flex items-center gap-1">
+                            <Clock size={13} className="text-orange-500" />
+                            <span>{calculateReadTime(featuredPost.postDesc)}</span>
+                          </span>
+                        </div>
+
+                        {/* Title */}
+                        <Link href={`/blog/${featuredPost._id}`}>
+                          <h2 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors leading-tight">
+                            {featuredPost.postTitle}
+                          </h2>
+                        </Link>
+
+                        {/* Excerpt */}
+                        <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 line-clamp-3 leading-relaxed">
+                          {featuredPost.shortDesc || (featuredPost.postDesc ? featuredPost.postDesc.substring(0, 160) + "..." : "")}
+                        </p>
+                      </div>
+
+                      {/* Author & CTA Button */}
+                      <div className="pt-4 border-t border-gray-100 dark:border-gray-750 flex items-center justify-between">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className="w-8 h-8 rounded-full bg-gradient-to-r from-orange-500 to-red-500 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-xs">
+                            {featuredPost.postAuthorId?.username?.charAt(0).toUpperCase() || "S"}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-xs font-bold truncate">
+                              {featuredPost.postAuthorId?.username || "Sportify Specialist"}
+                            </p>
+                            <span className="text-[10px] text-gray-400">Verified Contributor</span>
+                          </div>
+                        </div>
+
+                        <Link
+                          href={`/blog/${featuredPost._id}`}
+                          className="px-4 py-2 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white rounded-xl text-xs font-bold shadow-xs hover:shadow-md transition flex items-center gap-1.5 shrink-0 active:scale-95"
+                        >
+                          <span>Read Story</span>
+                          <ArrowRight size={13} />
+                        </Link>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            )}
+              );
+            })()}
 
             {/* ─── ARTICLES 3-COLUMN RESPONSIVE GRID ─── */}
             <div className="space-y-6">
@@ -297,7 +285,7 @@ export default function BlogPage() {
                     {selectedCategory === "All Articles" ? "All Recent Stories" : `${selectedCategory} Articles`}
                   </h3>
                   <p className="text-xs text-gray-500 dark:text-gray-400">
-                    Showing {filteredPosts.length} sports articles and maintenance guides
+                    Showing {filteredPosts.length} published stories &amp; equipment tutorials
                   </p>
                 </div>
               </div>
@@ -305,6 +293,7 @@ export default function BlogPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-7">
                 {filteredPosts.map((post) => {
                   const readTime = calculateReadTime(post.postDesc);
+                  const postImg = getBlogImageUrl(post.postImgUrl);
 
                   return (
                     <article
@@ -312,33 +301,52 @@ export default function BlogPage() {
                       className="bg-white dark:bg-gray-850 rounded-3xl border border-gray-200/90 dark:border-gray-750/80 overflow-hidden shadow-xs hover:shadow-xl hover:border-orange-500/50 transition-all duration-300 flex flex-col justify-between group"
                     >
                       <div>
-                        {/* Cover Image Container */}
-                        <Link
-                          href={`/blog/${post._id}`}
-                          className="block relative aspect-video overflow-hidden bg-gray-100 dark:bg-gray-800"
-                        >
-                          <img
-                            src={getBlogImageUrl(post.postImgUrl)}
-                            alt={post.postTitle}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                          />
-                          <div className="absolute top-3 left-3">
-                            <span className="px-2.5 py-0.8 bg-gray-900/80 backdrop-blur-xs text-white text-[10px] font-extrabold rounded-full uppercase tracking-wider border border-white/20">
-                              {Array.isArray(post.category) && post.category.length > 0
-                                ? post.category[0]
-                                : typeof post.category === "string"
-                                ? post.category
-                                : "Sports Guide"}
-                            </span>
-                          </div>
-                          <div className="absolute bottom-2.5 right-2.5 px-2 py-0.5 bg-black/60 backdrop-blur-xs text-white text-[10px] font-bold rounded-md flex items-center gap-1">
-                            <Clock size={10} />
-                            <span>{readTime}</span>
-                          </div>
-                        </Link>
+                        {/* Cover Image Container (Only if real uploaded image exists) */}
+                        {postImg ? (
+                          <Link
+                            href={`/blog/${post._id}`}
+                            className="block relative aspect-video overflow-hidden bg-gray-100 dark:bg-gray-800"
+                          >
+                            <img
+                              src={postImg}
+                              alt={post.postTitle}
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                            />
+                            <div className="absolute top-3 left-3">
+                              <span className="px-2.5 py-0.8 bg-gray-900/80 backdrop-blur-xs text-white text-[10px] font-extrabold rounded-full uppercase tracking-wider border border-white/20">
+                                {Array.isArray(post.category) && post.category.length > 0
+                                  ? post.category[0]
+                                  : typeof post.category === "string"
+                                  ? post.category
+                                  : "Sports Guide"}
+                              </span>
+                            </div>
+                            <div className="absolute bottom-2.5 right-2.5 px-2 py-0.5 bg-black/60 backdrop-blur-xs text-white text-[10px] font-bold rounded-md flex items-center gap-1">
+                              <Clock size={10} />
+                              <span>{readTime}</span>
+                            </div>
+                          </Link>
+                        ) : null}
 
                         {/* Article Header & Body */}
                         <div className="p-5 sm:p-6 space-y-2.5">
+                          {/* Top category chip if no image */}
+                          {!postImg && (
+                            <div className="flex items-center justify-between pb-1">
+                              <span className="px-2.5 py-0.8 bg-orange-100 dark:bg-orange-950/80 text-orange-600 dark:text-orange-400 text-[10px] font-extrabold rounded-full uppercase tracking-wider">
+                                {Array.isArray(post.category) && post.category.length > 0
+                                  ? post.category[0]
+                                  : typeof post.category === "string"
+                                  ? post.category
+                                  : "Sports Guide"}
+                              </span>
+                              <span className="text-[10px] text-gray-400 flex items-center gap-1 font-semibold">
+                                <Clock size={10} />
+                                <span>{readTime}</span>
+                              </span>
+                            </div>
+                          )}
+
                           {/* Date and Author */}
                           <div className="flex items-center gap-2 text-[11px] text-gray-500 dark:text-gray-400">
                             <span className="flex items-center gap-1">

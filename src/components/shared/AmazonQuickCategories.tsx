@@ -6,7 +6,8 @@ import {
   Footprints, 
   Trophy,
   Dumbbell,
-  Goal
+  Goal,
+  BookOpen
 } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
 
@@ -53,6 +54,20 @@ export default function AmazonQuickCategories() {
       icon: (
         <div className="w-8 h-8 rounded-full bg-[#ffc220] flex items-center justify-center shadow-xs border border-amber-400">
           <span className="text-[10px] font-black text-gray-900 tracking-tighter">pay</span>
+        </div>
+      ),
+    },
+    {
+      id: "blog",
+      name: "Blog",
+      sublabel: "Sports Guides",
+      href: "/blog",
+      bgGradient: "from-orange-50 to-amber-100 dark:from-orange-950/70 dark:to-amber-900/70",
+      badge: "NEW",
+      badgeBg: "bg-orange-600 text-white",
+      icon: (
+        <div className="w-8 h-8 rounded-full bg-orange-500/20 flex items-center justify-center text-orange-600 dark:text-orange-300">
+          <BookOpen size={17} />
         </div>
       ),
     },

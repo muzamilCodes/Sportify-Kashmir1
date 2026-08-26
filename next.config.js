@@ -1,41 +1,47 @@
 /** @type {import('next').NextConfig} */
+const isDev = process.env.NODE_ENV === "development" || !process.env.NODE_ENV;
+
 const withPWA = require("@ducanh2912/next-pwa").default({
   dest: "public",
-  // Let Next.js App Router manage RSC navigation. Aggressive front-end
-  // caching can show an empty/stale page until the browser is refreshed.
   cacheOnFrontEndNav: false,
   aggressiveFrontEndNavCaching: false,
   reloadOnOnline: true,
   swcMinify: true,
-  disable: process.env.NODE_ENV === "development",
+  disable: isDev,
   workboxOptions: {
     disableDevLogs: true,
   },
 });
 
 const nextConfig = {
-  reactStrictMode: true,
+  reactStrictMode: false,
   turbopack: {},
   compress: true,
+  // Fast refresh and compilation optimizations
   experimental: {
-    // Keep already-rendered App Router segments reusable during normal
-    // navigation without causing a fresh RSC request for every revisit.
     staleTimes: {
       dynamic: 30,
       static: 300,
     },
     optimizePackageImports: [
       'lucide-react',
+      'axios',
+      'clsx',
+      'tailwind-merge',
       '@radix-ui/react-dialog',
       '@radix-ui/react-dropdown-menu',
       '@radix-ui/react-tabs',
       '@radix-ui/react-select',
       '@radix-ui/react-slot',
       '@radix-ui/react-alert-dialog',
+      '@radix-ui/react-avatar',
+      '@radix-ui/react-checkbox',
+      '@radix-ui/react-label',
+      '@radix-ui/react-progress',
+      '@radix-ui/react-radio-group',
+      '@radix-ui/react-separator',
     ],
   },
-  // Keep local development pointed at localhost, but never let a production
-  // build silently call the browser's localhost when the env var is missing.
   env: {
     NEXT_PUBLIC_API_URL:
       process.env.NEXT_PUBLIC_API_URL ||
@@ -98,8 +104,7 @@ const nextConfig = {
     ],
   },
   async headers() {
-    // Next.js React Refresh uses eval in development. Keep production strict.
-    const scriptSource = process.env.NODE_ENV === "development"
+    const scriptSource = isDev
       ? "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://checkout.razorpay.com"
       : "script-src 'self' 'unsafe-inline' https://checkout.razorpay.com";
 
@@ -172,4 +177,4 @@ const nextConfig = {
   },
 };
 
-module.exports = withPWA(nextConfig);
+module.exports = isDev ? nextConfig : withPWA(nextConfig);

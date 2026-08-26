@@ -1,32 +1,27 @@
 "use client";
 
-import { ThemeProvider } from "@/components/providers/ThemeProvider";
-import InstallPrompt from "@/components/shared/InstallPrompt";
-import MobileBottomNav from "@/components/shared/MobileBottomNav";
-import ScrollToTop from "@/components/shared/ScrollToTop";
-import RouteChangeHandler from "@/components/shared/RouteChangeHandler";
-import { CartCountProvider } from "@/components/providers/CartCountProvider";
-import { installRequestDedupe } from "@/lib/requestDedupe";
-import PWARegister from "@/components/shared/PWARegister";
-
 import dynamic from "next/dynamic";
+import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { LanguageProvider } from "@/context/LanguageContext";
+import { CartCountProvider } from "@/components/providers/CartCountProvider";
+import MobileBottomNav from "@/components/shared/MobileBottomNav";
+import { installRequestDedupe } from "@/lib/requestDedupe";
 
+// High Performance: Dynamic client-only imports to remove blocking hydration from critical path
+const ScrollToTop = dynamic(() => import("@/components/shared/ScrollToTop"), { ssr: false });
+const RouteChangeHandler = dynamic(() => import("@/components/shared/RouteChangeHandler"), { ssr: false });
+const InstallPrompt = dynamic(() => import("@/components/shared/InstallPrompt"), { ssr: false });
+const PWARegister = dynamic(() => import("@/components/shared/PWARegister"), { ssr: false });
 const FloatingWhatsApp = dynamic(() => import("@/components/shared/FloatingWhatsApp"), { ssr: false });
 const LiveSalesPopup = dynamic(() => import("@/components/shared/LiveSalesPopup"), { ssr: false });
 const SpinWheelModal = dynamic(() => import("@/components/shared/SpinWheelModal"), { ssr: false });
 
-/**
- * ClientProviders
- * Wraps all client-side providers and persistent UI components.
- * Separated from the root layout to keep it a Server Component.
- */
 export default function ClientProviders({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  // Install before any child page effects can issue browser requests.
+  // Install request deduplication once before any child page requests
   installRequestDedupe();
 
   return (

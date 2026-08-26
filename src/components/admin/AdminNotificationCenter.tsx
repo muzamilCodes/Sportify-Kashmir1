@@ -84,7 +84,7 @@ export default function AdminNotificationCenter() {
 
   useEffect(() => {
     fetchAdminNotifications();
-    const interval = setInterval(fetchAdminNotifications, 15000);
+    const interval = setInterval(fetchAdminNotifications, 60000);
 
     const handleRefresh = () => fetchAdminNotifications();
     window.addEventListener("adminNotificationsUpdated", handleRefresh);

@@ -703,3 +703,10 @@
   min-height: 100vh;
   background: transparent;
 }
+
+/* Core Web Vitals: Skip off-screen rendering until visible */
+.cv-auto {
+  content-visibility: auto;
+  contain-intrinsic-size: 0 400px;
+}
+

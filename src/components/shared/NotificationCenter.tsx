@@ -138,7 +138,7 @@ export default function NotificationCenter() {
   useEffect(() => {
     fetchNotifications();
 
-    const interval = setInterval(fetchNotifications, 20000);
+    const interval = setInterval(fetchNotifications, 60000);
 
     const handleRefresh = () => fetchNotifications();
     window.addEventListener("notificationsUpdated", handleRefresh);
