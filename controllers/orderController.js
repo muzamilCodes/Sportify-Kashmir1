@@ -1,12 +1,45 @@
 const mongoose = require("mongoose");
 const Cart = require("../models/cartModel");
 const Order = require("../models/orderModel");
+const Coupon = require("../models/couponModel");
 const { Product } = require("../models/productModel");
 const { User } = require("../models/userModel");
 const { resHandler } = require("../utilities/resHandler");
 const { notifyOrderEvent, normalizeOrderStatus } = require("../utilities/orderNotificationService");
 const { createOrderWithInventory, releaseOrderInventory } = require("../utilities/inventoryService");
 const { getPricedCart } = require("../utilities/cartPricing");
+
+async function markCouponUsed(code, userId) {
+  if (!code) return;
+  try {
+    const cleanCode = String(code).trim().toUpperCase();
+    const coupon = await Coupon.findOne({ code: cleanCode });
+    if (!coupon) return;
+
+    coupon.usedCount = (coupon.usedCount || 0) + 1;
+
+    // Track user usage
+    if (userId) {
+      const userUsageIndex = (coupon.usedBy || []).findIndex(
+        (u) => u.user && u.user.toString() === userId.toString()
+      );
+      if (userUsageIndex >= 0) {
+        coupon.usedBy[userUsageIndex].count += 1;
+      } else {
+        coupon.usedBy.push({ user: userId, count: 1 });
+      }
+    }
+
+    // If single use or reached max usage limit, deactivate immediately
+    if (coupon.usageLimit > 0 && coupon.usedCount >= coupon.usageLimit) {
+      coupon.isActive = false;
+    }
+
+    await coupon.save();
+  } catch (err) {
+    console.error("[Coupon] Error marking coupon as used:", err);
+  }
+}
 
 async function getActingUser(req) {
   if (!req.userId) return null;
@@ -563,18 +596,26 @@ exports.verifyAndCreateOrder = async (req, res) => {
       orderData.guestAddress = guestAddress;
     }
 
+    if (req.body.couponCode) {
+      orderData.couponCode = String(req.body.couponCode).trim().toUpperCase();
+    }
+
     const order = await createOrderWithInventory(Order, orderData);
+
+    // Burn/mark coupon as used
+    if (req.body.couponCode) {
+      await markCouponUsed(req.body.couponCode, userId);
+    }
+
     await notifyOrderEvent(order._id, { type: "created", status: "pending" });
 
     // Clear cart
     if (userId) {
-      const Cart = require("../models/cartModel");
       await Cart.findOneAndUpdate(
         { userId: userId },
         { $set: { products: [], cartValue: 0 } }
       );
 
-      const { User } = require("../models/userModel");
       await User.findByIdAndUpdate(userId, {
         $push: { orders: order._id },
       });
@@ -623,14 +664,16 @@ exports.getUserOrders = async (req, res) => {
 exports.createCODOrder = async (req, res) => {
   try {
     const userId = req.userId;
-    const { shippingAddress } = req.body;
+    const { shippingAddress, couponCode, discountAmount } = req.body;
     const { products, total } = await getPricedCart(userId);
+
+    const orderFinalValue = discountAmount ? Math.max(0, total - Number(discountAmount)) : total;
 
     const orderData = {
       userId: userId,
       shippingAddress: shippingAddress,
       products: products,
-      orderValue: total,
+      orderValue: orderFinalValue,
       paymentMethod: "cod",
       paymentStatus: "pending",
       orderStatus: "pending",
@@ -644,8 +687,18 @@ exports.createCODOrder = async (req, res) => {
       ],
     };
 
+    if (couponCode) {
+      orderData.couponCode = String(couponCode).trim().toUpperCase();
+      orderData.discount = Number(discountAmount || 0);
+    }
+
     const order = await createOrderWithInventory(Order, orderData);
     await User.findByIdAndUpdate(userId, { $push: { orders: order._id } });
+
+    // Mark and burn coupon so it cannot be reused ever
+    if (couponCode) {
+      await markCouponUsed(couponCode, userId);
+    }
 
     // Clear cart
     await Cart.findOneAndUpdate(

@@ -4,9 +4,10 @@ const authorize = require("../middlewares/authorize");
 const admin = require("../middlewares/admin");
 const couponController = require("../controllers/couponController");
 
-// Public / Checkout Validation
+// Public / Checkout Validation & Spin Wheel
 router.get("/all", couponController.getAllCoupons);
 router.post("/validate", couponController.validateCoupon);
+router.post("/spin-generate", couponController.generateSpinCoupon);
 
 // Admin Coupon Management
 router.post("/add", authorize, admin, couponController.addCoupon);

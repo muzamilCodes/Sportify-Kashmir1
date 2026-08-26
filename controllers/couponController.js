@@ -253,3 +253,50 @@ exports.validateCoupon = async (req, res) => {
     return res.status(500).json({ success: false, message: error.message });
   }
 };
+
+// 6. Generate Unique Single-Use Spin Wheel Coupon (15 Minutes Expiry)
+exports.generateSpinCoupon = async (req, res) => {
+  try {
+    const { discountPercent } = req.body;
+    const pct = Number(discountPercent);
+
+    if (!pct || (pct !== 10 && pct !== 12 && pct !== 15 && pct !== 5)) {
+      return res.status(400).json({ success: false, message: "Invalid spin discount value" });
+    }
+
+    // Generate unique random 4-character alphanumeric code e.g. SPIN10-7B3F
+    const randSuffix = Math.random().toString(36).substring(2, 6).toUpperCase();
+    const code = `SPIN${pct}-${randSuffix}`;
+
+    // 15-minute strict expiry
+    const expiryDate = new Date(Date.now() + 15 * 60 * 1000);
+
+    const coupon = await Coupon.create({
+      code,
+      discountType: "Percentage",
+      discountValue: pct,
+      maxDiscountAmount: 1500, // max ₹1,500 cap
+      minOrderValue: 499,
+      startDate: new Date(),
+      expiryDate,
+      usageLimit: 1, // Only 1 use in total across the entire store
+      perUserLimit: 1,
+      isActive: true,
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: "Unique single-use spin coupon generated successfully",
+      data: {
+        code: coupon.code,
+        discountValue: coupon.discountValue,
+        expiryDate: coupon.expiryDate,
+        expiresInSeconds: 15 * 60,
+      },
+    });
+  } catch (error) {
+    console.error("Spin coupon generate error:", error);
+    return res.status(500).json({ success: false, message: error.message || "Failed to generate spin coupon" });
+  }
+};
+
