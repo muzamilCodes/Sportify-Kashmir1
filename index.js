@@ -7,6 +7,7 @@ const mongoose = require("mongoose");
 const connectDb = require("./config/connectDb");
 const sendEmail = require("./utilities/emailService");
 
+const compression = require("compression");
 const app = express();
 const port = process.env.PORT || 4000;
 
@@ -15,6 +16,7 @@ connectDb();
 
 // Middlewares
 app.disable("x-powered-by");
+app.use(compression());
 
 // ✅ CORS configuration (MUST be first middleware so all requests & preflights pass)
 const configuredFrontendOrigins = [
