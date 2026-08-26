@@ -29,6 +29,7 @@ import {
   PlusCircle,
   X,
   Edit,
+  Gift,
 } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -87,6 +88,16 @@ export default function CheckoutPage() {
 
   const [isGettingLocation, setIsGettingLocation] = useState(false);
   const [locationError, setLocationError] = useState("");
+
+  // Coupon state
+  const [couponCode, setCouponCode] = useState("");
+  const [appliedCoupon, setAppliedCoupon] = useState<{
+    code: string;
+    discountAmount: number;
+    discountPercent?: number;
+    discountType: string;
+  } | null>(null);
+  const [validatingCoupon, setValidatingCoupon] = useState(false);
 
   const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000").replace(/\/$/, "");
 
@@ -240,6 +251,19 @@ export default function CheckoutPage() {
     };
   }, []);
 
+  // Pre-fill spin wheel coupon if active
+  useEffect(() => {
+    const savedSpin = localStorage.getItem("sportify_spin_coupon_v3");
+    if (savedSpin) {
+      try {
+        const parsed = JSON.parse(savedSpin);
+        if (parsed.expiresAt > Date.now() && parsed.code) {
+          setCouponCode(parsed.code);
+        }
+      } catch {}
+    }
+  }, []);
+
   const calculateTotals = (items: CartItem[]) => {
     let sub = 0;
     items.forEach((item) => {
@@ -252,6 +276,56 @@ export default function CheckoutPage() {
     });
     setSubtotal(sub);
     setTotalAmount(sub);
+  };
+
+  const applyCoupon = async () => {
+    if (!couponCode.trim()) {
+      toast.error("Please enter a coupon code");
+      return;
+    }
+
+    if (subtotal <= 0) {
+      toast.error("Your cart is empty");
+      return;
+    }
+
+    setValidatingCoupon(true);
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_URL}/coupon/validate`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+        body: JSON.stringify({
+          code: couponCode.trim().toUpperCase(),
+          orderAmount: subtotal,
+        }),
+      });
+
+      const result = await res.json();
+      if (result.success && result.data) {
+        setAppliedCoupon({
+          code: result.data.code,
+          discountAmount: result.data.discountAmount,
+          discountPercent: result.data.discountValue,
+          discountType: result.data.discountType,
+        });
+        toast.success(`🎉 ${result.message || "Coupon applied!"}`);
+      } else {
+        toast.error(result.message || "Invalid or expired coupon code");
+      }
+    } catch {
+      toast.error("Failed to validate coupon");
+    } finally {
+      setValidatingCoupon(false);
+    }
+  };
+
+  const removeCoupon = () => {
+    setAppliedCoupon(null);
+    toast.success("Coupon removed");
   };
   const updateQuantity = async (productId: string, newQuantity: number) => {
     if (newQuantity < 1) return;
@@ -487,9 +561,15 @@ export default function CheckoutPage() {
       price: getItemPrice(item),
     }));
 
+    const discountAmount = appliedCoupon ? appliedCoupon.discountAmount : 0;
+    const finalOrderTotal = Math.max(0, subtotal - discountAmount);
+
     const orderData: any = {
       products: orderProducts,
-      totalAmount: totalAmount,
+      totalAmount: finalOrderTotal,
+      subtotal: subtotal,
+      discountAmount: discountAmount,
+      couponCode: appliedCoupon ? appliedCoupon.code : undefined,
       paymentMethod: "cod",
     };
 
@@ -532,6 +612,7 @@ export default function CheckoutPage() {
 
 const clearCartAfterOrder = async () => {
   try {
+    localStorage.removeItem("sportify_spin_coupon_v3");
     const token = localStorage.getItem("token");
     if (!token) return;
 
@@ -641,8 +722,9 @@ const handlePayment = () => {
   }
 };
 
+const discountAmount = appliedCoupon ? appliedCoupon.discountAmount : 0;
 const shippingCost = 0;
-const grandTotal = totalAmount + shippingCost;
+const grandTotal = Math.max(0, subtotal - discountAmount + shippingCost);
 
 return (
   <div className="sk-page-shell">
@@ -976,19 +1058,81 @@ return (
               </div>
             )}
 
+            {/* Coupon Code Section */}
+            <div className="my-4 pt-3 border-t border-gray-100 dark:border-gray-800">
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-xs font-bold text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
+                  <Gift className="w-3.5 h-3.5 text-orange-500" />
+                  <span>Promo / Spin Coupon Code</span>
+                </span>
+                {appliedCoupon && (
+                  <span className="text-[10px] bg-green-100 dark:bg-green-950/60 text-green-700 dark:text-green-400 font-bold px-2 py-0.5 rounded-full">
+                    {appliedCoupon.code} Applied
+                  </span>
+                )}
+              </div>
+
+              {appliedCoupon ? (
+                <div className="flex items-center justify-between p-2.5 bg-green-50 dark:bg-green-950/40 border border-green-200 dark:border-green-800/60 rounded-xl text-xs">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400 shrink-0" />
+                    <div>
+                      <span className="font-mono font-bold text-green-800 dark:text-green-300">
+                        {appliedCoupon.code}
+                      </span>
+                      <span className="text-gray-500 text-[11px] block">
+                        Saved ₹{appliedCoupon.discountAmount.toFixed(2)} on this order
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={removeCoupon}
+                    className="text-red-500 hover:text-red-700 text-xs font-bold px-2 py-1 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-lg cursor-pointer"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="Enter Coupon / Spin Code"
+                    value={couponCode}
+                    onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                    className="flex-1 px-3 py-2 text-xs border border-gray-300 dark:border-gray-700 rounded-xl uppercase font-mono tracking-wider bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:border-orange-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={applyCoupon}
+                    disabled={validatingCoupon || !couponCode.trim()}
+                    className="px-4 py-2 bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white text-xs font-bold rounded-xl transition cursor-pointer flex items-center gap-1 shrink-0"
+                  >
+                    {validatingCoupon ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Apply"}
+                  </button>
+                </div>
+              )}
+            </div>
+
             <div className="space-y-3">
               <div className="flex justify-between text-gray-600">
                 <span>Subtotal</span>
                 <span>₹{subtotal.toFixed(2)}</span>
               </div>
+              {appliedCoupon && (
+                <div className="flex justify-between text-green-600 font-bold text-sm">
+                  <span>Coupon Discount ({appliedCoupon.code})</span>
+                  <span>-₹{appliedCoupon.discountAmount.toFixed(2)}</span>
+                </div>
+              )}
               <div className="flex justify-between text-gray-600">
                 <span>Shipping</span>
-                <span className="text-green-600">Free</span>
+                <span className="text-green-600 font-medium">Free</span>
               </div>
               <div className="border-t pt-3 mt-3">
                 <div className="flex justify-between font-bold text-lg">
                   <span>Total Amount</span>
-                  <span className="text-orange-600">₹{grandTotal.toFixed(2)}</span>
+                  <span className="text-orange-600 font-extrabold">₹{grandTotal.toFixed(2)}</span>
                 </div>
               </div>
             </div>

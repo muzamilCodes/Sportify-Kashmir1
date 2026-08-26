@@ -14,6 +14,8 @@ import {
   ArrowLeft,
   Loader2,
   IndianRupee,
+  Gift,
+  CheckCircle,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import ProductImage from "@/components/ProductImage";
@@ -41,10 +43,31 @@ export default function CartPage() {
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
+  // Coupon state
+  const [couponCode, setCouponCode] = useState("");
+  const [appliedCoupon, setAppliedCoupon] = useState<{
+    code: string;
+    discountAmount: number;
+    discountPercent?: number;
+    discountType: string;
+  } | null>(null);
+  const [validatingCoupon, setValidatingCoupon] = useState(false);
+
   const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000").replace(/\/$/, "");
 
   useEffect(() => {
     fetchCart();
+
+    // Auto-fill active spin wheel coupon
+    const savedSpin = localStorage.getItem("sportify_spin_coupon_v3");
+    if (savedSpin) {
+      try {
+        const parsed = JSON.parse(savedSpin);
+        if (parsed.expiresAt > Date.now() && parsed.code) {
+          setCouponCode(parsed.code);
+        }
+      } catch {}
+    }
   }, []);
 
   const getItemPrice = (item: CartItem) => {
@@ -197,9 +220,61 @@ export default function CartPage() {
     }, 0);
   };
 
+  const applyCoupon = async () => {
+    if (!couponCode.trim()) {
+      toast.error("Please enter a coupon code");
+      return;
+    }
+
+    const currentSub = getSubtotal();
+    if (currentSub <= 0) {
+      toast.error("Your cart is empty");
+      return;
+    }
+
+    setValidatingCoupon(true);
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_URL}/coupon/validate`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+        body: JSON.stringify({
+          code: couponCode.trim().toUpperCase(),
+          orderAmount: currentSub,
+        }),
+      });
+
+      const result = await res.json();
+      if (result.success && result.data) {
+        setAppliedCoupon({
+          code: result.data.code,
+          discountAmount: result.data.discountAmount,
+          discountPercent: result.data.discountValue,
+          discountType: result.data.discountType,
+        });
+        toast.success(`🎉 ${result.message || "Coupon applied!"}`);
+      } else {
+        toast.error(result.message || "Invalid or expired coupon code");
+      }
+    } catch {
+      toast.error("Failed to validate coupon");
+    } finally {
+      setValidatingCoupon(false);
+    }
+  };
+
+  const removeCoupon = () => {
+    setAppliedCoupon(null);
+    toast.success("Coupon removed");
+  };
+
   const subtotal = getSubtotal();
+  const discountAmount = appliedCoupon ? appliedCoupon.discountAmount : 0;
   const shipping = subtotal > 999 ? 0 : 100;
-  const total = subtotal + shipping;
+  const total = Math.max(0, subtotal - discountAmount + shipping);
 
   if (loading) {
     return (
@@ -360,11 +435,73 @@ export default function CartPage() {
             <div className="bg-white dark:bg-zinc-900 rounded-2xl p-6 shadow-sm border border-zinc-100 dark:border-zinc-800 sticky top-24">
               <h2 className="font-display text-lg font-bold text-zinc-900 dark:text-white mb-4">Order Summary</h2>
 
+              {/* Coupon Code Section */}
+              <div className="my-4 pt-3 border-t border-zinc-100 dark:border-zinc-800">
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-xs font-bold text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
+                    <Gift className="w-3.5 h-3.5 text-orange-500" />
+                    <span>Promo / Spin Coupon Code</span>
+                  </span>
+                  {appliedCoupon && (
+                    <span className="text-[10px] bg-green-100 dark:bg-green-950/60 text-green-700 dark:text-green-400 font-bold px-2 py-0.5 rounded-full">
+                      {appliedCoupon.code} Applied
+                    </span>
+                  )}
+                </div>
+
+                {appliedCoupon ? (
+                  <div className="flex items-center justify-between p-2.5 bg-green-50 dark:bg-green-950/40 border border-green-200 dark:border-green-800/60 rounded-xl text-xs">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400 shrink-0" />
+                      <div>
+                        <span className="font-mono font-bold text-green-800 dark:text-green-300">
+                          {appliedCoupon.code}
+                        </span>
+                        <span className="text-zinc-500 text-[11px] block">
+                          Saved ₹{appliedCoupon.discountAmount.toFixed(2)} on this order
+                        </span>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={removeCoupon}
+                      className="text-red-500 hover:text-red-700 text-xs font-bold px-2 py-1 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-lg cursor-pointer"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      placeholder="Enter Coupon / Spin Code"
+                      value={couponCode}
+                      onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                      className="flex-1 px-3 py-2 text-xs border border-zinc-200 dark:border-zinc-700 rounded-xl uppercase font-mono tracking-wider bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white focus:outline-none focus:border-orange-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={applyCoupon}
+                      disabled={validatingCoupon || !couponCode.trim()}
+                      className="px-4 py-2 bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white text-xs font-bold rounded-xl transition cursor-pointer flex items-center gap-1 shrink-0"
+                    >
+                      {validatingCoupon ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Apply"}
+                    </button>
+                  </div>
+                )}
+              </div>
+
               <div className="space-y-3 pb-4 border-b border-zinc-100 dark:border-zinc-800">
                 <div className="flex justify-between text-zinc-600 dark:text-zinc-300">
                   <span>Price ({cartItems.length} items)</span>
                   <span>₹{subtotal.toLocaleString("en-IN")}</span>
                 </div>
+                {appliedCoupon && (
+                  <div className="flex justify-between text-green-600 font-bold text-sm">
+                    <span>Coupon Discount ({appliedCoupon.code})</span>
+                    <span>-₹{appliedCoupon.discountAmount.toFixed(2)}</span>
+                  </div>
+                )}
                 <div className="flex justify-between text-zinc-600 dark:text-zinc-300">
                   <span>Delivery Charges</span>
                   {shipping === 0 ? (
@@ -378,7 +515,7 @@ export default function CartPage() {
               <div className="py-4 border-b border-zinc-100 dark:border-zinc-800">
                 <div className="flex justify-between text-lg font-bold text-zinc-900 dark:text-white">
                   <span>Total Amount</span>
-                  <span className="text-orange-600">₹{total.toLocaleString("en-IN")}</span>
+                  <span className="text-orange-600 font-extrabold">₹{total.toLocaleString("en-IN")}</span>
                 </div>
                 <p className="text-xs text-zinc-500 mt-1">Inclusive of all taxes</p>
               </div>

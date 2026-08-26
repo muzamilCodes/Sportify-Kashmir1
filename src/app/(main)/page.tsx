@@ -23,7 +23,6 @@ import { useLanguage } from "@/context/LanguageContext";
 // High Performance: Lazy-load below-the-fold interactive widgets to reduce initial bundle & TBT
 const AmazonRecommendationCards = dynamic(() => import("@/components/AmazonRecommendationCards"), { ssr: false });
 const SportsCategoryExplorer = dynamic(() => import("@/components/SportsCategoryExplorer"), { ssr: false });
-const SportsGearQuiz = dynamic(() => import("@/components/SportsGearQuiz"), { ssr: false });
 const RecentlyViewed = dynamic(() => import("@/components/RecentlyViewed"), { ssr: false });
 const HomeBlogSection = dynamic(() => import("@/components/HomeBlogSection"), { ssr: false });
 
@@ -287,12 +286,7 @@ export default function HomePage() {
           )}
         </section>
 
-        {/* 5. Interactive Sports Gear Matcher Quiz */}
-        <div className="cv-auto">
-          <SportsGearQuiz />
-        </div>
-
-        {/* 6. Special Sale Section (Flash Deals) */}
+        {/* 5. Special Sale Section (Flash Deals) */}
         {saleProducts.length > 0 && (
           <section className="mb-14 cv-auto">
             <div className="flex justify-between items-end mb-6">

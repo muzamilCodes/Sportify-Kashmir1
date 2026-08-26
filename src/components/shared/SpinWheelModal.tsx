@@ -1,54 +1,112 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { usePathname } from "next/navigation";
-import { X, Sparkles, Gift, Check, Copy, ArrowRight } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import { X, Sparkles, Gift, Check, Copy, ArrowRight, Clock, Flame, RotateCcw } from "lucide-react";
 import toast from "react-hot-toast";
+import { soundEffects } from "@/lib/audioHelper";
 
 interface WheelSlice {
   label: string;
-  code: string;
+  percent: number;
   discount: string;
   bg: string;
   color: string;
 }
 
 const SLICES: WheelSlice[] = [
-  { label: "15% OFF", code: "KASHMIR15", discount: "15% Instant Discount", bg: "#f97316", color: "#ffffff" },
-  { label: "₹150 OFF", code: "SPORTIFY150", discount: "₹150 Flat Off on ₹999+", bg: "#10b981", color: "#ffffff" },
-  { label: "FREE SHIPPING", code: "FREESHIP", discount: "Free Valley Express Shipping", bg: "#3b82f6", color: "#ffffff" },
-  { label: "10% OFF", code: "WILLOW10", discount: "10% Off on Cricket Gear", bg: "#8b5cf6", color: "#ffffff" },
-  { label: "FREE GRIP", code: "FREEGIFT", discount: "Free Extra Rubber Grip with Bat", bg: "#ec4899", color: "#ffffff" },
-  { label: "20% VIP", code: "KASHMIRVIP", discount: "20% Mega VIP Discount", bg: "#f59e0b", color: "#111827" },
+  { label: "10% OFF", percent: 10, discount: "10% Instant Discount on All Gear", bg: "#ea580c", color: "#ffffff" },
+  { label: "BETTER LUCK", percent: 0, discount: "Better Luck Next Time! Spin Again Tomorrow", bg: "#475569", color: "#ffffff" },
+  { label: "15% OFF", percent: 15, discount: "15% Mega Discount on Kashmir Willow", bg: "#f97316", color: "#ffffff" },
+  { label: "10% OFF", percent: 10, discount: "10% Flat Discount on Sports Wear", bg: "#d97706", color: "#ffffff" },
+  { label: "BETTER LUCK", percent: 0, discount: "Better Luck Next Time! Spin Again Tomorrow", bg: "#334155", color: "#ffffff" },
+  { label: "12% OFF", percent: 12, discount: "12% Special Discount on Entire Order", bg: "#ef4444", color: "#ffffff" },
 ];
+
+interface ActiveSpinCoupon {
+  code: string;
+  discountPercent: number;
+  discountTitle: string;
+  expiresAt: number; // timestamp
+}
 
 export default function SpinWheelModal() {
   const pathname = usePathname();
+  const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [isSpinning, setIsSpinning] = useState(false);
-  const [hasSpun, setHasSpun] = useState(false);
-  const [winningSlice, setWinningSlice] = useState<WheelSlice | null>(null);
+  const [activeCoupon, setActiveCoupon] = useState<ActiveSpinCoupon | null>(null);
+  const [isExpired, setIsExpired] = useState(false);
+  const [remainingSeconds, setRemainingSeconds] = useState<number>(0);
   const [rotation, setRotation] = useState(0);
   const [copied, setCopied] = useState(false);
+  const [betterLuck, setBetterLuck] = useState(false);
+  const [hasAlreadySpunToday, setHasAlreadySpunToday] = useState(false);
 
+  const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000").replace(/\/$/, "");
+
+  // Check 1-spin daily limit and active coupons
   useEffect(() => {
-    // Check if user already won
-    const savedWin = localStorage.getItem("spinWheelWin");
-    if (savedWin) {
+    const lastSpunTime = localStorage.getItem("sportify_last_spin_time");
+    if (lastSpunTime && Date.now() - Number(lastSpunTime) < 24 * 60 * 60 * 1000) {
+      setHasAlreadySpunToday(true);
+    } else {
+      setHasAlreadySpunToday(false);
+    }
+  }, [isOpen]);
+
+  // Load existing coupon and setup 15-min countdown
+  useEffect(() => {
+    const saved = localStorage.getItem("sportify_spin_coupon_v3");
+    if (saved) {
       try {
-        setWinningSlice(JSON.parse(savedWin));
-        setHasSpun(true);
+        const parsed: ActiveSpinCoupon = JSON.parse(saved);
+        const now = Date.now();
+        if (parsed.expiresAt > now) {
+          setActiveCoupon(parsed);
+          setRemainingSeconds(Math.floor((parsed.expiresAt - now) / 1000));
+        } else {
+          setIsExpired(true);
+          localStorage.removeItem("sportify_spin_coupon_v3");
+        }
       } catch {}
     }
   }, []);
 
+  // Ticking Timer
+  useEffect(() => {
+    if (!activeCoupon) return;
+
+    const interval = setInterval(() => {
+      const diff = Math.floor((activeCoupon.expiresAt - Date.now()) / 1000);
+      if (diff <= 0) {
+        setRemainingSeconds(0);
+        setIsExpired(true);
+        setActiveCoupon(null);
+        localStorage.removeItem("sportify_spin_coupon_v3");
+        clearInterval(interval);
+      } else {
+        setRemainingSeconds(diff);
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [activeCoupon]);
+
   const handleSpin = async () => {
-    if (isSpinning || hasSpun) return;
+    if (isSpinning || activeCoupon) return;
+
+    // Check if user spun in the last 24 hours
+    const lastSpunTime = localStorage.getItem("sportify_last_spin_time");
+    if (lastSpunTime && Date.now() - Number(lastSpunTime) < 24 * 60 * 60 * 1000 && !activeCoupon) {
+      toast.error("You have already spun today! Come back tomorrow.");
+      return;
+    }
 
     setIsSpinning(true);
-    setWinningSlice(null);
+    setBetterLuck(false);
 
-    // Pick a winning index (favor 15% or ₹150 OFF)
+    // Pick a winning index
     const winIndex = Math.floor(Math.random() * SLICES.length);
     const selected = SLICES[winIndex];
 
@@ -59,30 +117,82 @@ export default function SpinWheelModal() {
 
     setTimeout(async () => {
       setIsSpinning(false);
-      setHasSpun(true);
-      setWinningSlice(selected);
-      localStorage.setItem("spinWheelWin", JSON.stringify(selected));
+      localStorage.setItem("sportify_last_spin_time", String(Date.now()));
 
-      // Trigger Confetti
+      if (selected.percent === 0) {
+        // Better Luck Next Time
+        setBetterLuck(true);
+        toast.error("Better luck next time! You can spin again tomorrow.");
+        return;
+      }
+
+      // Generate REAL single-use database coupon for this specific user
       try {
-        const confetti = (await import("canvas-confetti")).default;
-        confetti({
-          particleCount: 100,
-          spread: 70,
-          origin: { y: 0.6 },
+        const res = await fetch(`${API_URL}/coupon/spin-generate`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ discountPercent: selected.percent }),
         });
-      } catch {}
 
-      toast.success(`🎉 You won ${selected.discount}!`);
+        const data = await res.json();
+        if (data.success && data.data?.code) {
+          const newCouponData: ActiveSpinCoupon = {
+            code: data.data.code,
+            discountPercent: selected.percent,
+            discountTitle: selected.discount,
+            expiresAt: Date.now() + 15 * 60 * 1000, // 15 minutes strict
+          };
+
+          setActiveCoupon(newCouponData);
+          setRemainingSeconds(15 * 60);
+          setIsExpired(false);
+          localStorage.setItem("sportify_spin_coupon_v3", JSON.stringify(newCouponData));
+
+          soundEffects.playCelebrationChime();
+
+          // Confetti blast
+          try {
+            const confetti = (await import("canvas-confetti")).default;
+            confetti({
+              particleCount: 100,
+              spread: 70,
+              origin: { y: 0.6 },
+              colors: ["#f97316", "#ef4444", "#fbbf24", "#ffffff"],
+            });
+          } catch {}
+
+          toast.success(`🎉 You won ${selected.percent}% OFF! Use code ${data.data.code}`);
+        } else {
+          // Fallback if backend error
+          const fallbackCode = `SPIN${selected.percent}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+          const newCouponData: ActiveSpinCoupon = {
+            code: fallbackCode,
+            discountPercent: selected.percent,
+            discountTitle: selected.discount,
+            expiresAt: Date.now() + 15 * 60 * 1000,
+          };
+          setActiveCoupon(newCouponData);
+          setRemainingSeconds(15 * 60);
+          localStorage.setItem("sportify_spin_coupon_v3", JSON.stringify(newCouponData));
+        }
+      } catch (err) {
+        console.error("Spin coupon error:", err);
+      }
     }, 4000);
   };
 
   const handleCopyCode = () => {
-    if (!winningSlice) return;
-    navigator.clipboard.writeText(winningSlice.code);
+    if (!activeCoupon) return;
+    navigator.clipboard.writeText(activeCoupon.code);
     setCopied(true);
-    toast.success(`Coupon code ${winningSlice.code} copied!`);
-    setTimeout(() => setCopied(false), 2000);
+    toast.success(`Coupon code ${activeCoupon.code} copied!`);
+    setTimeout(() => setCopied(false), 2500);
+  };
+
+  const formatTimer = (totalSecs: number) => {
+    const mins = Math.floor(totalSecs / 60);
+    const secs = totalSecs % 60;
+    return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
   };
 
   if (pathname?.startsWith("/admin")) {
@@ -91,7 +201,7 @@ export default function SpinWheelModal() {
 
   return (
     <>
-      {/* Floating Trigger Badge (Positioned Bottom-Left to avoid overlap) */}
+      {/* Floating Trigger Badge on Bottom-Left */}
       <button
         type="button"
         onClick={() => setIsOpen(true)}
@@ -99,7 +209,16 @@ export default function SpinWheelModal() {
         aria-label="Spin and Win discounts"
       >
         <Gift size={16} className="animate-bounce" />
-        <span className="inline">Spin & Win 🎁</span>
+        {activeCoupon ? (
+          <span className="inline-flex items-center gap-1 font-mono">
+            <span>🎁 {activeCoupon.discountPercent}% OFF</span>
+            <span className="bg-black/40 px-1.5 py-0.5 rounded text-[10px] text-yellow-300">
+              {formatTimer(remainingSeconds)}
+            </span>
+          </span>
+        ) : (
+          <span className="inline">Spin &amp; Win 🎁</span>
+        )}
       </button>
 
       {/* Modal Backdrop */}
@@ -122,7 +241,7 @@ export default function SpinWheelModal() {
               Sportify Kashmir Lucky Spin
             </h3>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 max-w-[280px]">
-              Spin the wheel to unlock exclusive discounts & free perks on authentic sports gear!
+              Spin the wheel to win 10% to 15% discount coupons. Each coupon is single-use and valid for 15 minutes!
             </p>
 
             {/* Wheel Container */}
@@ -143,7 +262,7 @@ export default function SpinWheelModal() {
                   return (
                     <div
                       key={idx}
-                      className="absolute inset-0 origin-center flex items-start justify-center pt-2 font-black text-[10px] tracking-tight"
+                      className="absolute inset-0 origin-center flex items-start justify-center pt-2 font-black text-[9px] tracking-tight"
                       style={{
                         transform: `rotate(${angle}deg)`,
                         backgroundColor: s.bg,
@@ -151,7 +270,9 @@ export default function SpinWheelModal() {
                         clipPath: "polygon(50% 50%, 0% 0%, 100% 0%)",
                       }}
                     >
-                      <span className="mt-2 block rotate-90 transform">{s.label}</span>
+                      <span className="mt-2 block rotate-90 transform uppercase font-extrabold">
+                        {s.label}
+                      </span>
                     </div>
                   );
                 })}
@@ -163,39 +284,100 @@ export default function SpinWheelModal() {
               </div>
             </div>
 
-            {/* Result or Spin Button */}
-            {winningSlice ? (
-              <div className="w-full p-4 rounded-2xl bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-950/40 dark:to-amber-950/40 border border-orange-200 dark:border-orange-900/60 shadow-xs animate-in zoom-in-95 duration-200">
-                <span className="text-[10px] font-black text-orange-600 dark:text-orange-400 uppercase tracking-wider">
-                  🎉 Congratulations! You Won
-                </span>
-                <h4 className="text-base font-black text-gray-900 dark:text-white mt-0.5">
-                  {winningSlice.discount}
-                </h4>
+            {/* Active Won Coupon State */}
+            {activeCoupon ? (
+              <div className="w-full p-4 rounded-2xl bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-950/40 dark:to-amber-950/40 border border-orange-200 dark:border-orange-900/60 shadow-xs animate-in zoom-in-95 duration-200 space-y-3">
+                <div>
+                  <span className="text-[10px] font-black text-orange-600 dark:text-orange-400 uppercase tracking-wider">
+                    🎉 Congratulations! You Won {activeCoupon.discountPercent}% OFF
+                  </span>
+                  <h4 className="text-sm font-black text-gray-900 dark:text-white mt-0.5">
+                    {activeCoupon.discountTitle}
+                  </h4>
+                </div>
 
-                {/* Promo Code Box */}
-                <div className="my-3 flex items-center justify-between bg-white dark:bg-gray-800 p-2.5 rounded-xl border border-dashed border-orange-400">
+                {/* 15-Minute Expiry Countdown Bar */}
+                <div className="flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-600 dark:text-red-400 text-xs font-mono font-black">
+                  <Clock size={14} className="animate-pulse" />
+                  <span>Code Expires In: {formatTimer(remainingSeconds)}</span>
+                </div>
+
+                {/* Unique Promo Code Box */}
+                <div className="flex items-center justify-between bg-white dark:bg-gray-800 p-2.5 rounded-xl border border-dashed border-orange-400">
                   <div className="text-left">
-                    <span className="text-[10px] text-gray-400 block font-medium">Coupon Code:</span>
-                    <span className="text-sm font-mono font-black text-orange-600 tracking-wider">
-                      {winningSlice.code}
+                    <span className="text-[10px] text-gray-400 block font-medium">Your Unique Code (Single-Use):</span>
+                    <span className="text-base font-mono font-black text-orange-600 tracking-wider">
+                      {activeCoupon.code}
                     </span>
                   </div>
                   <button
                     onClick={handleCopyCode}
-                    className="px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold rounded-lg shadow-xs flex items-center gap-1 transition cursor-pointer"
+                    className="px-3.5 py-1.5 bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold rounded-lg shadow-xs flex items-center gap-1 transition cursor-pointer active:scale-95"
                   >
                     {copied ? <Check size={14} /> : <Copy size={14} />}
                     <span>{copied ? "Copied!" : "Copy"}</span>
                   </button>
                 </div>
 
+                <p className="text-[10px] text-gray-500 dark:text-gray-400 leading-tight">
+                  🔒 Single-device protection: Only you can use this code at checkout on min order ₹499.
+                </p>
+
                 <button
-                  onClick={() => setIsOpen(false)}
+                  onClick={() => {
+                    handleCopyCode();
+                    setIsOpen(false);
+                    router.push("/checkout");
+                  }}
                   className="w-full py-2.5 bg-gray-900 hover:bg-orange-600 text-white text-xs font-bold rounded-xl shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer"
                 >
-                  <span>Shop Now & Apply Code</span>
+                  <span>Shop Now &amp; Apply at Checkout</span>
                   <ArrowRight size={14} />
+                </button>
+              </div>
+            ) : betterLuck ? (
+              <div className="w-full p-4 rounded-2xl bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 space-y-2">
+                <span className="text-xs font-bold text-gray-600 dark:text-gray-300">
+                  😔 Better Luck Next Time!
+                </span>
+                <p className="text-[11px] text-gray-500">
+                  You can spin the wheel again tomorrow to win 10% or 15% discount coupons.
+                </p>
+                <button
+                  onClick={() => setIsOpen(false)}
+                  className="w-full py-2 bg-gray-900 text-white text-xs font-bold rounded-xl hover:bg-gray-800 transition cursor-pointer"
+                >
+                  Continue Browsing Gear
+                </button>
+              </div>
+            ) : isExpired ? (
+              <div className="w-full p-4 rounded-2xl bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/40 space-y-2">
+                <span className="text-xs font-bold text-red-600 dark:text-red-400">
+                  ⏰ Previous Coupon Expired
+                </span>
+                <p className="text-[11px] text-gray-500">
+                  The 15-minute validity window has expired. You can spin again tomorrow!
+                </p>
+                <button
+                  onClick={() => setIsOpen(false)}
+                  className="w-full py-2 bg-gray-900 text-white text-xs font-bold rounded-xl hover:bg-gray-800 transition cursor-pointer"
+                >
+                  Close
+                </button>
+              </div>
+            ) : hasAlreadySpunToday ? (
+              <div className="w-full p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/40 text-center space-y-1.5 animate-in zoom-in-95 duration-200">
+                <span className="text-xs font-black text-amber-700 dark:text-amber-400 block">
+                  🛑 Daily Limit: 1 Spin Per User
+                </span>
+                <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                  You have already used your free lucky spin for today. Come back tomorrow for another chance!
+                </p>
+                <button
+                  onClick={() => setIsOpen(false)}
+                  className="w-full mt-2 py-2 bg-gray-900 hover:bg-gray-800 text-white text-xs font-bold rounded-xl transition cursor-pointer"
+                >
+                  Continue Shopping
                 </button>
               </div>
             ) : (

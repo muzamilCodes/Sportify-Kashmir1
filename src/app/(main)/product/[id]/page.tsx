@@ -49,6 +49,14 @@ const PrimeMembershipModal = dynamic(() => import("@/components/shared/PrimeMemb
   ssr: false,
 });
 
+const BatSoundPlayer = dynamic(() => import("@/components/shared/BatSoundPlayer"), {
+  ssr: false,
+});
+
+const Product3DViewer = dynamic(() => import("@/components/shared/Product3DViewer"), {
+  ssr: false,
+});
+
 interface Product {
   _id: string;
   name: string;
@@ -277,6 +285,7 @@ export default function ProductDetailPage() {
   const [showSizeGuide, setShowSizeGuide] = useState(false);
   const [sizeGuideTab, setSizeGuideTab] = useState<"bats" | "shoes" | "apparel">("bats");
   const [showPrimeModal, setShowPrimeModal] = useState(false);
+  const [show3DView, setShow3DView] = useState(false);
   const [notifyEmail, setNotifyEmail] = useState("");
   const [notifying, setNotifying] = useState(false);
   const relatedSectionRef = useRef<HTMLDivElement>(null);
@@ -721,27 +730,62 @@ export default function ProductDetailPage() {
         {/* Product Main Section */}
         <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800 p-4 sm:p-6 mb-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
-            {/* Product Images */}
+            {/* Product Images / 3D Viewer */}
             <div>
-              <div className="relative bg-gray-100 dark:bg-gray-850 rounded-2xl overflow-hidden aspect-square mb-3 sm:mb-4 group">
-                <ProductImage
-                  product={product.productImgUrls?.[selectedImage] || product}
-                  alt={product.name}
-                  fill
-                  priority
-                  sizes="(max-width: 1024px) 100vw, 50vw"
-                  className="object-contain"
-                />
-                {hasDiscount && (
-                  <div className="absolute top-3 sm:top-4 left-3 sm:left-4 bg-red-500 text-white px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full text-xs sm:text-sm font-bold z-10 shadow-xs">
-                    {product.discount}% OFF
+              {show3DView ? (
+                <div className="mb-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-black text-orange-500 flex items-center gap-1.5 uppercase">
+                      <Sparkles size={14} />
+                      <span>3D 360° Interactive Inspection</span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setShow3DView(false)}
+                      className="px-3 py-1 bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-bold rounded-full border border-zinc-700 cursor-pointer"
+                    >
+                      ← Back to Photos
+                    </button>
                   </div>
-                )}
-                {product.onSale && (
-                  <div className="absolute top-3 sm:top-4 right-3 sm:right-4 bg-orange-500 text-white px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full text-xs sm:text-sm font-bold animate-pulse z-10 shadow-xs">
-                    SALE
-                  </div>
-                )}
+                  <Product3DViewer
+                    product={{
+                      _id: product._id,
+                      name: product.name,
+                      productImgUrls: product.productImgUrls,
+                      price: product.price,
+                    }}
+                  />
+                </div>
+              ) : (
+                <div className="relative bg-gray-100 dark:bg-gray-850 rounded-2xl overflow-hidden aspect-square mb-3 sm:mb-4 group">
+                  {/* 3D View Toggle Button */}
+                  <button
+                    type="button"
+                    onClick={() => setShow3DView(true)}
+                    className="absolute top-3 left-3 z-20 px-3 py-1.5 rounded-full bg-black/80 hover:bg-black text-white text-xs font-black backdrop-blur-md border border-orange-500/50 flex items-center gap-1.5 shadow-xl transition active:scale-95 cursor-pointer animate-pulse"
+                  >
+                    <Sparkles size={13} className="text-orange-400" />
+                    <span>🪄 3D 360° View</span>
+                  </button>
+
+                  <ProductImage
+                    product={product.productImgUrls?.[selectedImage] || product}
+                    alt={product.name}
+                    fill
+                    priority
+                    sizes="(max-width: 1024px) 100vw, 50vw"
+                    className="object-contain"
+                  />
+                  {hasDiscount && (
+                    <div className="absolute bottom-3 left-3 sm:bottom-4 sm:left-4 bg-red-500 text-white px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full text-xs sm:text-sm font-bold z-10 shadow-xs">
+                      {product.discount}% OFF
+                    </div>
+                  )}
+                  {product.onSale && (
+                    <div className="absolute top-3 sm:top-4 right-3 sm:right-4 bg-orange-500 text-white px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full text-xs sm:text-sm font-bold animate-pulse z-10 shadow-xs">
+                      SALE
+                    </div>
+                  )}
 
                 {/* Mobile & Desktop Image Navigation Arrows */}
                 {product.productImgUrls && product.productImgUrls.length > 1 && (
@@ -768,6 +812,7 @@ export default function ProductDetailPage() {
                   </>
                 )}
               </div>
+              )}
 
               {/* Thumbnail Images */}
               {product.productImgUrls && product.productImgUrls.length > 1 && (
@@ -1010,6 +1055,13 @@ export default function ProductDetailPage() {
                       <span className="ml-auto font-bold text-emerald-600 text-[11px]">FREE (₹0)</span>
                     </div>
                   </div>
+                </div>
+              )}
+
+              {/* Bat Sweet Spot Sound Test */}
+              {isCricketProduct && (
+                <div className="mb-6">
+                  <BatSoundPlayer batName={product.name} />
                 </div>
               )}
 
