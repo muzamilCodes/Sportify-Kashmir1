@@ -355,8 +355,7 @@ export default function AmazonHeroCarousel() {
                   width={1600}
                   height={560}
                   loading={idx === 0 ? "eager" : "lazy"}
-                  // @ts-ignore
-                  fetchpriority={idx === 0 ? "high" : "low"}
+                  fetchPriority={idx === 0 ? "high" : "low"}
                   decoding="async"
                   className="absolute inset-0 w-full h-full object-cover mix-blend-overlay opacity-40 scale-105 transition-transform duration-7000"
                 />

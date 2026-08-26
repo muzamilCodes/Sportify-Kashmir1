@@ -25,6 +25,16 @@ export async function cachedJson<T>(url: string, ttlMs = 60_000): Promise<T> {
   return request;
 }
 
+export function setCachedJson<T>(url: string, value: T, ttlMs = 60_000): void {
+  cache.set(url, { value, expiresAt: Date.now() + ttlMs });
+}
+
+export function getCachedJson<T>(url: string): T | null {
+  const existing = cache.get(url);
+  if (existing && existing.expiresAt > Date.now()) return existing.value as T;
+  return null;
+}
+
 export function clearCachedJson(urlPrefix?: string) {
   if (!urlPrefix) {
     cache.clear();
@@ -32,3 +42,4 @@ export function clearCachedJson(urlPrefix?: string) {
   }
   for (const key of cache.keys()) if (key.startsWith(urlPrefix)) cache.delete(key);
 }
+

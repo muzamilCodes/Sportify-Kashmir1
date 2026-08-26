@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { resolveProductImage } from "@/lib/imageHelper";
+import { setCachedJson } from "@/lib/clientCache";
 import ProductImage from "@/components/ProductImage";
 import { useLanguage } from "@/context/LanguageContext";
 
@@ -224,9 +225,24 @@ function ProductCardComponent({
     }
   };
 
+  const primeProductCache = () => {
+    if (product?._id) {
+      setCachedJson(`${API_URL}/product/get/${product._id}`, {
+        success: true,
+        data: product,
+      }, 120_000);
+    }
+  };
+
   return (
     <div className="group h-full flex flex-col justify-between bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-lg hover:border-orange-500/40 dark:hover:border-orange-500/40 transition-all duration-200 overflow-hidden">
-      <Link href={`/product/${product._id}`} className="flex flex-col flex-1">
+      <Link
+        href={`/product/${product._id}`}
+        onMouseEnter={primeProductCache}
+        onTouchStart={primeProductCache}
+        onClick={primeProductCache}
+        className="flex flex-col flex-1"
+      >
         {/* Product Image Area */}
         <div className="relative aspect-square w-full bg-gray-50 dark:bg-gray-850 p-2.5 sm:p-3.5 flex items-center justify-center overflow-hidden">
           <ProductImage

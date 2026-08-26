@@ -36,6 +36,10 @@ import {
 import toast from "react-hot-toast";
 import { resolveProductImage } from "@/lib/imageHelper";
 import ProductImage from "@/components/ProductImage";
+import { cachedJson, getCachedJson } from "@/lib/clientCache";
+import { ProductDetailSkeleton } from "@/components/shared/SkeletonLoaders";
+
+const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000").replace(/\/$/, "");
 
 const ProductCard = dynamic(() => import("@/components/ProductCard"), {
   loading: () => <div className="h-80 rounded-xl bg-gray-100 animate-pulse" />,
@@ -226,11 +230,28 @@ const JK_POSTAL_REGIONS: Record<string, { district: string; speed: string; expre
 export default function ProductDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const productId = params.id as string;
+  const productId = (params?.id as string) || "";
 
-  const [product, setProduct] = useState<Product | null>(null);
+  const [product, setProduct] = useState<Product | null>(() => {
+    if (typeof window !== "undefined" && productId) {
+      const cached = getCachedJson<any>(`${API_URL}/product/get/${productId}`);
+      if (cached?.success && cached.data) {
+        return {
+          ...cached.data,
+          stock: cached.data.stock || 10,
+        };
+      }
+    }
+    return null;
+  });
   const [relatedProducts, setRelatedProducts] = useState<RelatedProduct[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState<boolean>(() => {
+    if (typeof window !== "undefined" && productId) {
+      const cached = getCachedJson<any>(`${API_URL}/product/get/${productId}`);
+      if (cached?.success && cached.data) return false;
+    }
+    return true;
+  });
   const [selectedColor, setSelectedColor] = useState("");
   const [selectedSize, setSelectedSize] = useState("");
   const [quantity, setQuantity] = useState(1);
@@ -486,8 +507,6 @@ export default function ProductDetailPage() {
     } catch (error: any) { toast.error(error.message || "Unable to subscribe"); } finally { setNotifying(false); }
   };
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
-
   const getImageUrl = (url: string) => {
     if (!url) return "/placeholder.svg";
     if (url.startsWith("http")) return url;
@@ -505,24 +524,23 @@ export default function ProductDetailPage() {
 
   const fetchProduct = async () => {
     try {
-      setLoading(true);
-      const response = await fetch(`${API_URL}/product/get/${productId}`);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      if (!product) {
+        const cached = getCachedJson<any>(`${API_URL}/product/get/${productId}`);
+        if (!cached?.data) setLoading(true);
       }
-      const result = await response.json();
+      const result = await cachedJson<any>(`${API_URL}/product/get/${productId}`, 120_000);
 
-      if (result.success && result.data) {
+      if (result && result.success && result.data) {
         const productData = {
           ...result.data,
           stock: result.data.stock || 10,
         };
         setProduct(productData);
         if (productData.colors && productData.colors.length > 0) {
-          setSelectedColor(productData.colors[0]);
+          setSelectedColor((prev) => prev || productData.colors[0]);
         }
         if (productData.sizes && productData.sizes.length > 0) {
-          setSelectedSize(productData.sizes[0]);
+          setSelectedSize((prev) => prev || productData.sizes[0]);
         }
       }
     } catch (error) {
@@ -534,19 +552,13 @@ export default function ProductDetailPage() {
 
   const fetchRelatedProducts = async () => {
     try {
-      const response = await fetch(`${API_URL}/product/getAll?limit=8&available=true&inStock=true&includeTotal=false`, {
-        cache: "force-cache",
-      });
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const result = await response.json();
-      const products = Array.isArray(result.data) ? result.data : result.data?.items || [];
-      if (result.success && products.length) {
+      const result = await cachedJson<any>(`${API_URL}/product/getAll?limit=8&available=true&inStock=true&includeTotal=false`, 120_000);
+      const products = Array.isArray(result?.data) ? result.data : result?.data?.items || [];
+      if (result?.success && products.length) {
         // Get products from same category, excluding current product
         const related = products
           .filter((p: any) => p._id !== productId && p.isAvailable && !p.isArchived)
-          .slice(0, 4);
+          .slice(0, 5);
         setRelatedProducts(related);
       }
     } catch (error) {
@@ -671,15 +683,8 @@ export default function ProductDetailPage() {
   const hasDiscount = product?.discount && product.discount > 0;
   const saving = product ? product.price - discountPrice : 0;
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-16 w-16 border-4 border-orange-500 border-t-transparent"></div>
-          <p className="mt-4 text-gray-600">Loading product...</p>
-        </div>
-      </div>
-    );
+  if (loading && !product) {
+    return <ProductDetailSkeleton />;
   }
 
   if (!product) {
@@ -712,13 +717,13 @@ export default function ProductDetailPage() {
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-8 pb-28 md:pb-8">
         {/* Product Main Section */}
-        <div className="bg-white rounded-2xl shadow-sm border p-6 mb-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6 mb-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
             {/* Product Images */}
             <div>
-              <div className="relative bg-gray-100 rounded-2xl overflow-hidden aspect-square mb-4">
+              <div className="relative bg-gray-100 dark:bg-gray-850 rounded-2xl overflow-hidden aspect-square mb-3 sm:mb-4 group">
                 <ProductImage
                   product={product.productImgUrls?.[selectedImage] || product}
                   alt={product.name}
@@ -728,14 +733,39 @@ export default function ProductDetailPage() {
                   className="object-contain"
                 />
                 {hasDiscount && (
-                  <div className="absolute top-4 left-4 bg-red-500 text-white px-3 py-1 rounded-full text-sm font-bold z-10">
+                  <div className="absolute top-3 sm:top-4 left-3 sm:left-4 bg-red-500 text-white px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full text-xs sm:text-sm font-bold z-10 shadow-xs">
                     {product.discount}% OFF
                   </div>
                 )}
                 {product.onSale && (
-                  <div className="absolute top-4 right-4 bg-orange-500 text-white px-3 py-1 rounded-full text-sm font-bold animate-pulse z-10">
+                  <div className="absolute top-3 sm:top-4 right-3 sm:right-4 bg-orange-500 text-white px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full text-xs sm:text-sm font-bold animate-pulse z-10 shadow-xs">
                     SALE
                   </div>
+                )}
+
+                {/* Mobile & Desktop Image Navigation Arrows */}
+                {product.productImgUrls && product.productImgUrls.length > 1 && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedImage((prev) => (prev > 0 ? prev - 1 : product.productImgUrls.length - 1))}
+                      className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/80 dark:bg-gray-800/80 backdrop-blur-xs text-gray-800 dark:text-gray-200 flex items-center justify-center shadow-xs active:scale-90 transition cursor-pointer z-10"
+                      aria-label="Previous image"
+                    >
+                      <ChevronLeft size={18} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedImage((prev) => (prev < product.productImgUrls.length - 1 ? prev + 1 : 0))}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/80 dark:bg-gray-800/80 backdrop-blur-xs text-gray-800 dark:text-gray-200 flex items-center justify-center shadow-xs active:scale-90 transition cursor-pointer z-10"
+                      aria-label="Next image"
+                    >
+                      <ChevronRight size={18} />
+                    </button>
+                    <span className="absolute bottom-2.5 right-2.5 bg-black/65 backdrop-blur-xs text-white text-[11px] font-bold px-2 py-0.5 rounded-md z-10">
+                      {selectedImage + 1}/{product.productImgUrls.length}
+                    </span>
+                  </>
                 )}
               </div>
 
@@ -1468,6 +1498,59 @@ export default function ProductDetailPage() {
           isOpen={showPrimeModal}
           onClose={() => setShowPrimeModal(false)}
         />
+      </div>
+
+      {/* 📱 Mobile Fixed Bottom Purchase Bar (Ultra-responsive Amazon/Flipkart UX) */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border-t border-gray-200 dark:border-gray-800 px-3 py-2 shadow-[0_-4px_25px_rgba(0,0,0,0.12)]">
+        <div className="flex items-center gap-2">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-baseline gap-1.5">
+              <span className="text-base font-black text-orange-600 dark:text-orange-500">
+                ₹{discountPrice.toFixed(0)}
+              </span>
+              {hasDiscount && (
+                <span className="text-[11px] text-gray-400 line-through">
+                  ₹{product.price.toFixed(0)}
+                </span>
+              )}
+            </div>
+            <div className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 truncate flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span>{product.stock > 0 ? "In Stock • 24h Valley Delivery" : "Out of Stock"}</span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              type="button"
+              onClick={handleAddToCart}
+              disabled={!product.isAvailable || product.stock === 0}
+              className="px-3 py-2 bg-gray-900 dark:bg-gray-800 hover:bg-orange-600 text-white text-xs font-bold rounded-xl shadow-xs active:scale-95 transition disabled:opacity-50 flex items-center gap-1 cursor-pointer"
+              aria-label="Add to cart"
+            >
+              <ShoppingCart size={14} />
+              <span>Add</span>
+            </button>
+            <button
+              type="button"
+              onClick={handleBuyNow}
+              disabled={!product.isAvailable || product.stock === 0}
+              className="px-3.5 py-2 bg-gradient-to-r from-orange-500 to-red-500 text-white text-xs font-black rounded-xl shadow-md active:scale-95 transition disabled:opacity-50 flex items-center gap-1 cursor-pointer"
+            >
+              <Zap size={14} />
+              <span>Buy Now</span>
+            </button>
+            <button
+              type="button"
+              onClick={handleWhatsAppOrder}
+              className="p-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-xs active:scale-95 transition cursor-pointer shrink-0"
+              title="Order on WhatsApp"
+              aria-label="Order on WhatsApp"
+            >
+              <MessageCircle size={16} className="fill-white" />
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );

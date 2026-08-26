@@ -78,13 +78,21 @@ function ProfileContent() {
     username: "",
     email: "",
     mobile: "",
+    city: "Srinagar",
+    pincode: "190009",
     newPassword: "",
     confirmPassword: "",
     currentPassword: "",
     sportsInterests: [] as string[],
   });
   const [updating, setUpdating] = useState(false);
+  const [updatingProfile, setUpdatingProfile] = useState(false);
   const [uploadingPic, setUploadingPic] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [imageError, setImageError] = useState(false);
+  const [selectedSports, setSelectedSports] = useState<string[]>([]);
+  const [addingCartId, setAddingCartId] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [selectedProfilePic, setSelectedProfilePic] = useState<File | null>(null);
   const [buyAgainProducts, setBuyAgainProducts] = useState<any[]>([]);
@@ -172,6 +180,8 @@ function ProfileContent() {
           pincode: "190009",
           newPassword: "",
           confirmPassword: "",
+          currentPassword: "",
+          sportsInterests: result.payload.sportsInterests || [],
         });
       } else {
         router.push("/login");

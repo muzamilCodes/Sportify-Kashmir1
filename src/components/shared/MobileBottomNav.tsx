@@ -35,9 +35,12 @@ export default function MobileBottomNav() {
   const { cartCount } = useCartCount();
   const [isRufusOpen, setIsRufusOpen] = useState(false);
 
-  // Hide on admin pages
-  const isAdminPage = pathname.startsWith("/admin");
-  if (isAdminPage) return null;
+  // Hide on admin, product details, and checkout pages
+  const isExcludedPage =
+    pathname.startsWith("/admin") ||
+    pathname.startsWith("/product/") ||
+    pathname.startsWith("/checkout");
+  if (isExcludedPage) return null;
 
   const handleOpenMenu = (e: React.MouseEvent) => {
     e.preventDefault();

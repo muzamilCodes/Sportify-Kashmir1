@@ -55,7 +55,7 @@ import ThemeToggle from "@/components/shared/ThemeToggle";
 import { useCartCount } from "@/components/providers/CartCountProvider";
 import { resolveProductImage } from "@/lib/imageHelper";
 import ProductImage from "@/components/ProductImage";
-import { cachedJson } from "@/lib/clientCache";
+import { cachedJson, setCachedJson } from "@/lib/clientCache";
 import { useLanguage, LANGUAGES, LanguageCode } from "@/context/LanguageContext";
 import AmazonQuickCategories from "@/components/shared/AmazonQuickCategories";
 
@@ -377,6 +377,11 @@ export default function Header() {
         const data = await res.json();
         if (data.success && data.data) {
           const items = Array.isArray(data.data) ? data.data : data.data.items || [];
+          items.forEach((p: any) => {
+            if (p?._id) {
+              setCachedJson(`${API_URL}/product/get/${p._id}`, { success: true, data: p }, 120_000);
+            }
+          });
           setSearchSuggestions(items.slice(0, 6));
           setShowSuggestions(true);
         } else {

@@ -16,7 +16,7 @@ import ProductCard from "@/components/ProductCard";
 import RecentlyViewed from "@/components/RecentlyViewed";
 import { ProductGridSkeleton } from "@/components/shared/SkeletonLoaders";
 import { resolveProductImage } from "@/lib/imageHelper";
-import { cachedJson } from "@/lib/clientCache";
+import { cachedJson, setCachedJson } from "@/lib/clientCache";
 import AmazonHeroCarousel from "@/components/AmazonHeroCarousel";
 import AmazonRecommendationCards from "@/components/AmazonRecommendationCards";
 import SportsCategoryExplorer from "@/components/SportsCategoryExplorer";
@@ -99,6 +99,11 @@ export default function HomePage() {
 
       if (result?.success && result.data) {
         const rawList = Array.isArray(result.data) ? result.data : result.data?.items || [];
+        rawList.forEach((p: any) => {
+          if (p?._id) {
+            setCachedJson(`${API_URL}/product/get/${p._id}`, { success: true, data: p }, 120_000);
+          }
+        });
         const availableProducts = rawList.filter(
           (product: any) => product.isAvailable !== false && !product.isArchived
         );

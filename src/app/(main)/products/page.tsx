@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import toast from "react-hot-toast";
 import ProductCard from "@/components/ProductCard";
-import { cachedJson } from "@/lib/clientCache";
+import { cachedJson, setCachedJson } from "@/lib/clientCache";
 import { resolveProductImage } from "@/lib/imageHelper";
 import ProductImage from "@/components/ProductImage";
 
@@ -23,6 +23,7 @@ interface Product {
   isArchived: boolean;
   category?: { _id: string; name: string };
   brand?: { _id: string; name: string } | string;
+  tags?: string[];
   stock: number;
   rating?: number;
   reviewCount?: number;
@@ -91,6 +92,11 @@ function ProductsContent() {
         if (isMounted) {
           if (prodRes.success && prodRes.data) {
             const rawList = Array.isArray(prodRes.data) ? prodRes.data : prodRes.data?.items || [];
+            rawList.forEach((p: any) => {
+              if (p?._id) {
+                setCachedJson(`${API_URL}/product/get/${p._id}`, { success: true, data: p }, 120_000);
+              }
+            });
             const availableProducts = rawList.filter(
               (product: any) => product.isAvailable !== false && !product.isArchived
             );

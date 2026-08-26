@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import ProductCard from "@/components/ProductCard";
-import { cachedJson } from "@/lib/clientCache";
+import { cachedJson, setCachedJson } from "@/lib/clientCache";
 import { resolveProductImage } from "@/lib/imageHelper";
 import ProductImage from "@/components/ProductImage";
 
@@ -114,6 +114,11 @@ function CategoryContent() {
 
       if (result.success && result.data) {
         const list = Array.isArray(result.data) ? result.data : result.data?.items || [];
+        list.forEach((p: any) => {
+          if (p?._id) {
+            setCachedJson(`${API_URL}/product/get/${p._id}`, { success: true, data: p }, 120_000);
+          }
+        });
         setProducts(list);
         setFilteredProducts(list);
       } else {
