@@ -48,6 +48,7 @@ import {
   Camera,
   Mic,
   QrCode,
+  Shield,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import dynamic from "next/dynamic";
@@ -507,6 +508,11 @@ export default function Header() {
   };
 
   const profileImageUrl = getProfileImageUrl(user?.profilePic);
+
+  // Hide store header on admin routes
+  if (pathname?.startsWith("/admin")) {
+    return null;
+  }
 
   return (
     <header suppressHydrationWarning className="sticky top-0 z-50 shadow-md">
@@ -1106,6 +1112,18 @@ export default function Header() {
           <ChevronDown size={11} className="text-gray-400 shrink-0" />
         </Link>
 
+        {/* Admin Dashboard button on mobile if logged in as Admin */}
+        {isLoggedIn && user?.isAdmin && (
+          <Link
+            href="/admin"
+            className="mr-2 px-2.5 py-0.5 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white text-[11px] font-black rounded-full shadow-xs shrink-0 flex items-center gap-1 active:scale-95 transition"
+            title="Open Admin Dashboard"
+          >
+            <Shield size={11} />
+            <span>Admin</span>
+          </Link>
+        )}
+
         {/* Join Prime button */}
         <button
           type="button"
@@ -1168,6 +1186,9 @@ export default function Header() {
             </button>
             <Link href="/wholesale" className="px-2 py-1 rounded-xs hover:outline-1 hover:outline-white font-bold text-amber-300">
               {t("nav.wholesale", "Academy Wholesale")}
+            </Link>
+            <Link href="/blog" className="px-2 py-1 rounded-xs hover:outline-1 hover:outline-white font-semibold text-orange-300">
+              📰 Sports Blog &amp; Guides
             </Link>
             <Link href="/contact" className="px-2 py-1 rounded-xs hover:outline-1 hover:outline-white">
               {t("nav.service", "Customer Service")}
@@ -1377,6 +1398,15 @@ export default function Header() {
                   </li>
                   <li>
                     <Link
+                      href="/blog"
+                      onClick={() => setIsSideDrawerOpen(false)}
+                      className="block py-2 px-2.5 rounded-lg hover:bg-gray-100 hover:text-orange-600 font-semibold"
+                    >
+                      📰 Kashmir Sports Blog &amp; Bat Guides
+                    </Link>
+                  </li>
+                  <li>
+                    <Link
                       href="/contact"
                       onClick={() => setIsSideDrawerOpen(false)}
                       className="block py-2 px-2.5 rounded-lg hover:bg-gray-100 hover:text-orange-600"
@@ -1393,6 +1423,23 @@ export default function Header() {
                   Help &amp; Settings
                 </h4>
                 <ul className="space-y-1 text-gray-700 font-medium">
+                  {isLoggedIn && user?.isAdmin && (
+                    <li>
+                      <Link
+                        href="/admin"
+                        onClick={() => setIsSideDrawerOpen(false)}
+                        className="py-2 px-2.5 rounded-lg bg-orange-50 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400 font-extrabold hover:bg-orange-100 flex items-center justify-between border border-orange-200 dark:border-orange-800/60"
+                      >
+                        <span className="flex items-center gap-2">
+                          <Shield size={16} />
+                          <span>Admin Control Panel</span>
+                        </span>
+                        <span className="text-[10px] bg-orange-500 text-white font-black px-2 py-0.5 rounded-full uppercase">
+                          Admin
+                        </span>
+                      </Link>
+                    </li>
+                  )}
                   <li>
                     <Link
                       href="/profile"

@@ -2,10 +2,12 @@
 
 import { useState, useEffect } from "react";
 import { MessageCircle, X, Sparkles } from "lucide-react";
+import { usePathname } from "next/navigation";
 
 const WHATSAPP_NUMBER = "919682645127"; // Sportify Kashmir WhatsApp support number
 
 export default function FloatingWhatsApp() {
+  const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const [showTooltip, setShowTooltip] = useState(true);
 
@@ -22,6 +24,11 @@ export default function FloatingWhatsApp() {
     window.open(url, "_blank");
     setIsOpen(false);
   };
+
+  // Hide on admin routes
+  if (pathname?.startsWith("/admin")) {
+    return null;
+  }
 
   return (
     <div className="fixed bottom-20 md:bottom-6 right-4 z-40 flex flex-col items-end">

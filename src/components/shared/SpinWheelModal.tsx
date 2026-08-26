@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { usePathname } from "next/navigation";
 import { X, Sparkles, Gift, Check, Copy, ArrowRight } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -22,6 +23,7 @@ const SLICES: WheelSlice[] = [
 ];
 
 export default function SpinWheelModal() {
+  const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const [isSpinning, setIsSpinning] = useState(false);
   const [hasSpun, setHasSpun] = useState(false);
@@ -82,6 +84,10 @@ export default function SpinWheelModal() {
     toast.success(`Coupon code ${winningSlice.code} copied!`);
     setTimeout(() => setCopied(false), 2000);
   };
+
+  if (pathname?.startsWith("/admin")) {
+    return null;
+  }
 
   return (
     <>

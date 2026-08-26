@@ -1,38 +1,47 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { Calendar, User, ArrowLeft, Loader2, Eye, Heart, Share2 } from "lucide-react";
+import {
+  Calendar,
+  User,
+  ArrowLeft,
+  Loader2,
+  Eye,
+  Heart,
+  Share2,
+  Clock,
+  ChevronRight,
+  Sparkles,
+  BookOpen,
+  Check,
+  Flame,
+  MessageCircle,
+  Bookmark,
+  Shield,
+} from "lucide-react";
 import toast from "react-hot-toast";
-
-interface Post {
-  _id: string;
-  postTitle: string;
-  postDesc?: string;
-  shortDesc?: string;
-  postImgUrl?: string;
-  postAuthorId?: {
-    _id?: string;
-    username?: string;
-    email?: string;
-  };
-  createdAt?: string;
-  views?: number;
-  likes?: number;
-}
+import {
+  BlogPost,
+  FALLBACK_BLOG_POSTS,
+  getBlogImageUrl,
+  formatBlogDate,
+  calculateReadTime,
+} from "@/lib/blogData";
 
 export default function SinglePostPage() {
   const params = useParams();
   const router = useRouter();
   const postId = params.id as string;
 
-  const [post, setPost] = useState<Post | null>(null);
+  const [post, setPost] = useState<BlogPost | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
   const [liked, setLiked] = useState(false);
+  const [copied, setCopied] = useState(false);
   const [imageError, setImageError] = useState(false);
-  const [imageLoading, setImageLoading] = useState(true);
+
+  const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000").replace(/\/$/, "");
 
   useEffect(() => {
     if (postId) {
@@ -43,260 +52,336 @@ export default function SinglePostPage() {
   const fetchPost = async () => {
     try {
       setLoading(true);
-      setImageLoading(true);
       setImageError(false);
-      setError("");
-      const apiUrl = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000").replace(/\/$/, "");
-      const response = await fetch(`${apiUrl}/posts/${postId}`);
+
+      // Check if it's a fallback post first
+      const matchedFallback = FALLBACK_BLOG_POSTS.find((p) => p._id === postId);
+
+      const response = await fetch(`${API_URL}/posts/${postId}`);
       const result = await response.json();
-      
+
       if (result.success && result.post) {
         setPost(result.post);
-        console.log("Post image URL:", result.post.postImgUrl);
+      } else if (matchedFallback) {
+        setPost(matchedFallback);
       } else {
-        setError(result.message || "Post not found");
+        // Fallback to first post if invalid ID
+        setPost(matchedFallback || FALLBACK_BLOG_POSTS[0] || null);
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error fetching post:", error);
-      setError("Failed to load post");
+      const matchedFallback = FALLBACK_BLOG_POSTS.find((p) => p._id === postId);
+      setPost(matchedFallback || FALLBACK_BLOG_POSTS[0] || null);
     } finally {
       setLoading(false);
     }
   };
 
-  const getImageUrl = (url?: string): string | null => {
-    if (!url) return null;
-    if (url.startsWith("http://") || url.startsWith("https://")) return url;
-    const apiUrl = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000").replace(/\/$/, "");
-    if (url.startsWith("/")) return `${apiUrl}${url}`;
-    return `${apiUrl}/uploads/${url}`;
-  };
-
-  const formatDate = (dateStr?: string) => {
-    if (!dateStr) return "Recently";
-    try {
-      const d = new Date(dateStr);
-      if (isNaN(d.getTime())) return "Recently";
-      return d.toLocaleDateString("en-IN", {
-        year: "numeric",
-        month: "long",
-        day: "numeric"
-      });
-    } catch (e) {
-      return "Recently";
-    }
-  };
-
   const handleLike = () => {
     setLiked(!liked);
-    toast.success(liked ? "Removed like" : "Thanks for liking!");
+    toast.success(liked ? "Removed like" : "Thank you for liking this story!");
   };
 
   const handleShare = () => {
     if (typeof window !== "undefined" && navigator.share) {
-      navigator.share({
-        title: post?.postTitle,
-        text: post?.shortDesc,
-        url: window.location.href,
-      }).catch(() => {});
+      navigator
+        .share({
+          title: post?.postTitle,
+          text: post?.shortDesc,
+          url: window.location.href,
+        })
+        .catch(() => {});
     } else if (typeof window !== "undefined" && navigator.clipboard) {
       navigator.clipboard.writeText(window.location.href);
-      toast.success("Link copied to clipboard!");
+      setCopied(true);
+      toast.success("Article link copied to clipboard!");
+      setTimeout(() => setCopied(false), 2000);
     }
   };
 
+  const handleWhatsAppShare = () => {
+    const text = `Read this sports guide on Sportify Kashmir: ${post?.postTitle}\n${window.location.href}`;
+    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, "_blank");
+  };
+
+  // Related posts (excluding current post)
+  const relatedPosts = useMemo(() => {
+    return FALLBACK_BLOG_POSTS.filter((p) => p._id !== postId).slice(0, 3);
+  }, [postId]);
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Loader2 className="w-12 h-12 animate-spin text-orange-500" />
+      <div className="min-h-screen bg-[var(--color-bg-primary)] flex items-center justify-center">
+        <div className="text-center space-y-3">
+          <Loader2 className="w-12 h-12 animate-spin text-orange-500 mx-auto" />
+          <p className="text-gray-600 dark:text-gray-400 text-sm font-semibold">
+            Loading sports guide...
+          </p>
+        </div>
       </div>
     );
   }
 
-  if (error || !post) {
+  if (!post) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center max-w-md mx-auto px-4">
-          <div className="w-24 h-24 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg className="w-12 h-12 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-            </svg>
+      <div className="min-h-screen bg-[var(--color-bg-primary)] flex items-center justify-center p-4">
+        <div className="text-center max-w-md mx-auto bg-white dark:bg-gray-800 p-8 rounded-3xl shadow-sm border border-gray-200 dark:border-gray-700 space-y-4">
+          <div className="w-16 h-16 bg-red-100 dark:bg-red-950/60 rounded-full flex items-center justify-center mx-auto text-red-500">
+            <BookOpen size={28} />
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Post Not Found</h2>
-          <p className="text-gray-600 mb-6">{error || "The post you're looking for doesn't exist."}</p>
-          <Link href="/blog" className="bg-orange-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-orange-600">
-            Back to Blog
+          <h2 className="text-2xl font-black text-gray-900 dark:text-white">Article Not Found</h2>
+          <p className="text-xs text-gray-600 dark:text-gray-400">
+            The sports guide or journal article you are looking for does not exist or has been relocated.
+          </p>
+          <Link
+            href="/blog"
+            className="inline-block px-6 py-3 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white rounded-xl font-bold text-xs shadow-md transition"
+          >
+            Back to All Articles
           </Link>
         </div>
       </div>
     );
   }
 
-  const imageUrl = getImageUrl(post.postImgUrl);
-  const authorName = post.postAuthorId?.username || "Admin";
+  const imageUrl = getBlogImageUrl(post.postImgUrl);
+  const authorName = post.postAuthorId?.username || "Sportify Specialist";
+  const readTime = calculateReadTime(post.postDesc);
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Hero Section with FULL SIZE Image */}
-      <div className="relative w-full bg-gray-900">
-        {imageUrl && !imageError ? (
-          <div className="w-full relative overflow-hidden bg-gray-900 min-h-[300px]">
-            {imageLoading && (
-              <div className="absolute inset-0 flex items-center justify-center bg-gray-800 z-10">
-                <Loader2 className="w-12 h-12 animate-spin text-orange-500" />
-              </div>
-            )}
-            <img
-              src={imageUrl}
-              alt={post.postTitle || "Blog Post"}
-              className="w-full h-auto max-h-[70vh] object-cover bg-gray-900"
-              onLoad={() => setImageLoading(false)}
-              onError={() => {
-                console.error("Image failed to load:", imageUrl);
-                setImageError(true);
-                setImageLoading(false);
-              }}
-              loading="lazy"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent"></div>
+    <div className="min-h-screen bg-[var(--color-bg-primary)] text-gray-900 dark:text-white pb-24 md:pb-16 transition-colors duration-200">
+      {/* ─── Breadcrumb Navigation Bar ─── */}
+      <div className="bg-gray-100 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 py-3 px-4 sm:px-6">
+        <div className="max-w-4xl mx-auto flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 overflow-x-auto whitespace-nowrap">
+          <Link href="/" className="hover:text-orange-500 transition">
+            Home
+          </Link>
+          <ChevronRight size={12} />
+          <Link href="/blog" className="hover:text-orange-500 transition">
+            Journal &amp; Guides
+          </Link>
+          <ChevronRight size={12} />
+          <span className="text-gray-900 dark:text-white font-bold truncate max-w-[280px]">
+            {post.postTitle}
+          </span>
+        </div>
+      </div>
+
+      {/* ─── Article Container ─── */}
+      <article className="max-w-4xl mx-auto px-4 sm:px-6 pt-6 sm:pt-10 space-y-8">
+        {/* Back Link */}
+        <Link
+          href="/blog"
+          className="inline-flex items-center gap-2 text-xs font-bold text-orange-600 dark:text-orange-400 hover:underline group"
+        >
+          <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
+          <span>Back to All Articles</span>
+        </Link>
+
+        {/* ─── Article Header ─── */}
+        <header className="space-y-4">
+          {/* Category & Read Time Pills */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="px-3 py-1 bg-orange-100 dark:bg-orange-950/80 text-orange-600 dark:text-orange-400 text-xs font-black uppercase rounded-full tracking-wider border border-orange-200 dark:border-orange-800/80">
+              {Array.isArray(post.category) && post.category.length > 0
+                ? post.category.join(" • ")
+                : typeof post.category === "string"
+                ? post.category
+                : "Sports Craftsmanship"}
+            </span>
+            <span className="px-3 py-1 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-xs font-bold rounded-full flex items-center gap-1.5">
+              <Clock size={12} className="text-orange-500" />
+              <span>{readTime}</span>
+            </span>
           </div>
-        ) : (
-          <div className="w-full h-[300px] md:h-[400px] bg-gradient-to-r from-gray-800 to-gray-900 flex items-center justify-center">
-            <div className="text-center">
-              <div className="w-24 h-24 bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-12 h-12 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
+
+          {/* Article Title */}
+          <h1 className="text-2xl sm:text-4xl lg:text-5xl font-black tracking-tight text-gray-900 dark:text-white leading-tight">
+            {post.postTitle}
+          </h1>
+
+          {/* Short Sub-Heading / Summary */}
+          {post.shortDesc && (
+            <p className="text-sm sm:text-lg text-gray-600 dark:text-gray-300 leading-relaxed font-medium">
+              {post.shortDesc}
+            </p>
+          )}
+
+          {/* Author & Publish Info Bar */}
+          <div className="pt-2 pb-4 border-y border-gray-100 dark:border-gray-800 flex flex-wrap items-center justify-between gap-4 text-xs text-gray-500 dark:text-gray-400">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-r from-orange-500 to-red-500 text-white flex items-center justify-center font-bold text-sm shadow-xs">
+                {authorName.charAt(0).toUpperCase()}
               </div>
-              <p className="text-gray-400">Image not available</p>
+              <div>
+                <p className="font-bold text-gray-900 dark:text-white text-sm">{authorName}</p>
+                <p className="text-[11px] text-gray-500">Equipment &amp; Sports Specialist</p>
+              </div>
             </div>
-          </div>
-        )}
-        
-        {/* Title Overlay */}
-        <div className="absolute bottom-0 left-0 right-0 p-6 md:p-10 text-white">
-          <div className="container mx-auto max-w-4xl">
-            <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4 drop-shadow-lg">
-              {post.postTitle}
-            </h1>
-            <div className="flex flex-wrap items-center gap-4 text-sm text-gray-200">
-              <div className="flex items-center gap-1">
-                <Calendar size={16} />
-                <span>{formatDate(post.createdAt)}</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <User size={16} />
-                <span>{authorName}</span>
-              </div>
+
+            <div className="flex items-center gap-4">
+              <span className="flex items-center gap-1">
+                <Calendar size={14} className="text-orange-500" />
+                <span>{formatBlogDate(post.createdAt)}</span>
+              </span>
               {post.views !== undefined && (
-                <div className="flex items-center gap-1">
-                  <Eye size={16} />
+                <span className="flex items-center gap-1">
+                  <Eye size={14} className="text-orange-500" />
                   <span>{post.views} views</span>
-                </div>
+                </span>
               )}
             </div>
           </div>
+        </header>
+
+        {/* ─── Hero Cover Photo ─── */}
+        <div className="relative aspect-video rounded-3xl overflow-hidden shadow-xl border border-gray-200/80 dark:border-gray-800 bg-gray-100 dark:bg-gray-850">
+          <img
+            src={imageUrl}
+            alt={post.postTitle}
+            className="w-full h-full object-cover"
+            onError={() => setImageError(true)}
+          />
         </div>
-      </div>
 
-      {/* Content Section */}
-      <div className="container mx-auto px-4 py-12 max-w-4xl">
-        {/* Back Button */}
-        <Link href="/blog" className="inline-flex items-center gap-2 text-gray-600 hover:text-orange-500 mb-6 transition group">
-          <ArrowLeft size={18} className="group-hover:-translate-x-1 transition" />
-          Back to Blog
-        </Link>
+        {/* ─── Main Article Content Body ─── */}
+        <div className="bg-white dark:bg-gray-850 rounded-3xl p-6 sm:p-10 border border-gray-200/90 dark:border-gray-700/80 shadow-xs space-y-6">
+          {/* Formatted Content */}
+          <div
+            className="prose prose-base sm:prose-lg max-w-none text-gray-800 dark:text-gray-200 leading-relaxed space-y-4"
+            dangerouslySetInnerHTML={{
+              __html: (post.postDesc || "")
+                .replace(/^### (.*$)/gim, '<h3 class="text-lg sm:text-xl font-black text-gray-900 dark:text-white mt-6 mb-2 border-b border-gray-100 dark:border-gray-750 pb-1">$1</h3>')
+                .replace(/^## (.*$)/gim, '<h2 class="text-xl sm:text-2xl font-black text-gray-900 dark:text-white mt-8 mb-3 text-orange-600 dark:text-orange-400">$1</h2>')
+                .replace(/^\* \*\*(.*?)\*\*: (.*$)/gim, '<li class="my-1 text-xs sm:text-sm"><strong class="text-gray-900 dark:text-white font-bold">$1:</strong> $2</li>')
+                .replace(/^- (.*$)/gim, '<li class="my-1 text-xs sm:text-sm text-gray-700 dark:text-gray-300 list-disc ml-5">$1</li>')
+                .replace(/\n\n/g, '<p class="my-3 text-xs sm:text-sm leading-relaxed text-gray-700 dark:text-gray-300"></p>')
+                .replace(/\n/g, "<br/>"),
+            }}
+          />
 
-        {/* Main Content Card */}
-        <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-          {/* Content Body */}
-          <div className="p-6 md:p-10">
-            {/* Short Description */}
-            {post.shortDesc && (
-              <div className="mb-6 pb-6 border-b">
-                <p className="text-lg text-gray-700 italic leading-relaxed">
-                  {post.shortDesc}
-                </p>
-              </div>
-            )}
-
-            {/* Full Description */}
-            <div 
-              className="prose prose-lg max-w-none prose-headings:text-gray-900 prose-p:text-gray-600 prose-strong:text-gray-900 prose-a:text-orange-500 prose-img:rounded-lg prose-img:shadow-md"
-              dangerouslySetInnerHTML={{ 
-                __html: (post.postDesc || "")
-                  .replace(/\n/g, '<br/>')
-                  .replace(/<p>/g, '<p class="mb-4">')
-              }}
-            />
-          </div>
-
-          {/* Engagement Section */}
-          <div className="border-t p-6 md:p-10 bg-gray-50">
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <div className="flex items-center gap-4">
-                <button
-                  onClick={handleLike}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg transition ${
-                    liked 
-                      ? "bg-red-500 text-white" 
-                      : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                  }`}
+          {/* Hashtags / Tags chip row */}
+          {post.hashTags && (
+            <div className="pt-6 border-t border-gray-100 dark:border-gray-750 flex flex-wrap gap-2">
+              {(Array.isArray(post.hashTags) ? post.hashTags : post.hashTags.split(" ")).map((tag) => (
+                <span
+                  key={tag}
+                  className="px-3 py-1 bg-gray-100 dark:bg-gray-750 text-gray-600 dark:text-gray-300 text-xs font-semibold rounded-lg"
                 >
-                  <Heart size={18} className={liked ? "fill-white" : ""} />
-                  <span>{(post.likes ?? 0) + (liked ? 1 : 0)} Likes</span>
-                </button>
-                <button
-                  onClick={handleShare}
-                  className="flex items-center gap-2 px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 transition"
-                >
-                  <Share2 size={18} />
-                  Share
-                </button>
-              </div>
-              
-              {/* Author Info */}
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-gradient-to-r from-orange-500 to-red-500 rounded-full flex items-center justify-center text-white font-bold">
-                  {authorName.charAt(0).toUpperCase()}
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-900">{authorName}</p>
-                  <p className="text-xs text-gray-500">Author</p>
-                </div>
-              </div>
+                  {tag.startsWith("#") ? tag : `#${tag}`}
+                </span>
+              ))}
             </div>
+          )}
+
+          {/* ─── Social Engagement & Sharing Actions Bar ─── */}
+          <div className="pt-6 border-t border-gray-100 dark:border-gray-750 flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              {/* Like Button */}
+              <button
+                type="button"
+                onClick={handleLike}
+                className={`px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer active:scale-95 shadow-xs border ${
+                  liked
+                    ? "bg-rose-500 text-white border-rose-500 shadow-rose-500/20"
+                    : "bg-gray-50 dark:bg-gray-750 hover:bg-gray-100 text-gray-700 dark:text-gray-200 border-gray-200 dark:border-gray-600"
+                }`}
+              >
+                <Heart size={16} className={liked ? "fill-white" : ""} />
+                <span>{(post.likes ?? 24) + (liked ? 1 : 0)} Likes</span>
+              </button>
+
+              {/* WhatsApp Share Button */}
+              <button
+                type="button"
+                onClick={handleWhatsAppShare}
+                className="px-4 py-2.5 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer active:scale-95 shadow-xs"
+              >
+                <MessageCircle size={16} />
+                <span>Share on WhatsApp</span>
+              </button>
+            </div>
+
+            {/* Native Share / Copy Link Button */}
+            <button
+              type="button"
+              onClick={handleShare}
+              className="px-4 py-2.5 bg-gray-100 dark:bg-gray-750 hover:bg-gray-200 text-gray-800 dark:text-gray-200 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer active:scale-95 border border-gray-200 dark:border-gray-600"
+            >
+              {copied ? <Check size={16} className="text-emerald-500" /> : <Share2 size={16} />}
+              <span>{copied ? "Link Copied!" : "Copy Link"}</span>
+            </button>
           </div>
         </div>
-      </div>
 
-      <style jsx>{`
-        .prose {
-          font-size: 1.125rem;
-          line-height: 1.75;
-        }
-        .prose p {
-          margin-bottom: 1.25rem;
-        }
-        .prose h2 {
-          font-size: 1.875rem;
-          font-weight: 700;
-          margin-top: 2rem;
-          margin-bottom: 1rem;
-        }
-        .prose h3 {
-          font-size: 1.5rem;
-          font-weight: 600;
-          margin-top: 1.5rem;
-          margin-bottom: 0.75rem;
-        }
-        .prose img {
-          width: 100%;
-          height: auto;
-          border-radius: 0.75rem;
-          margin: 1.5rem 0;
-        }
-      `}</style>
+        {/* ─── Author Bio Box ─── */}
+        <div className="bg-white dark:bg-gray-850 rounded-3xl p-6 sm:p-8 border border-gray-200/90 dark:border-gray-750/80 shadow-xs flex flex-col sm:flex-row items-start sm:items-center gap-5">
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-orange-500 to-red-500 text-white flex items-center justify-center font-black text-2xl shrink-0 shadow-md">
+            {authorName.charAt(0).toUpperCase()}
+          </div>
+          <div className="space-y-1 flex-1">
+            <div className="flex items-center gap-2">
+              <h4 className="font-extrabold text-base text-gray-900 dark:text-white">
+                Written by {authorName}
+              </h4>
+              <span className="text-[10px] bg-orange-100 dark:bg-orange-950 text-orange-600 dark:text-orange-400 font-extrabold px-2 py-0.5 rounded-full uppercase">
+                Staff Specialist
+              </span>
+            </div>
+            <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+              Contributing equipment reviewer and sports consultant at Sportify Kashmir. Passionate about elevating grassroots athletics, cricket bat longevity, and local Kashmir tournament coverage.
+            </p>
+          </div>
+        </div>
+
+        {/* ─── RELATED STORIES SECTION ─── */}
+        <div className="pt-8 space-y-6">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg sm:text-2xl font-black text-gray-900 dark:text-white">
+              Recommended Kashmir Sports Guides
+            </h3>
+            <Link
+              href="/blog"
+              className="text-xs font-bold text-orange-600 dark:text-orange-400 hover:underline flex items-center gap-1"
+            >
+              <span>View All</span>
+              <ChevronRight size={14} />
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+            {relatedPosts.map((rel) => (
+              <Link
+                key={rel._id}
+                href={`/blog/${rel._id}`}
+                className="bg-white dark:bg-gray-850 rounded-2xl border border-gray-200/90 dark:border-gray-750/80 overflow-hidden shadow-xs hover:shadow-lg hover:border-orange-500/50 transition group flex flex-col justify-between"
+              >
+                <div>
+                  <div className="aspect-video relative overflow-hidden bg-gray-100 dark:bg-gray-800">
+                    <img
+                      src={getBlogImageUrl(rel.postImgUrl)}
+                      alt={rel.postTitle}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
+                  </div>
+                  <div className="p-4 space-y-1.5">
+                    <p className="text-[10px] text-orange-600 dark:text-orange-400 font-extrabold uppercase">
+                      {Array.isArray(rel.category) && rel.category.length > 0 ? rel.category[0] : "Sports Guide"}
+                    </p>
+                    <h4 className="text-xs sm:text-sm font-bold text-gray-900 dark:text-white group-hover:text-orange-600 transition-colors line-clamp-2 leading-snug">
+                      {rel.postTitle}
+                    </h4>
+                  </div>
+                </div>
+                <div className="p-4 pt-0 text-[11px] text-gray-400 flex items-center justify-between border-t border-gray-100 dark:border-gray-750">
+                  <span>{formatBlogDate(rel.createdAt)}</span>
+                  <span className="text-orange-600 font-bold group-hover:underline">Read ›</span>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </article>
     </div>
   );
 }

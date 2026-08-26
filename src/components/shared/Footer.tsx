@@ -15,6 +15,7 @@ import {
   Download,
 } from "lucide-react";
 import NextLink from "next/link";
+import { usePathname } from "next/navigation";
 import { useLanguage } from "@/context/LanguageContext";
 
 function Link(props: React.ComponentProps<typeof NextLink>) {
@@ -22,11 +23,17 @@ function Link(props: React.ComponentProps<typeof NextLink>) {
 }
 
 export default function Footer() {
+  const pathname = usePathname();
   const { t } = useLanguage();
   const currentYear = new Date().getFullYear();
 
+  if (pathname?.startsWith("/admin")) {
+    return null;
+  }
+
   const quickLinks = [
     { name: "Shop All", link: "/products" },
+    { name: "Sports Blog & Guides", link: "/blog" },
     { name: "Track Orders", link: "/orders" },
     { name: "Wishlist", link: "/wishlist" },
     { name: "Return Policy", link: "/return-policy" },

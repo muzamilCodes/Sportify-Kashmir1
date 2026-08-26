@@ -38,6 +38,7 @@ import {
   EyeOff,
   Globe,
   Languages,
+  ExternalLink,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -73,6 +74,7 @@ function ProfileContent() {
   const [activeTab, setActiveTab] = useState(tabParam || "overview");
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isPrimeModalOpen, setIsPrimeModalOpen] = useState(false);
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const [primeData, setPrimeData] = useState<any>(null);
   const [editForm, setEditForm] = useState({
     username: "",
@@ -85,9 +87,7 @@ function ProfileContent() {
     currentPassword: "",
     sportsInterests: [] as string[],
   });
-  const [updating, setUpdating] = useState(false);
   const [updatingProfile, setUpdatingProfile] = useState(false);
-  const [uploadingPic, setUploadingPic] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [selectedSports, setSelectedSports] = useState<string[]>([]);
@@ -101,7 +101,7 @@ function ProfileContent() {
   const modalFileInputRef = useRef<HTMLInputElement>(null);
   const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000").replace(/\/$/, "");
 
-  const { language, setLanguage, currentLangOption, t } = useLanguage();
+  const { language, setLanguage, currentLangOption } = useLanguage();
 
   // Resolve profile picture URL
   const getImageUrl = (url: string | undefined) => {
@@ -183,6 +183,9 @@ function ProfileContent() {
           currentPassword: "",
           sportsInterests: result.payload.sportsInterests || [],
         });
+        if (result.payload.sportsInterests) {
+          setSelectedSports(result.payload.sportsInterests);
+        }
       } else {
         router.push("/login");
       }
@@ -194,6 +197,7 @@ function ProfileContent() {
   };
 
   const handleLogout = () => {
+    setIsLogoutModalOpen(false);
     localStorage.removeItem("token");
     localStorage.removeItem("user");
     localStorage.removeItem("cartId");
@@ -431,142 +435,314 @@ function ProfileContent() {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--color-bg-primary)] py-6 sm:py-8 px-3 sm:px-6">
-      <div className="max-w-6xl mx-auto space-y-6 sm:space-y-8">
-        {/* ─── Top Amazon-Style Title & Profile Bar with Prominent Edit Option ─── */}
-        <div className="bg-white dark:bg-gray-800 rounded-3xl p-5 sm:p-7 border border-gray-200 dark:border-gray-700 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="flex items-center gap-4 sm:gap-5">
-            {/* Live Profile Photo with Camera Badge */}
-            <div className="relative group shrink-0">
-              <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center overflow-hidden border-2 border-orange-500 shadow-md">
-                {uploadingPhoto ? (
-                  <Loader2 className="w-7 h-7 animate-spin text-orange-500" />
-                ) : profileImageUrl && !imageError ? (
-                  <img
-                    src={profileImageUrl}
-                    alt={user.username}
-                    className="w-full h-full object-cover"
-                    onError={() => setImageError(true)}
-                  />
-                ) : (
-                  <User className="w-9 h-9 text-gray-400" />
-                )}
+    <div className="min-h-screen bg-[var(--color-bg-primary)] py-4 sm:py-8 px-3 sm:px-6 pb-24 md:pb-12">
+      <div className="max-w-6xl mx-auto space-y-4 sm:space-y-6">
+
+        {/* ═══════════════════════════════════════════════════════════════════════
+            TOP PROFILE HERO CARD — WITH PROMINENT TOP "SIGN OUT OF ACCOUNT"
+        ═══════════════════════════════════════════════════════════════════════ */}
+        <div className="bg-white dark:bg-gray-850 rounded-2xl sm:rounded-3xl p-4 sm:p-7 border border-gray-200/90 dark:border-gray-700/80 shadow-xs dark:shadow-none relative overflow-hidden">
+          {/* Subtle Kashmir decorative ambient backdrop */}
+          <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-orange-500/10 via-amber-500/5 to-transparent rounded-full pointer-events-none -mr-20 -mt-20 blur-2xl" />
+
+          <div className="relative z-1 flex flex-col md:flex-row md:items-center justify-between gap-5 sm:gap-6">
+            {/* Left: Avatar + User Info */}
+            <div className="flex items-start sm:items-center gap-3.5 sm:gap-5">
+              {/* Profile Avatar with Camera Overlay */}
+              <div className="relative group shrink-0">
+                <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-orange-100 to-amber-100 dark:from-gray-700 dark:to-gray-800 rounded-full flex items-center justify-center overflow-hidden border-2 border-orange-500 shadow-md">
+                  {uploadingPhoto ? (
+                    <Loader2 className="w-7 h-7 animate-spin text-orange-500" />
+                  ) : profileImageUrl && !imageError ? (
+                    <img
+                      src={profileImageUrl}
+                      alt={user.username}
+                      className="w-full h-full object-cover"
+                      onError={() => setImageError(true)}
+                    />
+                  ) : (
+                    <User className="w-8 h-8 sm:w-10 sm:h-10 text-orange-500/70 dark:text-orange-400/80" />
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploadingPhoto}
+                  title="Change profile photo"
+                  aria-label="Change profile photo"
+                  className="absolute -bottom-1 -right-1 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white p-1.5 sm:p-2 rounded-full shadow-md border-2 border-white dark:border-gray-800 cursor-pointer active:scale-95 transition"
+                >
+                  <Camera size={13} />
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleProfilePicChange}
+                  className="hidden"
+                />
               </div>
+
+              {/* User Identity & Info */}
+              <div className="space-y-1 sm:space-y-1.5 min-w-0 flex-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h1 className="text-lg sm:text-2xl font-black text-gray-900 dark:text-white tracking-tight break-words">
+                    {user.username}
+                  </h1>
+                  {user.isAdmin && (
+                    <Link
+                      href="/admin"
+                      className="text-[10px] font-extrabold bg-gradient-to-r from-orange-500 to-red-500 text-white px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-xs hover:opacity-90 flex items-center gap-1 shrink-0 active:scale-95 transition"
+                      title="Open Admin Dashboard"
+                    >
+                      <Shield size={10} />
+                      <span>Admin Panel ›</span>
+                    </Link>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setIsPrimeModalOpen(true)}
+                    className={`text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase cursor-pointer hover:opacity-90 transition flex items-center gap-1 shrink-0 ${
+                      primeData?.isActive
+                        ? "bg-gradient-to-r from-amber-400 to-amber-500 text-gray-950 shadow-xs"
+                        : "bg-cyan-100 dark:bg-cyan-950/80 text-cyan-700 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-800"
+                    }`}
+                  >
+                    <Crown size={11} className={primeData?.isActive ? "fill-current" : ""} />
+                    <span>{primeData?.isActive ? "Kashmir VIP Member" : "Sportify Prime"}</span>
+                  </button>
+                </div>
+
+                {/* Email, Phone, Location chips */}
+                <div className="flex flex-wrap items-center gap-x-3.5 gap-y-1 text-xs text-gray-500 dark:text-gray-400">
+                  <span className="flex items-center gap-1 min-w-0 max-w-full">
+                    <Mail size={13} className="text-orange-500 shrink-0" />
+                    <span className="truncate">{user.email}</span>
+                  </span>
+                  {user.mobile && (
+                    <span className="flex items-center gap-1 shrink-0">
+                      <Phone size={13} className="text-orange-500 shrink-0" />
+                      <span>{user.mobile}</span>
+                    </span>
+                  )}
+                  <span className="flex items-center gap-1 shrink-0 hidden sm:inline-flex">
+                    <MapPin size={13} className="text-orange-500 shrink-0" />
+                    <span>Srinagar, Kashmir 190009</span>
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* ─── Top Action Buttons Row: Edit Profile, Change Photo & PROMINENT Sign Out ─── */}
+            <div className="grid grid-cols-3 sm:flex sm:items-center gap-2 sm:gap-3 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-gray-100 dark:border-gray-700/60">
+              {/* 1. Edit Profile */}
+              <button
+                type="button"
+                onClick={() => setIsEditModalOpen(true)}
+                className="py-2.5 px-3 sm:px-4 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white rounded-xl font-bold text-xs sm:text-sm shadow-xs hover:shadow-md transition flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
+              >
+                <Edit3 size={15} />
+                <span>Edit Profile</span>
+              </button>
+
+              {/* 2. Change Photo */}
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                disabled={uploadingPhoto}
-                title="Change profile photo"
-                className="absolute -bottom-1 -right-1 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white p-2 rounded-full shadow-lg border-2 border-white dark:border-gray-800 cursor-pointer"
+                className="py-2.5 px-3 sm:px-4 bg-gray-100 dark:bg-gray-750 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-xl font-bold text-xs sm:text-sm transition flex items-center justify-center gap-1.5 cursor-pointer border border-gray-200 dark:border-gray-600 active:scale-95"
               >
-                <Camera size={13} />
+                <Camera size={15} />
+                <span className="hidden xs:inline">Change </span>Photo
               </button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleProfilePicChange}
-                className="hidden"
-              />
-            </div>
 
-            {/* User Info Details */}
-            <div className="space-y-1">
-              <div className="flex items-center gap-2 flex-wrap">
-                <h1 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white tracking-tight">
-                  {user.username}
-                </h1>
-                {user.isAdmin && (
-                  <span className="text-[10px] font-extrabold bg-orange-100 dark:bg-orange-950 text-orange-600 dark:text-orange-400 px-2 py-0.5 rounded-full uppercase tracking-wider">
-                    Admin
-                  </span>
-                )}
-                <button
-                  type="button"
-                  onClick={() => setIsPrimeModalOpen(true)}
-                  className={`text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase cursor-pointer hover:opacity-90 transition flex items-center gap-1 ${
-                    primeData?.isActive
-                      ? "bg-gradient-to-r from-amber-400 to-amber-500 text-gray-950 shadow-xs"
-                      : "bg-cyan-100 dark:bg-cyan-950 text-cyan-700 dark:text-cyan-300"
-                  }`}
-                >
-                  <Crown size={11} className={primeData?.isActive ? "fill-current" : ""} />
-                  <span>{primeData?.isActive ? "Kashmir VIP Member" : "Sportify Prime"}</span>
-                </button>
-              </div>
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-500 dark:text-gray-400">
-                <span className="flex items-center gap-1">
-                  <Mail size={13} className="text-orange-500" />
-                  <span>{user.email}</span>
-                </span>
-                {user.mobile && (
-                  <span className="flex items-center gap-1">
-                    <Phone size={13} className="text-orange-500" />
-                    <span>{user.mobile}</span>
-                  </span>
-                )}
-                <span className="flex items-center gap-1">
-                  <MapPin size={13} className="text-orange-500" />
-                  <span>Srinagar, Kashmir 190009</span>
-                </span>
-              </div>
+              {/* 3. Sign Out of Account (TOP PROMINENT BUTTON) */}
+              <button
+                type="button"
+                onClick={() => setIsLogoutModalOpen(true)}
+                className="py-2.5 px-3 sm:px-4 bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/60 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800/80 rounded-xl font-bold text-xs sm:text-sm transition flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 shadow-xs"
+                title="Sign Out of Account"
+              >
+                <LogOut size={15} />
+                <span>Sign Out</span>
+              </button>
             </div>
-          </div>
-
-          {/* Action Buttons: Edit Profile & Change Photo */}
-          <div className="flex items-center gap-3 shrink-0 flex-wrap">
-            <button
-              type="button"
-              onClick={() => setIsEditModalOpen(true)}
-              className="px-5 py-2.5 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white rounded-xl font-bold text-xs sm:text-sm shadow-md hover:shadow-lg transition flex items-center gap-2 cursor-pointer"
-            >
-              <Edit3 size={15} />
-              <span>Edit Profile</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="px-4 py-2.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-xl font-bold text-xs sm:text-sm transition flex items-center gap-1.5 cursor-pointer border border-gray-200 dark:border-gray-600"
-            >
-              <Camera size={15} />
-              <span>Change Photo</span>
-            </button>
           </div>
         </div>
 
-        {/* ─── Amazon-Style 8-Card Main Grid ─── */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
-          {/* Card 1: Your Orders */}
+        {/* ─── Prominent Admin Control Panel Banner (Visible on mobile & desktop when Admin) ─── */}
+        {user.isAdmin && (
+          <Link
+            href="/admin"
+            className="flex items-center justify-between p-3.5 sm:p-4 bg-gradient-to-r from-gray-900 via-gray-850 to-gray-900 text-white rounded-2xl border-2 border-orange-500/50 hover:border-orange-500 shadow-md hover:shadow-xl transition group active:scale-[0.99]"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-r from-orange-500 to-red-500 flex items-center justify-center text-white shadow-xs group-hover:scale-105 transition-transform">
+                <Shield size={20} />
+              </div>
+              <div>
+                <p className="text-xs sm:text-sm font-black text-white flex items-center gap-2">
+                  <span>Open Admin Control Panel</span>
+                  <span className="text-[9px] font-extrabold bg-orange-500 text-white px-2 py-0.5 rounded-full uppercase">
+                    Admin Portal
+                  </span>
+                </p>
+                <p className="text-[11px] text-gray-400">
+                  Manage store catalog, live orders, customers &amp; inventory
+                </p>
+              </div>
+            </div>
+            <span className="text-xs font-bold text-orange-400 group-hover:text-white flex items-center gap-1 shrink-0 bg-orange-500/10 px-3 py-1.5 rounded-xl border border-orange-500/30">
+              <span className="hidden xs:inline">Admin Dashboard</span>
+              <ChevronRight size={14} />
+            </span>
+          </Link>
+        )}
+
+        {/* ═══════════════════════════════════════════════════════════════════════
+            AMAZON-STYLE 4-PILL QUICK SHORTCUT STRIP (HIGH PRIORITY ON MOBILE)
+        ═══════════════════════════════════════════════════════════════════════ */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3.5">
+          {/* Quick 1: Orders */}
           <Link
             href="/orders"
-            className="flex items-start gap-4 p-4 sm:p-5 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 hover:border-orange-500 dark:hover:border-orange-500 hover:shadow-md transition-all group"
+            className="flex items-center gap-3 p-3 sm:p-3.5 bg-white dark:bg-gray-850 rounded-2xl border border-gray-200/90 dark:border-gray-700/80 hover:border-orange-500 dark:hover:border-orange-500 shadow-xs hover:shadow-md transition active:scale-[0.98] group"
           >
-            <div className="w-14 h-14 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200/60 dark:border-amber-800/40 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-              <Package className="w-7 h-7 text-amber-600 dark:text-amber-400" />
+            <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-950/50 border border-amber-200/60 dark:border-amber-800/40 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0 group-hover:scale-105 transition-transform">
+              <Package size={20} />
             </div>
             <div className="min-w-0 flex-1">
-              <h2 className="text-base font-bold text-gray-900 dark:text-white group-hover:text-orange-600 transition">
+              <p className="text-xs sm:text-sm font-bold text-gray-900 dark:text-white truncate group-hover:text-orange-600 transition">
                 Your Orders
-              </h2>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 leading-relaxed">
-                Track, return, or buy Kashmir willow bats & athletic gear again
+              </p>
+              <p className="text-[11px] text-gray-500 dark:text-gray-400 truncate">
+                Track shipments
               </p>
             </div>
           </Link>
 
-          {/* Card 2: Login & Security (Directly Opens Edit Profile) */}
-          <button
-            type="button"
-            onClick={() => setIsEditModalOpen(true)}
-            className="flex items-start gap-4 p-4 sm:p-5 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 hover:border-orange-500 dark:hover:border-orange-500 hover:shadow-md transition-all text-left group cursor-pointer"
+          {/* Quick 2: Buy Again */}
+          <a
+            href="#buy-again"
+            className="flex items-center gap-3 p-3 sm:p-3.5 bg-white dark:bg-gray-850 rounded-2xl border border-gray-200/90 dark:border-gray-700/80 hover:border-orange-500 dark:hover:border-orange-500 shadow-xs hover:shadow-md transition active:scale-[0.98] group"
           >
-            <div className="w-14 h-14 rounded-2xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200/60 dark:border-blue-800/40 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-              <Shield className="w-7 h-7 text-blue-600 dark:text-blue-400" />
+            <div className="w-10 h-10 rounded-xl bg-orange-50 dark:bg-orange-950/50 border border-orange-200/60 dark:border-orange-800/40 flex items-center justify-center text-orange-600 dark:text-orange-400 shrink-0 group-hover:scale-105 transition-transform">
+              <RefreshCw size={19} />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs sm:text-sm font-bold text-gray-900 dark:text-white truncate group-hover:text-orange-600 transition">
+                Buy Again
+              </p>
+              <p className="text-[11px] text-gray-500 dark:text-gray-400 truncate">
+                Fast reorder
+              </p>
+            </div>
+          </a>
+
+          {/* Quick 3: Wishlist */}
+          <Link
+            href="/wishlist"
+            className="flex items-center gap-3 p-3 sm:p-3.5 bg-white dark:bg-gray-850 rounded-2xl border border-gray-200/90 dark:border-gray-700/80 hover:border-orange-500 dark:hover:border-orange-500 shadow-xs hover:shadow-md transition active:scale-[0.98] group"
+          >
+            <div className="w-10 h-10 rounded-xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200/60 dark:border-rose-800/40 flex items-center justify-center text-rose-500 shrink-0 group-hover:scale-105 transition-transform">
+              <Heart size={20} />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs sm:text-sm font-bold text-gray-900 dark:text-white truncate group-hover:text-orange-600 transition">
+                Your Wishlist
+              </p>
+              <p className="text-[11px] text-gray-500 dark:text-gray-400 truncate">
+                Saved bats &amp; gear
+              </p>
+            </div>
+          </Link>
+
+          {/* Quick 4: Sportify Pay Wallet */}
+          <Link
+            href="/cart"
+            className="flex items-center gap-3 p-3 sm:p-3.5 bg-white dark:bg-gray-850 rounded-2xl border border-gray-200/90 dark:border-gray-700/80 hover:border-orange-500 dark:hover:border-orange-500 shadow-xs hover:shadow-md transition active:scale-[0.98] group"
+          >
+            <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200/60 dark:border-emerald-800/40 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0 group-hover:scale-105 transition-transform">
+              <Wallet size={20} />
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex items-center justify-between">
-                <h2 className="text-base font-bold text-gray-900 dark:text-white group-hover:text-orange-600 transition">
-                  Login &amp; security
+                <p className="text-xs sm:text-sm font-bold text-gray-900 dark:text-white truncate group-hover:text-orange-600 transition">
+                  Sportify Pay
+                </p>
+                <span className="text-[11px] font-extrabold text-emerald-600 dark:text-emerald-400">
+                  ₹500
+                </span>
+              </div>
+              <p className="text-[11px] text-gray-500 dark:text-gray-400 truncate">
+                Wallet balance
+              </p>
+            </div>
+          </Link>
+        </div>
+
+        {/* ═══════════════════════════════════════════════════════════════════════
+            AMAZON-STYLE 8-CARD CORE SERVICES & SETTINGS GRID
+        ═══════════════════════════════════════════════════════════════════════ */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+          {/* Card 0: Admin Dashboard (Only visible for Admins) */}
+          {user.isAdmin && (
+            <Link
+              href="/admin"
+              className="flex items-start gap-3.5 sm:gap-4 p-4 sm:p-5 bg-gradient-to-br from-orange-500/10 to-red-500/5 dark:bg-gray-850 rounded-2xl border-2 border-orange-500 hover:shadow-lg transition active:scale-[0.99] group"
+            >
+              <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-r from-orange-500 to-red-500 flex items-center justify-center text-white shrink-0 group-hover:scale-105 transition-transform shadow-md">
+                <Shield className="w-6 h-6 sm:w-7 sm:h-7" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-sm sm:text-base font-black text-gray-900 dark:text-white group-hover:text-orange-600 transition">
+                    Admin Dashboard
+                  </h2>
+                  <span className="text-[10px] font-black bg-orange-500 text-white px-2 py-0.5 rounded-full uppercase">
+                    Admin
+                  </span>
+                </div>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 leading-relaxed">
+                  Manage live catalog, customer orders, categories, refunds &amp; store analytics
+                </p>
+              </div>
+            </Link>
+          )}
+
+          {/* Card 1: Your Orders */}
+          <Link
+            href="/orders"
+            className="flex items-start gap-3.5 sm:gap-4 p-4 sm:p-5 bg-white dark:bg-gray-850 rounded-2xl border border-gray-200/90 dark:border-gray-700/80 hover:border-orange-500 dark:hover:border-orange-500 hover:shadow-md transition active:scale-[0.99] group"
+          >
+            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200/60 dark:border-amber-800/40 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+              <Package className="w-6 h-6 sm:w-7 sm:h-7 text-amber-600 dark:text-amber-400" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center justify-between">
+                <h2 className="text-sm sm:text-base font-bold text-gray-900 dark:text-white group-hover:text-orange-600 transition">
+                  Your Orders
+                </h2>
+                <ChevronRight size={16} className="text-gray-400 group-hover:text-orange-600 group-hover:translate-x-0.5 transition" />
+              </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 leading-relaxed">
+                Track, return, or buy Kashmir willow bats &amp; athletic gear again
+              </p>
+            </div>
+          </Link>
+
+          {/* Card 2: Login & Security */}
+          <button
+            type="button"
+            onClick={() => setIsEditModalOpen(true)}
+            className="flex items-start gap-3.5 sm:gap-4 p-4 sm:p-5 bg-white dark:bg-gray-850 rounded-2xl border border-gray-200/90 dark:border-gray-700/80 hover:border-orange-500 dark:hover:border-orange-500 hover:shadow-md transition active:scale-[0.99] text-left group cursor-pointer"
+          >
+            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200/60 dark:border-blue-800/40 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+              <Shield className="w-6 h-6 sm:w-7 sm:h-7 text-blue-600 dark:text-blue-400" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center justify-between">
+                <h2 className="text-sm sm:text-base font-bold text-gray-900 dark:text-white group-hover:text-orange-600 transition">
+                  Login &amp; Security
                 </h2>
                 <span className="text-[11px] font-bold text-orange-600 hover:underline">Edit ›</span>
               </div>
@@ -580,15 +756,15 @@ function ProfileContent() {
           <button
             type="button"
             onClick={() => setIsPrimeModalOpen(true)}
-            className="flex items-start gap-4 p-4 sm:p-5 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 hover:border-orange-500 dark:hover:border-orange-500 hover:shadow-md transition-all group text-left cursor-pointer"
+            className="flex items-start gap-3.5 sm:gap-4 p-4 sm:p-5 bg-white dark:bg-gray-850 rounded-2xl border border-gray-200/90 dark:border-gray-700/80 hover:border-orange-500 dark:hover:border-orange-500 hover:shadow-md transition active:scale-[0.99] group text-left cursor-pointer"
           >
-            <div className="w-14 h-14 rounded-2xl bg-cyan-50 dark:bg-cyan-950/40 border border-cyan-200/60 dark:border-cyan-800/40 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-              <Crown className="w-7 h-7 text-cyan-600 dark:text-cyan-400" />
+            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-cyan-50 dark:bg-cyan-950/40 border border-cyan-200/60 dark:border-cyan-800/40 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+              <Crown className="w-6 h-6 sm:w-7 sm:h-7 text-cyan-600 dark:text-cyan-400" />
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-1.5">
-                  <h2 className="text-base font-bold text-gray-900 dark:text-white group-hover:text-orange-600 transition">
+                  <h2 className="text-sm sm:text-base font-bold text-gray-900 dark:text-white group-hover:text-orange-600 transition">
                     Sportify Prime
                   </h2>
                   <span className={`text-[10px] font-black px-2 py-0.5 rounded-full uppercase ${
@@ -596,7 +772,7 @@ function ProfileContent() {
                       ? "bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300"
                       : "bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300"
                   }`}>
-                    {primeData?.isActive ? "Kashmir VIP Active" : "30-Day Free Trial"}
+                    {primeData?.isActive ? "VIP Active" : "30-Day Trial"}
                   </span>
                 </div>
                 <span className="text-[11px] font-bold text-cyan-600 hover:underline">Manage ›</span>
@@ -612,15 +788,18 @@ function ProfileContent() {
           {/* Card 4: Your Addresses */}
           <Link
             href="/address"
-            className="flex items-start gap-4 p-4 sm:p-5 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 hover:border-orange-500 dark:hover:border-orange-500 hover:shadow-md transition-all group"
+            className="flex items-start gap-3.5 sm:gap-4 p-4 sm:p-5 bg-white dark:bg-gray-850 rounded-2xl border border-gray-200/90 dark:border-gray-700/80 hover:border-orange-500 dark:hover:border-orange-500 hover:shadow-md transition active:scale-[0.99] group"
           >
-            <div className="w-14 h-14 rounded-2xl bg-orange-50 dark:bg-orange-950/40 border border-orange-200/60 dark:border-orange-800/40 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-              <MapPin className="w-7 h-7 text-orange-600 dark:text-orange-400" />
+            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-orange-50 dark:bg-orange-950/40 border border-orange-200/60 dark:border-orange-800/40 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+              <MapPin className="w-6 h-6 sm:w-7 sm:h-7 text-orange-600 dark:text-orange-400" />
             </div>
             <div className="min-w-0 flex-1">
-              <h2 className="text-base font-bold text-gray-900 dark:text-white group-hover:text-orange-600 transition">
-                Your Addresses
-              </h2>
+              <div className="flex items-center justify-between">
+                <h2 className="text-sm sm:text-base font-bold text-gray-900 dark:text-white group-hover:text-orange-600 transition">
+                  Your Addresses
+                </h2>
+                <ChevronRight size={16} className="text-gray-400 group-hover:text-orange-600 group-hover:translate-x-0.5 transition" />
+              </div>
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 leading-relaxed">
                 Edit delivery addresses for home, academy, and sports clubs
               </p>
@@ -630,17 +809,20 @@ function ProfileContent() {
           {/* Card 5: Academy & Wholesale Hub */}
           <Link
             href="/wholesale"
-            className="flex items-start gap-4 p-4 sm:p-5 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 hover:border-orange-500 dark:hover:border-orange-500 hover:shadow-md transition-all group"
+            className="flex items-start gap-3.5 sm:gap-4 p-4 sm:p-5 bg-white dark:bg-gray-850 rounded-2xl border border-gray-200/90 dark:border-gray-700/80 hover:border-orange-500 dark:hover:border-orange-500 hover:shadow-md transition active:scale-[0.99] group"
           >
-            <div className="w-14 h-14 rounded-2xl bg-purple-50 dark:bg-purple-950/40 border border-purple-200/60 dark:border-purple-800/40 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-              <Building2 className="w-7 h-7 text-purple-600 dark:text-purple-400" />
+            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-purple-50 dark:bg-purple-950/40 border border-purple-200/60 dark:border-purple-800/40 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+              <Building2 className="w-6 h-6 sm:w-7 sm:h-7 text-purple-600 dark:text-purple-400" />
             </div>
             <div className="min-w-0 flex-1">
-              <h2 className="text-base font-bold text-gray-900 dark:text-white group-hover:text-orange-600 transition">
-                Academy &amp; Wholesale
-              </h2>
+              <div className="flex items-center justify-between">
+                <h2 className="text-sm sm:text-base font-bold text-gray-900 dark:text-white group-hover:text-orange-600 transition">
+                  Academy &amp; Wholesale
+                </h2>
+                <ChevronRight size={16} className="text-gray-400 group-hover:text-orange-600 group-hover:translate-x-0.5 transition" />
+              </div>
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 leading-relaxed">
-                Institutional discounts up to 30%, GST invoice & bulk bat crates
+                Institutional discounts up to 30%, GST invoice &amp; bulk bat crates
               </p>
             </div>
           </Link>
@@ -648,15 +830,18 @@ function ProfileContent() {
           {/* Card 6: Payment options */}
           <Link
             href="/cart"
-            className="flex items-start gap-4 p-4 sm:p-5 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 hover:border-orange-500 dark:hover:border-orange-500 hover:shadow-md transition-all group"
+            className="flex items-start gap-3.5 sm:gap-4 p-4 sm:p-5 bg-white dark:bg-gray-850 rounded-2xl border border-gray-200/90 dark:border-gray-700/80 hover:border-orange-500 dark:hover:border-orange-500 hover:shadow-md transition active:scale-[0.99] group"
           >
-            <div className="w-14 h-14 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/60 dark:border-emerald-800/40 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-              <CreditCard className="w-7 h-7 text-emerald-600 dark:text-emerald-400" />
+            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/60 dark:border-emerald-800/40 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+              <CreditCard className="w-6 h-6 sm:w-7 sm:h-7 text-emerald-600 dark:text-emerald-400" />
             </div>
             <div className="min-w-0 flex-1">
-              <h2 className="text-base font-bold text-gray-900 dark:text-white group-hover:text-orange-600 transition">
-                Payment options
-              </h2>
+              <div className="flex items-center justify-between">
+                <h2 className="text-sm sm:text-base font-bold text-gray-900 dark:text-white group-hover:text-orange-600 transition">
+                  Payment Options
+                </h2>
+                <ChevronRight size={16} className="text-gray-400 group-hover:text-orange-600 group-hover:translate-x-0.5 transition" />
+              </div>
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 leading-relaxed">
                 UPI, Cash on Delivery, and instant checkout preferences
               </p>
@@ -664,21 +849,21 @@ function ProfileContent() {
           </Link>
 
           {/* Card 7: Sportify Pay Balance */}
-          <div className="flex items-start gap-4 p-4 sm:p-5 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 hover:border-orange-500 dark:hover:border-orange-500 hover:shadow-md transition-all group">
-            <div className="w-14 h-14 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200/60 dark:border-amber-800/40 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-              <Wallet className="w-7 h-7 text-amber-600 dark:text-amber-400" />
+          <div className="flex items-start gap-3.5 sm:gap-4 p-4 sm:p-5 bg-white dark:bg-gray-850 rounded-2xl border border-gray-200/90 dark:border-gray-700/80 hover:border-orange-500 dark:hover:border-orange-500 hover:shadow-md transition active:scale-[0.99] group">
+            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200/60 dark:border-amber-800/40 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+              <Wallet className="w-6 h-6 sm:w-7 sm:h-7 text-amber-600 dark:text-amber-400" />
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex items-center justify-between">
-                <h2 className="text-base font-bold text-gray-900 dark:text-white group-hover:text-orange-600 transition">
-                  Sportify Pay balance
+                <h2 className="text-sm sm:text-base font-bold text-gray-900 dark:text-white group-hover:text-orange-600 transition">
+                  Sportify Pay Balance
                 </h2>
-                <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                <span className="text-xs font-black text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950 px-2 py-0.5 rounded-md">
                   ₹500.00
                 </span>
               </div>
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 leading-relaxed">
-                Instant refunds, wallet balance & 1-tap fast order
+                Instant refunds, wallet balance &amp; 1-tap fast order
               </p>
             </div>
           </div>
@@ -686,15 +871,18 @@ function ProfileContent() {
           {/* Card 8: Contact Us */}
           <Link
             href="/contact"
-            className="flex items-start gap-4 p-4 sm:p-5 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 hover:border-orange-500 dark:hover:border-orange-500 hover:shadow-md transition-all group"
+            className="flex items-start gap-3.5 sm:gap-4 p-4 sm:p-5 bg-white dark:bg-gray-850 rounded-2xl border border-gray-200/90 dark:border-gray-700/80 hover:border-orange-500 dark:hover:border-orange-500 hover:shadow-md transition active:scale-[0.99] group"
           >
-            <div className="w-14 h-14 rounded-2xl bg-teal-50 dark:bg-teal-950/40 border border-teal-200/60 dark:border-teal-800/40 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-              <Headphones className="w-7 h-7 text-teal-600 dark:text-teal-400" />
+            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-teal-50 dark:bg-teal-950/40 border border-teal-200/60 dark:border-teal-800/40 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+              <Headphones className="w-6 h-6 sm:w-7 sm:h-7 text-teal-600 dark:text-teal-400" />
             </div>
             <div className="min-w-0 flex-1">
-              <h2 className="text-base font-bold text-gray-900 dark:text-white group-hover:text-orange-600 transition">
-                Contact Us
-              </h2>
+              <div className="flex items-center justify-between">
+                <h2 className="text-sm sm:text-base font-bold text-gray-900 dark:text-white group-hover:text-orange-600 transition">
+                  Contact Us
+                </h2>
+                <ChevronRight size={16} className="text-gray-400 group-hover:text-orange-600 group-hover:translate-x-0.5 transition" />
+              </div>
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 leading-relaxed">
                 Contact Srinagar customer service via WhatsApp or direct phone
               </p>
@@ -702,14 +890,14 @@ function ProfileContent() {
           </Link>
 
           {/* Card 9: 🌐 Real Language Settings & Live Switcher */}
-          <div className="p-4 sm:p-5 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 hover:border-orange-500 dark:hover:border-orange-500 hover:shadow-md transition-all flex flex-col justify-between">
-            <div className="flex items-start gap-4 mb-3">
-              <div className="w-14 h-14 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200/60 dark:border-indigo-800/40 flex items-center justify-center shrink-0">
-                <Globe className="w-7 h-7 text-indigo-600 dark:text-indigo-400" />
+          <div className="p-4 sm:p-5 bg-white dark:bg-gray-850 rounded-2xl border border-gray-200/90 dark:border-gray-700/80 hover:border-orange-500 dark:hover:border-orange-500 hover:shadow-md transition flex flex-col justify-between">
+            <div className="flex items-start gap-3.5 sm:gap-4 mb-3">
+              <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200/60 dark:border-indigo-800/40 flex items-center justify-center shrink-0">
+                <Globe className="w-6 h-6 sm:w-7 sm:h-7 text-indigo-600 dark:text-indigo-400" />
               </div>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-base font-bold text-gray-900 dark:text-white">
+                  <h2 className="text-sm sm:text-base font-bold text-gray-900 dark:text-white">
                     Language Settings
                   </h2>
                   <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-orange-100 dark:bg-orange-950 text-orange-600 dark:text-orange-400">
@@ -734,10 +922,10 @@ function ProfileContent() {
                       setLanguage(l.code);
                       toast.success(`Language changed to ${l.name} (${l.nativeName})`);
                     }}
-                    className={`py-1.5 px-2 rounded-xl text-xs font-bold transition flex items-center justify-between border cursor-pointer ${
+                    className={`py-1.5 px-2.5 rounded-xl text-xs font-bold transition flex items-center justify-between border cursor-pointer active:scale-95 ${
                       active
-                        ? "bg-orange-500 text-white border-orange-500 shadow-sm"
-                        : "bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 border-gray-200 dark:border-gray-600"
+                        ? "bg-orange-500 text-white border-orange-500 shadow-xs"
+                        : "bg-gray-50 dark:bg-gray-750 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 border-gray-200 dark:border-gray-600"
                     }`}
                   >
                     <span className="flex items-center gap-1.5">
@@ -752,11 +940,13 @@ function ProfileContent() {
           </div>
         </div>
 
-        {/* ─── Amazon-Style "Buy It Again" Section with Real Product Images ─── */}
-        <div className="bg-white dark:bg-gray-800 rounded-3xl p-5 sm:p-7 border border-gray-200 dark:border-gray-700 shadow-xs">
+        {/* ═══════════════════════════════════════════════════════════════════════
+            AMAZON-STYLE "BUY IT AGAIN" SECTION WITH PRODUCT CARDS
+        ═══════════════════════════════════════════════════════════════════════ */}
+        <div id="buy-again" className="bg-white dark:bg-gray-850 rounded-2xl sm:rounded-3xl p-4 sm:p-7 border border-gray-200/90 dark:border-gray-700/80 shadow-xs scroll-mt-20">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h2 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">
+              <h2 className="text-base sm:text-xl font-black text-gray-900 dark:text-white">
                 Buy it again
               </h2>
               <p className="text-xs text-gray-500 dark:text-gray-400">
@@ -767,7 +957,7 @@ function ProfileContent() {
               href="/products"
               className="text-xs font-bold text-orange-600 dark:text-orange-400 hover:underline flex items-center gap-1 shrink-0"
             >
-              <span>View All Catalog</span>
+              <span>View All</span>
               <ChevronRight size={14} />
             </Link>
           </div>
@@ -781,7 +971,7 @@ function ProfileContent() {
               return (
                 <div
                   key={prod._id}
-                  className="bg-gray-50 dark:bg-gray-750 rounded-2xl p-3 border border-gray-200 dark:border-gray-700 flex flex-col justify-between hover:shadow-md hover:border-orange-500/40 transition group"
+                  className="bg-gray-50 dark:bg-gray-750/80 rounded-2xl p-2.5 sm:p-3 border border-gray-200/80 dark:border-gray-700 flex flex-col justify-between hover:shadow-md hover:border-orange-500/40 transition group"
                 >
                   <Link
                     href={`/product/${prod._id}`}
@@ -801,8 +991,8 @@ function ProfileContent() {
                         {prod.name}
                       </h3>
                     </Link>
-                    <div className="mt-1 flex items-center gap-1.5">
-                      <span className="text-xs sm:text-sm font-extrabold text-orange-600">
+                    <div className="mt-1 flex items-center gap-1.5 flex-wrap">
+                      <span className="text-xs sm:text-sm font-extrabold text-orange-600 dark:text-orange-400">
                         ₹{Math.round(price).toLocaleString("en-IN")}
                       </span>
                       {prod.discount > 0 && (
@@ -816,12 +1006,12 @@ function ProfileContent() {
                     type="button"
                     onClick={(e) => handleQuickAddToCart(prod._id, e)}
                     disabled={addingCartId === prod._id}
-                    className="mt-2.5 w-full py-1.5 bg-amber-400 hover:bg-amber-500 text-gray-900 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1 shadow-xs cursor-pointer disabled:opacity-50"
+                    className="mt-2.5 w-full py-2 sm:py-1.5 bg-amber-400 hover:bg-amber-500 active:scale-95 text-gray-900 rounded-xl sm:rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-xs cursor-pointer disabled:opacity-50"
                   >
                     {addingCartId === prod._id ? (
-                      <Loader2 size={12} className="animate-spin" />
+                      <Loader2 size={13} className="animate-spin" />
                     ) : (
-                      <ShoppingCart size={12} />
+                      <ShoppingCart size={13} />
                     )}
                     <span>Add to cart</span>
                   </button>
@@ -831,46 +1021,59 @@ function ProfileContent() {
           </div>
         </div>
 
-        {/* ─── Amazon-Style 3-Column Directory Footer Links ─── */}
-        <div className="bg-white dark:bg-gray-800 rounded-3xl p-6 sm:p-8 border border-gray-200 dark:border-gray-700 shadow-xs">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 text-xs">
+        {/* ═══════════════════════════════════════════════════════════════════════
+            AMAZON-STYLE 3-COLUMN DIRECTORY & ACCOUNT FOOTER LINKS
+        ═══════════════════════════════════════════════════════════════════════ */}
+        <div className="bg-white dark:bg-gray-850 rounded-2xl sm:rounded-3xl p-5 sm:p-8 border border-gray-200/90 dark:border-gray-700/80 shadow-xs">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 sm:gap-8 text-xs">
             {/* Col 1 */}
             <div className="space-y-2.5">
-              <h4 className="font-extrabold text-gray-900 dark:text-white text-sm pb-1 border-b border-gray-100 dark:border-gray-700">
-                Orders &amp; Shopping
+              <h4 className="font-black text-gray-900 dark:text-white text-sm pb-1.5 border-b border-gray-100 dark:border-gray-700/80 flex items-center gap-2">
+                <ShoppingBag size={16} className="text-orange-500" />
+                <span>Orders &amp; Shopping</span>
               </h4>
               <ul className="space-y-2 text-gray-600 dark:text-gray-300">
-                <li><Link href="/orders" className="hover:text-orange-600 hover:underline">Your Orders &amp; Invoices</Link></li>
-                <li><Link href="/wishlist" className="hover:text-orange-600 hover:underline">Your Wishlist</Link></li>
-                <li><Link href="/cart" className="hover:text-orange-600 hover:underline">View Shopping Cart</Link></li>
-                <li><Link href="/wholesale" className="hover:text-orange-600 hover:underline">Academy Bulk Orders</Link></li>
+                <li><Link href="/orders" className="hover:text-orange-600 hover:underline flex items-center gap-1.5"><span>•</span><span>Your Orders &amp; Invoices</span></Link></li>
+                <li><Link href="/wishlist" className="hover:text-orange-600 hover:underline flex items-center gap-1.5"><span>•</span><span>Your Wishlist</span></Link></li>
+                <li><Link href="/cart" className="hover:text-orange-600 hover:underline flex items-center gap-1.5"><span>•</span><span>View Shopping Cart</span></Link></li>
+                <li><Link href="/wholesale" className="hover:text-orange-600 hover:underline flex items-center gap-1.5"><span>•</span><span>Academy Bulk Orders</span></Link></li>
               </ul>
             </div>
 
             {/* Col 2 */}
             <div className="space-y-2.5">
-              <h4 className="font-extrabold text-gray-900 dark:text-white text-sm pb-1 border-b border-gray-100 dark:border-gray-700">
-                Account Settings
+              <h4 className="font-black text-gray-900 dark:text-white text-sm pb-1.5 border-b border-gray-100 dark:border-gray-700/80 flex items-center gap-2">
+                <Settings size={16} className="text-orange-500" />
+                <span>Account Settings</span>
               </h4>
               <ul className="space-y-2 text-gray-600 dark:text-gray-300">
                 <li>
-                  <button type="button" onClick={() => setIsEditModalOpen(true)} className="hover:text-orange-600 hover:underline text-left cursor-pointer">
-                    Edit Personal Profile &amp; Photo
+                  <button type="button" onClick={() => setIsEditModalOpen(true)} className="hover:text-orange-600 hover:underline text-left cursor-pointer flex items-center gap-1.5">
+                    <span>•</span><span>Edit Personal Profile &amp; Photo</span>
                   </button>
                 </li>
-                <li><Link href="/address" className="hover:text-orange-600 hover:underline">Manage Delivery Addresses</Link></li>
+                <li>
+                  <Link href="/address" className="hover:text-orange-600 hover:underline flex items-center gap-1.5">
+                    <span>•</span><span>Manage Delivery Addresses</span>
+                  </Link>
+                </li>
                 <li>
                   <button
                     type="button"
                     onClick={() => window.dispatchEvent(new CustomEvent("show-pwa-install"))}
-                    className="hover:text-orange-600 hover:underline text-left cursor-pointer"
+                    className="hover:text-orange-600 hover:underline text-left cursor-pointer flex items-center gap-1.5"
                   >
-                    Install Sportify App (PWA)
+                    <span>•</span><span>Install Sportify App (PWA)</span>
                   </button>
                 </li>
-                <li>
-                  <button type="button" onClick={handleLogout} className="text-red-600 hover:underline text-left cursor-pointer">
-                    Sign Out of Account
+                <li className="pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setIsLogoutModalOpen(true)}
+                    className="text-rose-600 dark:text-rose-400 font-bold hover:underline text-left cursor-pointer flex items-center gap-1.5"
+                  >
+                    <LogOut size={13} />
+                    <span>Sign Out of Account</span>
                   </button>
                 </li>
               </ul>
@@ -878,19 +1081,58 @@ function ProfileContent() {
 
             {/* Col 3 */}
             <div className="space-y-2.5">
-              <h4 className="font-extrabold text-gray-900 dark:text-white text-sm pb-1 border-b border-gray-100 dark:border-gray-700">
-                Help &amp; Customer Support
+              <h4 className="font-black text-gray-900 dark:text-white text-sm pb-1.5 border-b border-gray-100 dark:border-gray-700/80 flex items-center gap-2">
+                <Headphones size={16} className="text-orange-500" />
+                <span>Help &amp; Customer Support</span>
               </h4>
               <ul className="space-y-2 text-gray-600 dark:text-gray-300">
-                <li><Link href="/contact" className="hover:text-orange-600 hover:underline">Customer Service &amp; Help Desk</Link></li>
-                <li><Link href="/faq" className="hover:text-orange-600 hover:underline">Frequently Asked Questions</Link></li>
-                <li><Link href="/return-policy" className="hover:text-orange-600 hover:underline">Returns &amp; Replacement Policy</Link></li>
-                <li><Link href="/shipping-policy" className="hover:text-orange-600 hover:underline">Kashmir Express Shipping Rates</Link></li>
+                <li><Link href="/contact" className="hover:text-orange-600 hover:underline flex items-center gap-1.5"><span>•</span><span>Customer Service &amp; Help Desk</span></Link></li>
+                <li><Link href="/faq" className="hover:text-orange-600 hover:underline flex items-center gap-1.5"><span>•</span><span>Frequently Asked Questions</span></Link></li>
+                <li><Link href="/return-policy" className="hover:text-orange-600 hover:underline flex items-center gap-1.5"><span>•</span><span>Returns &amp; Replacement Policy</span></Link></li>
+                <li><Link href="/shipping-policy" className="hover:text-orange-600 hover:underline flex items-center gap-1.5"><span>•</span><span>Kashmir Express Shipping Rates</span></Link></li>
               </ul>
             </div>
           </div>
         </div>
       </div>
+
+      {/* ═══════════════════════════════════════════════════════════════════════
+          CONFIRM SIGN OUT MODAL DIALOG
+      ═══════════════════════════════════════════════════════════════════════ */}
+      {isLogoutModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150">
+          <div
+            className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-3xl w-full max-w-sm p-6 shadow-2xl border border-gray-200 dark:border-gray-700 text-center space-y-4 animate-in zoom-in-95 duration-150"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="w-14 h-14 bg-rose-100 dark:bg-rose-950/60 rounded-full flex items-center justify-center mx-auto text-rose-600">
+              <LogOut size={26} />
+            </div>
+            <div>
+              <h3 className="text-lg font-black">Sign Out of Account?</h3>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Are you sure you want to sign out of Sportify Kashmir on this device?
+              </p>
+            </div>
+            <div className="flex items-center gap-3 pt-2">
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="flex-1 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl text-xs sm:text-sm shadow-md transition cursor-pointer active:scale-95"
+              >
+                Yes, Sign Out
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsLogoutModalOpen(false)}
+                className="flex-1 py-2.5 bg-gray-100 dark:bg-gray-750 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 font-bold rounded-xl text-xs sm:text-sm transition cursor-pointer active:scale-95"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ═══════════════════════════════════════════════════════════════════════
           EDIT PROFILE MODAL & DIALOG
@@ -902,13 +1144,13 @@ function ProfileContent() {
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
-            <div className="p-5 sm:p-6 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between sticky top-0 bg-white/95 dark:bg-gray-800/95 backdrop-blur-md z-10">
+            <div className="p-4 sm:p-6 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between sticky top-0 bg-white/95 dark:bg-gray-800/95 backdrop-blur-md z-10">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-orange-100 dark:bg-orange-950/60 flex items-center justify-center text-orange-600">
                   <Edit3 size={20} />
                 </div>
                 <div>
-                  <h3 className="font-extrabold text-lg">Edit Profile &amp; Settings</h3>
+                  <h3 className="font-extrabold text-base sm:text-lg">Edit Profile &amp; Settings</h3>
                   <p className="text-xs text-gray-500 dark:text-gray-400">Update your Sportify Kashmir personal details</p>
                 </div>
               </div>
@@ -919,16 +1161,16 @@ function ProfileContent() {
                   setPreviewUrl(null);
                   setSelectedProfilePic(null);
                 }}
-                className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 transition cursor-pointer"
+                className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-750 text-gray-500 transition cursor-pointer"
               >
                 <X size={20} />
               </button>
             </div>
 
             {/* Modal Form */}
-            <form onSubmit={handleSaveChanges} className="p-5 sm:p-6 space-y-4 text-xs sm:text-sm">
+            <form onSubmit={handleSaveChanges} className="p-4 sm:p-6 space-y-4 text-xs sm:text-sm">
               {/* Photo Upload In Modal */}
-              <div className="flex items-center gap-4 p-3 bg-gray-50 dark:bg-gray-750 rounded-2xl border border-gray-200 dark:border-gray-700">
+              <div className="flex items-center gap-3.5 sm:gap-4 p-3 bg-gray-50 dark:bg-gray-750 rounded-2xl border border-gray-200 dark:border-gray-700">
                 <div className="relative w-14 h-14 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 border-2 border-orange-500 shrink-0 flex items-center justify-center">
                   {profileImageUrl && !imageError ? (
                     <img src={profileImageUrl} alt="Preview" className="w-full h-full object-cover" />
@@ -936,7 +1178,7 @@ function ProfileContent() {
                     <User size={24} className="text-gray-400" />
                   )}
                 </div>
-                <div className="flex-1">
+                <div className="flex-1 min-w-0">
                   <p className="font-bold text-xs">Profile Photo</p>
                   <p className="text-[11px] text-gray-500 mb-1.5">PNG, JPG or WEBP under 5MB</p>
                   <button
@@ -1005,7 +1247,7 @@ function ProfileContent() {
                 <label className="block font-bold text-gray-700 dark:text-gray-300 mb-1.5">
                   Your Favorite Sports Interests
                 </label>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-1.5 sm:gap-2">
                   {["Cricket 🏏", "Football ⚽", "Badminton 🏸", "Gym & Fitness 🏋️", "Tennis 🎾", "Basketball 🏀", "Apparel & Shoes 👟"].map((sport) => {
                     const isSelected = selectedSports.includes(sport);
                     return (
@@ -1065,7 +1307,7 @@ function ProfileContent() {
                 <button
                   type="submit"
                   disabled={updatingProfile}
-                  className="flex-1 py-3 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-bold rounded-xl shadow-md transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                  className="flex-1 py-3 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-bold rounded-xl shadow-md transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 active:scale-95"
                 >
                   {updatingProfile ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
                   <span>{updatingProfile ? "Saving Changes..." : "Save Profile Changes"}</span>
@@ -1077,7 +1319,7 @@ function ProfileContent() {
                     setPreviewUrl(null);
                     setSelectedProfilePic(null);
                   }}
-                  className="px-5 py-3 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 font-bold rounded-xl transition cursor-pointer"
+                  className="px-5 py-3 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 font-bold rounded-xl transition cursor-pointer active:scale-95"
                 >
                   Cancel
                 </button>

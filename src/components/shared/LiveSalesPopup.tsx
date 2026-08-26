@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { CheckCircle2, X } from "lucide-react";
 
 interface LiveSaleNotification {
@@ -49,6 +50,7 @@ const getImageUrl = (url?: string) => {
 };
 
 export default function LiveSalesPopup() {
+  const pathname = usePathname();
   const [products, setProducts] = useState<any[]>([]);
   const [currentNotification, setCurrentNotification] = useState<LiveSaleNotification | null>(null);
   const [isVisible, setIsVisible] = useState(false);
@@ -170,7 +172,7 @@ export default function LiveSalesPopup() {
     } catch {}
   };
 
-  if (isDismissed || !currentNotification || !isVisible) return null;
+  if (pathname?.startsWith("/admin") || isDismissed || !currentNotification || !isVisible) return null;
 
   return (
     <div className="fixed bottom-36 md:bottom-20 left-4 z-40 max-w-[330px] animate-in fade-in slide-in-from-bottom-5 duration-300">

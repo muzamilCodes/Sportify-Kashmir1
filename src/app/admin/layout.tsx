@@ -27,6 +27,7 @@ import {
   ChevronRight,
   Image as ImageIcon,
   Megaphone,
+  Home,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -204,8 +205,16 @@ export default function AdminLayout({
             </span>
           </div>
 
-          {/* Mobile Right: Notification Bell & Quick Profile Icon */}
-          <div className="flex items-center gap-2">
+          {/* Mobile Right: Home Page Button, Notification Bell & Quick Profile Icon */}
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <Link
+              href="/"
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white text-xs font-bold shadow-xs active:scale-95 transition"
+              title="Go to Home Page"
+            >
+              <Home size={14} />
+              <span>Home</span>
+            </Link>
             <AdminNotificationCenter />
             <Link
               href="/admin/profile"
@@ -299,6 +308,23 @@ export default function AdminLayout({
 
             {/* Navigation Menu */}
             <nav className="p-3 space-y-1">
+              {/* Dedicated Quick Action: Go to Home Page */}
+              <Link
+                href="/"
+                className="flex items-center justify-between px-3 py-2.5 rounded-xl bg-gradient-to-r from-orange-500/20 via-red-500/15 to-orange-500/10 hover:from-orange-500 hover:to-red-500 text-orange-400 hover:text-white border border-orange-500/30 hover:border-transparent transition-all duration-200 group text-xs font-bold shadow-xs mb-2.5 cursor-pointer"
+                title="Go to Home Page"
+                onClick={() => {
+                  if (isMobile) {
+                    setSidebarOpen(false);
+                  }
+                }}
+              >
+                <div className="flex items-center gap-2.5">
+                  <Home size={18} className="text-orange-400 group-hover:text-white transition-colors" />
+                  <span>Go to Home Page</span>
+                </div>
+                <ExternalLink size={13} className="text-orange-400 group-hover:text-white opacity-70 group-hover:opacity-100 transition-opacity" />
+              </Link>
               {navItems.map((item) => (
                 <Link
                   key={item.href}
@@ -417,18 +443,18 @@ export default function AdminLayout({
             </div>
 
             <div className="flex items-center gap-3">
-              {/* Notification Center */}
-              <AdminNotificationCenter />
-
-              {/* View Public Store */}
+              {/* Go to Home Page Button */}
               <Link
                 href="/"
-                target="_blank"
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 dark:bg-gray-700 hover:bg-orange-50 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 hover:text-orange-600 rounded-xl text-xs font-bold transition"
+                className="flex items-center gap-2 px-3.5 py-1.5 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white rounded-xl text-xs font-bold shadow-xs hover:shadow-md transition active:scale-95 cursor-pointer"
+                title="Go to Home Page"
               >
-                <span>Live Store</span>
-                <ExternalLink size={13} />
+                <Home size={15} />
+                <span>Go to Home Page</span>
               </Link>
+
+              {/* Notification Center */}
+              <AdminNotificationCenter />
 
               {/* Admin Profile Chip */}
               <Link
