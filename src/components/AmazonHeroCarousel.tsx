@@ -243,7 +243,7 @@ export default function AmazonHeroCarousel() {
       {/* ═══════════════════════════════════════════════════════════════════════
           MOBILE VIEW (< 768px): Amazon 2x2 Multi-Product Banner Swipe Cards
       ═══════════════════════════════════════════════════════════════════════ */}
-      <div className="md:hidden py-2 bg-gradient-to-b from-[#e3e6e6] to-[#f3f4f6] dark:from-gray-950 dark:to-gray-900">
+      <div className="md:hidden py-3 bg-transparent">
         <div
           ref={scrollRef}
           className="flex items-stretch gap-3 px-3 overflow-x-auto scrollbar-none snap-x snap-mandatory"
@@ -337,7 +337,7 @@ export default function AmazonHeroCarousel() {
       {/* ═══════════════════════════════════════════════════════════════════════
           DESKTOP VIEW (>= 768px): Full Wide Hero Carousel + 4 Floating Amazon Cards
       ═══════════════════════════════════════════════════════════════════════ */}
-      <div className="hidden md:block relative w-full bg-[#eaeded] dark:bg-gray-950">
+      <div className="hidden md:block relative w-full bg-transparent">
         {/* Full-width Wide Background Carousel Banner */}
         <div className="relative h-[480px] lg:h-[560px] w-full overflow-hidden">
           {heroSlides.map((slide, idx) => (
@@ -357,28 +357,31 @@ export default function AmazonHeroCarousel() {
                   loading={idx === 0 ? "eager" : "lazy"}
                   fetchPriority={idx === 0 ? "high" : "low"}
                   decoding="async"
-                  className="absolute inset-0 w-full h-full object-cover mix-blend-overlay opacity-40 scale-105 transition-transform duration-7000"
+                  className="absolute inset-0 w-full h-full object-cover mix-blend-overlay opacity-45 scale-105 transition-transform duration-[7000ms]"
                 />
 
                 <div className="container max-w-[1500px] mx-auto px-8 relative z-10 flex items-start justify-between">
-                  <div className="max-w-2xl space-y-3.5">
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black uppercase bg-amber-400/20 border border-amber-400/40 text-amber-300 backdrop-blur-md tracking-wider shadow-xs">
-                      <Sparkles size={13} className="text-amber-400" />
+                  <div className="max-w-2xl space-y-3.5 animate-fade-in-up">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black uppercase bg-orange-500/20 border border-orange-400/40 text-orange-200 backdrop-blur-md tracking-wider shadow-xs">
+                      <Sparkles size={13} className="text-orange-300" />
                       {slide.tag}
                     </span>
 
-                    <h1 className="text-4xl lg:text-5xl font-black text-white tracking-tight leading-tight drop-shadow-md">
-                      {slide.title} <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-orange-400">{slide.highlight}</span>
+                    <h1 className="font-display text-4xl lg:text-5xl font-black text-white tracking-tight leading-tight drop-shadow-md">
+                      {slide.title}{" "}
+                      <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-300 to-red-400">
+                        {slide.highlight}
+                      </span>
                     </h1>
 
-                    <p className="text-sm lg:text-base text-gray-200 leading-relaxed max-w-xl drop-shadow">
+                    <p className="text-sm lg:text-base text-zinc-200 leading-relaxed max-w-xl drop-shadow">
                       {slide.subtitle}
                     </p>
 
                     <div className="pt-2 flex items-center gap-3">
                       <Link
                         href={slide.link}
-                        className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-500 hover:to-orange-600 text-gray-950 font-extrabold text-sm transition shadow-xl hover:shadow-2xl hover:scale-102 active:scale-98 cursor-pointer"
+                        className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-extrabold text-sm transition shadow-xl hover:shadow-orange-500/30 hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
                       >
                         <span>Shop Collection</span>
                         <ArrowRight size={16} />
@@ -387,15 +390,15 @@ export default function AmazonHeroCarousel() {
                         href="/sale"
                         className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-sm border border-white/20 backdrop-blur-md transition cursor-pointer"
                       >
-                        <Zap size={15} className="text-amber-400" />
+                        <Zap size={15} className="text-orange-300" />
                         <span>Flash Deals</span>
                       </Link>
                     </div>
                   </div>
                 </div>
 
-                {/* Bottom Fade Mask into Page Content (Amazon Signature) */}
-                <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-[#eaeded] dark:from-gray-950 via-[#eaeded]/70 dark:via-gray-950/70 to-transparent pointer-events-none" />
+                {/* Bottom Fade Mask into Page Content */}
+                <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-[var(--color-bg-primary)] dark:from-zinc-950 via-[var(--color-bg-primary)]/70 dark:via-zinc-950/70 to-transparent pointer-events-none" />
               </div>
             </div>
           ))}
@@ -425,7 +428,7 @@ export default function AmazonHeroCarousel() {
             {bannerCards.map((card) => (
               <div
                 key={card.id}
-                className="bg-white dark:bg-gray-900 rounded-xl p-4.5 shadow-xl border border-gray-200/80 dark:border-gray-800 flex flex-col justify-between transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 group"
+                className="bg-white dark:bg-zinc-900 rounded-2xl p-4.5 shadow-xl border border-zinc-200/80 dark:border-zinc-800 flex flex-col justify-between transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 hover:border-orange-400/40 group"
               >
                 <div>
                   {/* Card Title */}

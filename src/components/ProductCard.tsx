@@ -235,7 +235,7 @@ function ProductCardComponent({
   };
 
   return (
-    <div className="group h-full flex flex-col justify-between bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-lg hover:border-orange-500/40 dark:hover:border-orange-500/40 transition-all duration-200 overflow-hidden">
+    <div className="sk-product-card group h-full flex flex-col justify-between dark:bg-zinc-900 overflow-hidden">
       <Link
         href={`/product/${product._id}`}
         onMouseEnter={primeProductCache}
@@ -244,7 +244,7 @@ function ProductCardComponent({
         className="flex flex-col flex-1"
       >
         {/* Product Image Area */}
-        <div className="relative aspect-square w-full bg-gray-50 dark:bg-gray-850 p-2.5 sm:p-3.5 flex items-center justify-center overflow-hidden">
+        <div className="relative aspect-square w-full bg-gradient-to-b from-slate-50 to-slate-100/80 dark:from-zinc-800 dark:to-zinc-900 p-3 sm:p-4 flex items-center justify-center overflow-hidden">
           <ProductImage
             product={product}
             src={finalImageUrl}
@@ -252,12 +252,12 @@ function ProductCardComponent({
             priority={priority}
             fill
             sizes="(max-width: 640px) 50vw, (max-width: 1280px) 25vw, 20vw"
-            className="object-contain group-hover:scale-105 transition-transform duration-300 ease-out"
+            className="object-contain group-hover:scale-110 transition-transform duration-500 ease-out"
           />
 
           {/* Discount Badge */}
           {isDiscounted && discountPercent > 0 && (
-            <div className="absolute top-2 left-2 bg-gradient-to-r from-red-600 to-orange-600 text-white text-[11px] sm:text-xs font-bold px-2 py-0.5 rounded shadow-xs">
+            <div className="absolute top-2.5 left-2.5 bg-gradient-to-r from-orange-500 to-red-500 text-white text-[11px] sm:text-xs font-bold px-2.5 py-1 rounded-md shadow-md tracking-wide">
               {discountPercent}% OFF
             </div>
           )}
@@ -299,7 +299,7 @@ function ProductCardComponent({
         {/* Product Details */}
         <div className="p-3 sm:p-3.5 flex flex-col flex-1 justify-between">
           <div>
-            <h3 className="text-[14px] sm:text-[15px] font-semibold text-gray-900 dark:text-gray-100 line-clamp-2 min-h-[40px] sm:min-h-[42px] leading-snug group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors">
+            <h3 className="product-title font-display text-zinc-900 dark:text-zinc-100 line-clamp-2 min-h-[40px] sm:min-h-[42px] leading-snug group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors">
               {product.name}
             </h3>
 
@@ -338,10 +338,10 @@ function ProductCardComponent({
             )}
 
             {/* Sportify Prime 24h Express Badge */}
-            <div className="flex items-center gap-1 mt-1">
-              <span className="flex items-center bg-[#002f36] text-white px-1.5 py-0.2 rounded text-[9px] font-black tracking-tight">
+            <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+              <span className="inline-flex items-center bg-zinc-950 text-white px-1.5 py-0.5 rounded text-[9px] font-black tracking-tight">
                 <span>sportify</span>
-                <span className="text-[#00a8e1] ml-0.5">prime</span>
+                <span className="text-orange-400 ml-0.5">prime</span>
               </span>
               <span className="text-[10px] text-emerald-700 dark:text-emerald-400 font-bold">24h Valley Delivery</span>
             </div>
@@ -358,7 +358,7 @@ function ProductCardComponent({
             onClick={onAddToCart}
             disabled={!isAvailable || isAddingToCart}
             aria-label={`Add ${product.name} to cart`}
-            className="flex items-center justify-center gap-1 py-2 px-2 text-[13px] sm:text-[14px] font-medium bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-900 dark:text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed active:scale-98 cursor-pointer"
+            className="flex items-center justify-center gap-1 py-2.5 px-2 text-[13px] sm:text-[14px] font-semibold bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-900 dark:text-white rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] cursor-pointer"
           >
             {isAddingToCart ? (
               <Loader2 size={14} className="animate-spin" />
@@ -374,7 +374,7 @@ function ProductCardComponent({
             onClick={onBuyNow}
             disabled={!isAvailable || isBuyingNow}
             aria-label={`Buy ${product.name} now`}
-            className="flex items-center justify-center gap-1 py-2 px-2 text-[13px] sm:text-[14px] font-medium bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white rounded-lg shadow-xs hover:shadow transition-all disabled:opacity-50 disabled:cursor-not-allowed active:scale-98 cursor-pointer"
+            className="sk-btn-primary flex items-center justify-center gap-1 py-2.5 px-2 text-[13px] sm:text-[14px] font-semibold rounded-xl disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
           >
             {isBuyingNow ? (
               <Loader2 size={14} className="animate-spin" />

@@ -689,7 +689,7 @@ export default function ProductDetailPage() {
 
   if (!product) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="sk-page-shell flex items-center justify-center">
         <div className="text-center">
           <AlertCircle className="w-16 h-16 text-gray-400 mx-auto mb-4" />
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Product Not Found</h2>
@@ -703,9 +703,9 @@ export default function ProductDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="sk-page-shell">
       {/* Breadcrumb */}
-      <div className="bg-white border-b">
+      <div className="bg-white/90 dark:bg-zinc-900/90 border-b border-zinc-200 dark:border-zinc-800 backdrop-blur-md">
         <div className="container mx-auto px-4 py-3">
           <div className="flex items-center gap-2 text-sm text-gray-500">
             <Link href="/" className="hover:text-orange-500">Home</Link>
@@ -719,7 +719,7 @@ export default function ProductDetailPage() {
 
       <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-8 pb-28 md:pb-8">
         {/* Product Main Section */}
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6 mb-8">
+        <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800 p-4 sm:p-6 mb-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
             {/* Product Images */}
             <div>

@@ -50,7 +50,7 @@ export default function MobileBottomNav() {
   return (
     <>
       <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden safe-bottom">
-        <div className="bg-white dark:bg-[#131921] border-t border-gray-200 dark:border-gray-800 shadow-[0_-4px_20px_rgba(0,0,0,0.06)] dark:shadow-[0_-4px_20px_rgba(0,0,0,0.4)]">
+        <div className="bg-white dark:bg-[var(--color-nav)] border-t border-zinc-200 dark:border-zinc-800 shadow-[0_-4px_20px_rgba(0,0,0,0.06)] dark:shadow-[0_-4px_20px_rgba(0,0,0,0.4)]">
           <div className="flex items-center justify-between px-1.5 py-1">
             {/* 1. Home */}
             <Link

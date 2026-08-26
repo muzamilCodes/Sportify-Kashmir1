@@ -645,21 +645,21 @@ const shippingCost = 0;
 const grandTotal = totalAmount + shippingCost;
 
 return (
-  <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
+  <div className="sk-page-shell">
     {/* Header */}
-    <div className="bg-white border-b sticky top-0 z-20 shadow-sm">
+    <div className="bg-white/90 dark:bg-zinc-900/90 border-b border-zinc-200 dark:border-zinc-800 sticky top-0 z-20 shadow-sm backdrop-blur-md">
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
           <button
             onClick={() => router.back()}
-            className="flex items-center gap-2 text-gray-600 hover:text-orange-500 transition"
+            className="flex items-center gap-2 text-zinc-600 dark:text-zinc-300 hover:text-orange-500 transition"
           >
             <ArrowLeft className="w-5 h-5" />
             <span className="hidden sm:inline">Back</span>
           </button>
           <div className="text-center">
-            <h1 className="text-xl font-bold text-gray-900">Checkout</h1>
-            <p className="text-xs text-gray-500">Complete your purchase</p>
+            <h1 className="font-display text-xl font-bold text-zinc-900 dark:text-white">Checkout</h1>
+            <p className="text-xs text-zinc-500">Complete your purchase</p>
           </div>
           <div className="w-20"></div>
         </div>
@@ -671,11 +671,11 @@ return (
         {/* Left Column */}
         <div className="lg:col-span-2 space-y-6">
           {/* Delivery Address Section */}
-          <div className="bg-white rounded-2xl shadow-sm border p-6">
+          <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800 p-6">
             <div className="flex items-center justify-between mb-5">
               <div className="flex items-center gap-2">
                 <MapPin className="w-5 h-5 text-orange-500" />
-                <h2 className="font-semibold text-gray-900 text-lg">Delivery Address</h2>
+                <h2 className="font-display font-semibold text-gray-900 dark:text-white text-lg">Delivery Address</h2>
               </div>
               <button
                 onClick={() => setShowAddressModal(true)}
@@ -687,7 +687,7 @@ return (
             </div>
 
             {selectedAddress ? (
-              <div className="bg-gradient-to-r from-orange-50 to-red-50 rounded-xl p-4 border border-orange-200">
+              <div className="bg-gradient-to-r from-orange-50 to-red-50 dark:from-orange-500/10 dark:to-red-500/10 rounded-xl p-4 border border-orange-200 dark:border-orange-500/25">
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
@@ -771,10 +771,10 @@ return (
           </div>
 
           {/* Order Items Section */}
-          <div className="bg-white rounded-2xl shadow-sm border p-6">
+          <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800 p-6">
             <div className="flex items-center gap-2 mb-5">
               <ShoppingCart className="w-5 h-5 text-orange-500" />
-              <h2 className="font-semibold text-gray-900 text-lg">Order Items</h2>
+              <h2 className="font-display font-semibold text-gray-900 dark:text-white text-lg">Order Items</h2>
               <span className="text-sm text-gray-500">({cartItems.length} items)</span>
             </div>
 
@@ -866,10 +866,10 @@ return (
           </div>
 
           {/* Payment Method Section */}
-          <div className="bg-white rounded-2xl shadow-sm border p-6">
+          <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800 p-6">
             <div className="flex items-center gap-2 mb-5">
               <CreditCard className="w-5 h-5 text-orange-500" />
-              <h2 className="font-semibold text-gray-900 text-lg">Payment Method</h2>
+              <h2 className="font-display font-semibold text-gray-900 dark:text-white text-lg">Payment Method</h2>
             </div>
 
             <div className="space-y-3">
@@ -912,7 +912,7 @@ return (
           </div>
 
           {/* Delivery Promise */}
-          <div className="bg-white rounded-2xl shadow-sm border p-6">
+          <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800 p-6">
             <div className="flex flex-wrap gap-6 justify-between">
               <div className="flex items-center gap-3">
                 <Truck className="w-5 h-5 text-green-600" />
@@ -941,7 +941,7 @@ return (
 
         {/* Right Column - Order Summary */}
         <div className="lg:col-span-1">
-          <div className="bg-white rounded-2xl shadow-sm border p-6 sticky top-24">
+          <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800 p-6 sticky top-24">
             <h2 className="font-bold text-xl text-gray-900 mb-4">Order Summary</h2>
 
             {/* Cart Items Preview */}

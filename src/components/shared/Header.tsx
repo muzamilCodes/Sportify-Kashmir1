@@ -525,7 +525,7 @@ export default function Header() {
       {/* ═══════════════════════════════════════════════════════════════════════
           ROW 1: Amazon-Style Main Header Bar (#131921 Navy/Black)
       ═══════════════════════════════════════════════════════════════════════ */}
-      <div className="bg-[#131921] text-white px-2 sm:px-4 py-1 sm:py-2">
+      <div className="bg-[var(--color-nav)] text-white px-2 sm:px-4 py-1 sm:py-2">
         <div className="max-w-[1500px] mx-auto hidden lg:flex items-center justify-between gap-2 sm:gap-4">
           {/* ── Left: Hamburger Menu (Mobile) + Logo ── */}
           <div className="flex items-center gap-1 shrink-0">
@@ -558,11 +558,11 @@ export default function Header() {
                     <Trophy size={16} className="text-white" />
                   </div>
                   <div className="flex flex-col leading-none">
-                    <span className="text-sm sm:text-lg font-black tracking-tight text-white flex items-center">
-                      sportify<span className="text-amber-400 font-bold text-xs sm:text-sm">.in</span>
+                    <span className="font-display text-sm sm:text-lg font-black tracking-tight text-white flex items-center gap-1">
+                      Sportify<span className="text-orange-400">Kashmir</span>
                     </span>
-                    <span className="text-[8px] sm:text-[9px] text-gray-300 font-semibold tracking-wider uppercase -mt-0.5">
-                      Kashmir
+                    <span className="text-[8px] sm:text-[9px] text-zinc-400 font-semibold tracking-[0.14em] uppercase -mt-0.5">
+                      Premium Sports Gear
                     </span>
                   </div>
                 </>
@@ -651,7 +651,7 @@ export default function Header() {
               <button
                 type="submit"
                 aria-label="Submit search"
-                className="w-12 bg-[#febd69] hover:bg-[#f3a847] text-gray-900 flex items-center justify-center transition cursor-pointer shrink-0"
+                className="w-12 bg-orange-500 hover:bg-orange-600 text-white flex items-center justify-center transition cursor-pointer shrink-0"
               >
                 {isSearching ? <Loader2 size={18} className="animate-spin" /> : <Search size={19} />}
               </button>
@@ -1025,7 +1025,7 @@ export default function Header() {
             >
               <div className="relative">
                 <ShoppingCart size={24} className="text-white" />
-                <span className="absolute -top-1.5 left-2.5 bg-[#f08804] text-gray-900 text-[10px] sm:text-xs font-black rounded-full h-4 min-w-4 px-1 flex items-center justify-center leading-none shadow-xs">
+                <span className="absolute -top-1.5 left-2.5 bg-orange-500 text-white text-[10px] sm:text-xs font-black rounded-full h-4 min-w-4 px-1 flex items-center justify-center leading-none shadow-xs">
                   {cartCount}
                 </span>
               </div>
@@ -1094,7 +1094,7 @@ export default function Header() {
       {/* ═══════════════════════════════════════════════════════════════════════
           ROW 2: Mobile Delivery Location & Prime Strip
       ═══════════════════════════════════════════════════════════════════════ */}
-      <div className="lg:hidden bg-[#232f3e] text-white px-3 py-1.5 text-[11px] flex items-center justify-between border-t border-[#37475a]">
+      <div className="lg:hidden bg-[var(--color-nav-secondary)] text-white px-3 py-1.5 text-[11px] flex items-center justify-between border-t border-zinc-700/80">
         <Link
           href={isLoggedIn ? "/profile?tab=addresses" : "/login"}
           className="flex items-center gap-1.5 text-gray-200 hover:text-white truncate flex-1"
@@ -1110,7 +1110,7 @@ export default function Header() {
         <button
           type="button"
           onClick={() => setIsPrimeModalOpen(true)}
-          className="ml-2 px-3 py-0.8 bg-[#00a8e1] hover:bg-[#0092c7] text-white text-[11px] font-bold rounded-full shadow-xs shrink-0 transition active:scale-95 cursor-pointer"
+          className="ml-2 px-3 py-0.8 bg-orange-500 hover:bg-orange-600 text-white text-[11px] font-bold rounded-full shadow-xs shrink-0 transition active:scale-95 cursor-pointer"
         >
           Join Prime
         </button>
@@ -1119,7 +1119,7 @@ export default function Header() {
       {/* ═══════════════════════════════════════════════════════════════════════
           ROW 3: Amazon-Style Sub-Navigation Bar (#232f3e Navy) - Desktop Only
       ═══════════════════════════════════════════════════════════════════════ */}
-      <div className="hidden lg:block bg-[#232f3e] text-white px-2 sm:px-4 py-1.5 text-xs font-medium border-t border-[#37475a] overflow-x-auto scrollbar-none">
+      <div className="hidden lg:block bg-[var(--color-nav-secondary)] text-white px-2 sm:px-4 py-1.5 text-xs font-medium border-t border-zinc-700/80 overflow-x-auto scrollbar-none">
         <div className="max-w-[1500px] mx-auto flex items-center justify-between gap-4">
           <div className="flex items-center gap-1 sm:gap-2 whitespace-nowrap">
             {/* ☰ All Drawer Button */}
@@ -1208,7 +1208,7 @@ export default function Header() {
             className="relative w-[88vw] sm:w-[420px] max-w-md bg-white text-gray-900 h-full shadow-2xl z-10 flex flex-col animate-in slide-in-from-left duration-250"
           >
             {/* Header */}
-            <div className="bg-[#232f3e] text-white p-4 flex items-center justify-between sticky top-0 z-20">
+            <div className="bg-[var(--color-nav-secondary)] text-white p-4 flex items-center justify-between sticky top-0 z-20">
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center">
                   <User size={20} className="text-white" />

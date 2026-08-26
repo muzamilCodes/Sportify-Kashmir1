@@ -369,11 +369,12 @@ function ProductsContent() {
   ];
 
   return (
-    <div className="min-h-screen bg-[var(--color-bg-primary)]">
+    <div className="sk-page-shell">
       {/* ─── Hero Banner ─── */}
-      <div className="bg-gradient-to-r from-orange-600 via-red-600 to-pink-600 text-white py-7 md:py-9">
-        <div className="container mx-auto px-4 text-center">
-          <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold mb-1.5 tracking-tight text-white">
+      <div className="relative overflow-hidden bg-gradient-to-r from-orange-500 via-orange-600 to-red-500 text-white py-8 md:py-11">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_30%,rgba(255,255,255,0.18),transparent_45%)] pointer-events-none" />
+        <div className="container mx-auto px-4 text-center relative">
+          <h1 className="font-display text-2xl sm:text-3xl md:text-4xl font-extrabold mb-1.5 tracking-tight text-white">
             Shop All Products
           </h1>
           <p className="text-sm sm:text-base text-white/95 max-w-xl mx-auto font-medium">
@@ -384,7 +385,7 @@ function ProductsContent() {
 
       <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6">
         {/* ─── Search & Controls Bar ─── */}
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xs border border-gray-200 dark:border-gray-700 p-3 sm:p-4 mb-4 sticky top-16 z-20">
+        <div className="bg-white/95 dark:bg-zinc-900 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800 p-3 sm:p-4 mb-4 sticky top-16 z-20 backdrop-blur-md">
           {/* Row 1: Search */}
           <div className="relative mb-3">
             <label htmlFor="products-search-input" className="sr-only">

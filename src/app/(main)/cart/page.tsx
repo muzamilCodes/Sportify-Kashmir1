@@ -232,16 +232,16 @@ export default function CartPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="sk-page-shell">
       {/* Header */}
-      <div className="bg-white border-b sticky top-0 z-10">
+      <div className="bg-white/90 dark:bg-zinc-900/90 border-b border-zinc-200 dark:border-zinc-800 sticky top-0 z-10 backdrop-blur-md">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <Link href="/" className="flex items-center gap-2 text-gray-600 hover:text-orange-500 transition">
+            <Link href="/" className="flex items-center gap-2 text-zinc-600 dark:text-zinc-300 hover:text-orange-500 transition">
               <ArrowLeft className="w-5 h-5" />
               <span className="hidden sm:inline">Continue Shopping</span>
             </Link>
-            <h1 className="text-xl font-bold text-gray-900">Shopping Cart ({cartItems.length})</h1>
+            <h1 className="font-display text-xl font-bold text-zinc-900 dark:text-white">Shopping Cart ({cartItems.length})</h1>
             <div className="w-20"></div>
           </div>
         </div>
@@ -262,7 +262,7 @@ export default function CartPage() {
               return (
                 <div
                   key={prodId}
-                  className="bg-white rounded-2xl p-4 sm:p-6 shadow-sm border border-gray-100 hover:shadow-md transition"
+                  className="bg-white dark:bg-zinc-900 rounded-2xl p-4 sm:p-6 shadow-sm border border-zinc-100 dark:border-zinc-800 hover:shadow-md hover:border-orange-300/50 transition"
                 >
                   <div className="flex gap-4 sm:gap-6">
                     {/* Product Image */}
@@ -357,50 +357,50 @@ export default function CartPage() {
 
           {/* Order Summary */}
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 sticky top-24">
-              <h2 className="text-lg font-bold text-gray-900 mb-4">Order Summary</h2>
+            <div className="bg-white dark:bg-zinc-900 rounded-2xl p-6 shadow-sm border border-zinc-100 dark:border-zinc-800 sticky top-24">
+              <h2 className="font-display text-lg font-bold text-zinc-900 dark:text-white mb-4">Order Summary</h2>
 
-              <div className="space-y-3 pb-4 border-b border-gray-100">
-                <div className="flex justify-between text-gray-600">
+              <div className="space-y-3 pb-4 border-b border-zinc-100 dark:border-zinc-800">
+                <div className="flex justify-between text-zinc-600 dark:text-zinc-300">
                   <span>Price ({cartItems.length} items)</span>
                   <span>₹{subtotal.toLocaleString("en-IN")}</span>
                 </div>
-                <div className="flex justify-between text-gray-600">
+                <div className="flex justify-between text-zinc-600 dark:text-zinc-300">
                   <span>Delivery Charges</span>
                   {shipping === 0 ? (
-                    <span className="text-green-600 font-medium">FREE</span>
+                    <span className="text-emerald-600 font-medium">FREE</span>
                   ) : (
                     <span>₹{shipping}</span>
                   )}
                 </div>
               </div>
 
-              <div className="py-4 border-b border-gray-100">
-                <div className="flex justify-between text-lg font-bold text-gray-900">
+              <div className="py-4 border-b border-zinc-100 dark:border-zinc-800">
+                <div className="flex justify-between text-lg font-bold text-zinc-900 dark:text-white">
                   <span>Total Amount</span>
                   <span className="text-orange-600">₹{total.toLocaleString("en-IN")}</span>
                 </div>
-                <p className="text-xs text-gray-500 mt-1">Inclusive of all taxes</p>
+                <p className="text-xs text-zinc-500 mt-1">Inclusive of all taxes</p>
               </div>
 
               <Link href="/checkout">
-                <button className="w-full mt-6 bg-orange-500 hover:bg-orange-600 text-white font-bold py-3.5 px-6 rounded-xl transition shadow-lg shadow-orange-500/25 flex items-center justify-center gap-2">
+                <button className="w-full mt-6 sk-btn-primary font-bold py-3.5 px-6 rounded-xl flex items-center justify-center gap-2 cursor-pointer">
                   <span>Proceed to Checkout</span>
                 </button>
               </Link>
 
               {/* Benefits */}
-              <div className="mt-6 pt-4 border-t space-y-2">
-                <div className="flex items-center gap-2 text-sm text-gray-600">
-                  <Truck className="w-4 h-4 text-green-600" />
+              <div className="mt-6 pt-4 border-t border-zinc-100 dark:border-zinc-800 space-y-2">
+                <div className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-300">
+                  <Truck className="w-4 h-4 text-emerald-600" />
                   <span>Free delivery on orders above ₹999</span>
                 </div>
-                <div className="flex items-center gap-2 text-sm text-gray-600">
-                  <Shield className="w-4 h-4 text-blue-600" />
+                <div className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-300">
+                  <Shield className="w-4 h-4 text-orange-500" />
                   <span>Secure payment</span>
                 </div>
-                <div className="flex items-center gap-2 text-sm text-gray-600">
-                  <RotateCcw className="w-4 h-4 text-purple-600" />
+                <div className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-300">
+                  <RotateCcw className="w-4 h-4 text-red-500" />
                   <span>7-Day Return / Easy Returns</span>
                 </div>
               </div>

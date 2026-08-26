@@ -1,15 +1,21 @@
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
+import { Outfit, DM_Sans } from "next/font/google";
 import { Toaster } from "react-hot-toast";
 import Footer from "@/components/shared/Footer";
 import Header from "@/components/shared/Header";
 import ClientProviders from "@/components/providers/ClientProviders";
 import "./globals.css";
 
-const inter = Inter({
+const outfit = Outfit({
   subsets: ["latin"],
   display: "swap",
-  variable: "--font-inter",
+  variable: "--font-outfit",
+});
+
+const dmSans = DM_Sans({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-dm-sans",
 });
 
 /* ─── SEO & PWA Metadata ───────────────────────────────────────── */
@@ -85,7 +91,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={inter.variable} suppressHydrationWarning>
+    <html lang="en" className={`${outfit.variable} ${dmSans.variable}`} suppressHydrationWarning>
       <head>
         <meta name="google-site-verification" content="SGFKbVbcg_kobHDJwrMpSDIszpsvZ-Dt7gBJ39tITdo" />
         <link rel="icon" href="/favicon.png" type="image/png" />
@@ -98,7 +104,7 @@ export default function RootLayout({
         <link rel="dns-prefetch" href="https://images.unsplash.com" />
         <meta name="theme-color" content="#f97316" />
       </head>
-      <body className={`${inter.className} bg-[var(--color-bg-primary)] font-sans text-[var(--color-text-primary)] transition-colors duration-300`} suppressHydrationWarning>
+      <body className={`${dmSans.className} bg-[var(--color-bg-primary)] font-sans text-[var(--color-text-primary)] transition-colors duration-300`} suppressHydrationWarning>
         <ClientProviders>
           <Header />
           <Toaster

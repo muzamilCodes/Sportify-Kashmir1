@@ -183,31 +183,31 @@ export default function HomePage() {
   const displayedProducts = products.slice(0, visibleProducts);
 
   return (
-    <div className="min-h-screen bg-[#eaeded]/50 dark:bg-[var(--color-bg-primary)]">
-      {/* ─── Amazon Hero Carousel (Mobile 2x2 Swipe Cards + Desktop 4 Floating Overlay Cards) ─── */}
+    <div className="sk-page-shell">
+      {/* ─── Hero Carousel ─── */}
       <AmazonHeroCarousel />
 
-      <div className="max-w-[1500px] mx-auto px-3 sm:px-6 py-2 sm:py-6">
+      <div className="max-w-[1500px] mx-auto px-3 sm:px-6 py-4 sm:py-8">
         {/* ─── Sports Department Explorer ─── */}
         <SportsCategoryExplorer />
 
-        {/* ─── Amazon "Keep shopping for" & "Deal for you" Recommendation Cards ─── */}
-        <div className="my-6">
+        {/* ─── Recommendation Cards ─── */}
+        <div className="my-8">
           <AmazonRecommendationCards />
         </div>
 
         {/* Featured Products Section */}
-        <section className="mb-12">
-          <div className="flex justify-between items-center mb-5">
+        <section className="mb-14">
+          <div className="flex justify-between items-end mb-6 gap-4">
             <div>
-              <h2 className="text-[22px] sm:text-[25px] md:text-[28px] font-bold text-gray-900 dark:text-white tracking-tight">
+              <h2 className="sk-section-title text-[22px] sm:text-[26px] md:text-[30px] text-zinc-900 dark:text-white">
                 {t("home.featured", "Featured Products")}
               </h2>
-              <p className="text-[13px] sm:text-[14px] text-gray-500 dark:text-gray-400 mt-0.5">
+              <p className="text-[13px] sm:text-[14px] text-zinc-500 dark:text-zinc-400 mt-1">
                 {t("home.featuredSub", "New arrivals & trending picks")}
               </p>
             </div>
-            <Link href="/products" className="group text-[13px] sm:text-[14px] font-semibold text-orange-600 hover:text-orange-700 dark:text-orange-400 flex items-center gap-1 transition-all">
+            <Link href="/products" className="group text-[13px] sm:text-[14px] font-semibold text-orange-600 hover:text-orange-700 dark:text-orange-400 flex items-center gap-1 transition-all shrink-0">
               {t("home.viewAll", "View All")} <ChevronRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
             </Link>
           </div>
@@ -243,17 +243,18 @@ export default function HomePage() {
         {/* Flash Sale Banner & Grid */}
         {!loading && saleProducts.length > 0 && (
           <section className="mb-12">
-            <div className="bg-gradient-to-r from-orange-500 via-red-500 to-pink-500 rounded-2xl p-5 sm:p-6 mb-6 shadow-md relative overflow-hidden">
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+            <div className="bg-gradient-to-r from-orange-500 via-orange-600 to-red-500 rounded-2xl p-5 sm:p-7 mb-6 shadow-[0_16px_40px_-16px_rgba(249,115,22,0.55)] relative overflow-hidden">
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_85%_20%,rgba(255,255,255,0.22),transparent_45%)] pointer-events-none" />
+              <div className="relative flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                 <div>
-                  <h2 className="text-[22px] sm:text-[26px] md:text-[28px] font-bold text-white flex items-center gap-2">
-                    <span>🔥</span> {t("home.specialDeals", "Flash Sale")}
+                  <h2 className="sk-section-title text-[22px] sm:text-[26px] md:text-[30px] text-white flex items-center gap-2">
+                    {t("home.specialDeals", "Flash Sale")}
                   </h2>
-                  <p className="text-white/90 text-[13px] sm:text-[14px] mt-0.5">
+                  <p className="text-white/90 text-[13px] sm:text-[14px] mt-1">
                     {t("home.specialDealsSub", "Limited time offers with discounts up to 50%")}
                   </p>
                 </div>
-                <Link href="/sale" className="bg-white text-red-600 px-5 py-2 rounded-full text-[13px] sm:text-[14px] font-bold hover:bg-gray-50 transition shadow-sm flex items-center gap-1">
+                <Link href="/sale" className="bg-white text-orange-600 px-5 py-2.5 rounded-xl text-[13px] sm:text-[14px] font-bold hover:bg-orange-50 transition shadow-sm flex items-center gap-1">
                   {t("home.viewAll", "View All Deals")} <ChevronRight size={16} />
                 </Link>
               </div>
@@ -282,15 +283,15 @@ export default function HomePage() {
         )}
 
         {/* All Products Section: Section Heading 24–28px */}
-        <section className="mb-12">
-          <div className="flex justify-between items-center mb-5">
+        <section className="mb-14">
+          <div className="flex justify-between items-end mb-6 gap-4">
             <div>
-              <h2 className="text-[22px] sm:text-[25px] md:text-[28px] font-bold text-gray-900 dark:text-white tracking-tight">
+              <h2 className="sk-section-title text-[22px] sm:text-[26px] md:text-[30px] text-zinc-900 dark:text-white">
                 {t("home.viewAll", "All Products")}
               </h2>
-              <p className="text-[13px] sm:text-[14px] text-gray-500 dark:text-gray-400 mt-0.5">Explore our complete catalog</p>
+              <p className="text-[13px] sm:text-[14px] text-zinc-500 dark:text-zinc-400 mt-1">Explore our complete catalog</p>
             </div>
-            <span className="bg-orange-100 dark:bg-orange-500/20 text-orange-700 dark:text-orange-400 px-3 py-1 rounded-full font-semibold text-[12px] sm:text-[13px]">
+            <span className="bg-orange-100 dark:bg-orange-500/20 text-orange-700 dark:text-orange-400 px-3 py-1.5 rounded-lg font-semibold text-[12px] sm:text-[13px]">
               {products.length} Items
             </span>
           </div>
@@ -333,7 +334,7 @@ export default function HomePage() {
                 <div className="text-center mt-8">
                   <button
                     onClick={loadMoreProducts}
-                    className="inline-flex items-center gap-2 bg-gray-900 dark:bg-white text-white dark:text-gray-900 px-6 py-2.5 rounded-full text-[14px] font-semibold hover:bg-orange-600 dark:hover:bg-orange-500 dark:hover:text-white transition shadow-sm cursor-pointer"
+                    className="inline-flex items-center gap-2 sk-btn-primary px-7 py-3 rounded-xl text-[14px] font-semibold cursor-pointer"
                   >
                     {t("home.loadMore", "Load More Products")}
                     <ArrowRight size={16} />
@@ -351,33 +352,33 @@ export default function HomePage() {
 
         {/* Features Section */}
         <section className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-4 text-center border border-gray-200 dark:border-gray-700">
-            <div className="w-10 h-10 bg-green-100 dark:bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-2.5">
-              <Truck className="w-5 h-5 text-green-600 dark:text-green-400" />
+          <div className="bg-white/90 dark:bg-zinc-900 rounded-2xl p-5 text-center border border-zinc-200/80 dark:border-zinc-800 hover:-translate-y-1 hover:shadow-lg hover:border-orange-300/60 transition-all duration-300">
+            <div className="w-11 h-11 bg-emerald-100 dark:bg-emerald-500/20 rounded-xl flex items-center justify-center mx-auto mb-3">
+              <Truck className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
             </div>
-            <h3 className="font-semibold text-gray-900 dark:text-white text-[14px] mb-0.5">{t("home.expressDelivery", "Free Delivery")}</h3>
-            <p className="text-gray-500 dark:text-gray-400 text-[12px]">{t("home.expressDeliveryDesc", "On orders above ₹999")}</p>
+            <h3 className="font-display font-semibold text-zinc-900 dark:text-white text-[14px] mb-0.5">{t("home.expressDelivery", "Free Delivery")}</h3>
+            <p className="text-zinc-500 dark:text-zinc-400 text-[12px]">{t("home.expressDeliveryDesc", "On orders above ₹999")}</p>
           </div>
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-4 text-center border border-gray-200 dark:border-gray-700">
-            <div className="w-10 h-10 bg-blue-100 dark:bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-2.5">
-              <Shield className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+          <div className="bg-white/90 dark:bg-zinc-900 rounded-2xl p-5 text-center border border-zinc-200/80 dark:border-zinc-800 hover:-translate-y-1 hover:shadow-lg hover:border-orange-300/60 transition-all duration-300">
+            <div className="w-11 h-11 bg-sky-100 dark:bg-sky-500/20 rounded-xl flex items-center justify-center mx-auto mb-3">
+              <Shield className="w-5 h-5 text-sky-600 dark:text-sky-400" />
             </div>
-            <h3 className="font-semibold text-gray-900 dark:text-white text-[14px] mb-0.5">{t("home.securePayments", "Secure Payment")}</h3>
-            <p className="text-gray-500 dark:text-gray-400 text-[12px]">{t("home.securePaymentsDesc", "100% secure checkout")}</p>
+            <h3 className="font-display font-semibold text-zinc-900 dark:text-white text-[14px] mb-0.5">{t("home.securePayments", "Secure Payment")}</h3>
+            <p className="text-zinc-500 dark:text-zinc-400 text-[12px]">{t("home.securePaymentsDesc", "100% secure checkout")}</p>
           </div>
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-4 text-center border border-gray-200 dark:border-gray-700">
-            <div className="w-10 h-10 bg-orange-100 dark:bg-orange-500/20 rounded-full flex items-center justify-center mx-auto mb-2.5">
+          <div className="bg-white/90 dark:bg-zinc-900 rounded-2xl p-5 text-center border border-zinc-200/80 dark:border-zinc-800 hover:-translate-y-1 hover:shadow-lg hover:border-orange-300/60 transition-all duration-300">
+            <div className="w-11 h-11 bg-orange-100 dark:bg-orange-500/20 rounded-xl flex items-center justify-center mx-auto mb-3">
               <Clock className="w-5 h-5 text-orange-600 dark:text-orange-400" />
             </div>
-            <h3 className="font-semibold text-gray-900 dark:text-white text-[14px] mb-0.5">{t("home.genuineWillow", "100% Handcrafted Willow")}</h3>
-            <p className="text-gray-500 dark:text-gray-400 text-[12px]">{t("home.genuineWillowDesc", "Direct from Sangam master craftsmen")}</p>
+            <h3 className="font-display font-semibold text-zinc-900 dark:text-white text-[14px] mb-0.5">{t("home.genuineWillow", "100% Handcrafted Willow")}</h3>
+            <p className="text-zinc-500 dark:text-zinc-400 text-[12px]">{t("home.genuineWillowDesc", "Direct from Sangam master craftsmen")}</p>
           </div>
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-4 text-center border border-gray-200 dark:border-gray-700">
-            <div className="w-10 h-10 bg-purple-100 dark:bg-purple-500/20 rounded-full flex items-center justify-center mx-auto mb-2.5">
-              <Award className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+          <div className="bg-white/90 dark:bg-zinc-900 rounded-2xl p-5 text-center border border-zinc-200/80 dark:border-zinc-800 hover:-translate-y-1 hover:shadow-lg hover:border-orange-300/60 transition-all duration-300">
+            <div className="w-11 h-11 bg-red-100 dark:bg-red-500/20 rounded-xl flex items-center justify-center mx-auto mb-3">
+              <Award className="w-5 h-5 text-red-600 dark:text-red-400" />
             </div>
-            <h3 className="font-semibold text-gray-900 dark:text-white text-[14px] mb-0.5">{t("home.authenticQuality", "Authentic Gear")}</h3>
-            <p className="text-gray-500 dark:text-gray-400 text-[12px]">{t("home.authenticQualityDesc", "100% genuine guaranteed")}</p>
+            <h3 className="font-display font-semibold text-zinc-900 dark:text-white text-[14px] mb-0.5">{t("home.authenticQuality", "Authentic Gear")}</h3>
+            <p className="text-zinc-500 dark:text-zinc-400 text-[12px]">{t("home.authenticQualityDesc", "100% genuine guaranteed")}</p>
           </div>
         </section>
       </div>

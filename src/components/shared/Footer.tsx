@@ -44,17 +44,17 @@ export default function Footer() {
   ];
 
   return (
-    <footer className="bg-gray-950 text-gray-300 mt-10 pb-20 md:pb-6 text-xs border-t border-gray-800">
+    <footer className="bg-zinc-950 text-zinc-300 mt-12 pb-20 md:pb-8 text-xs border-t border-zinc-800">
       {/* ─── Compact Trust Strip ─── */}
-      <div className="bg-gray-900/80 border-b border-gray-800/80 py-2.5">
+      <div className="bg-gradient-to-r from-orange-500/10 via-zinc-900 to-red-500/10 border-b border-zinc-800/80 py-3">
         <div className="container mx-auto px-4">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-gray-300">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center text-zinc-300">
             <div className="flex items-center justify-center gap-1.5">
               <Truck size={15} className="text-orange-500 shrink-0" />
               <span className="font-semibold text-[11px]">Free Shipping Over ₹999</span>
             </div>
             <div className="flex items-center justify-center gap-1.5">
-              <Shield size={15} className="text-blue-500 shrink-0" />
+              <Shield size={15} className="text-orange-400 shrink-0" />
               <span className="font-semibold text-[11px]">100% Genuine Gear</span>
             </div>
             <div className="flex items-center justify-center gap-1.5">
@@ -62,7 +62,7 @@ export default function Footer() {
               <span className="font-semibold text-[11px]">7-Day Easy Returns</span>
             </div>
             <div className="flex items-center justify-center gap-1.5">
-              <Headphones size={15} className="text-purple-500 shrink-0" />
+              <Headphones size={15} className="text-red-400 shrink-0" />
               <span className="font-semibold text-[11px]">24/7 Dedicated Support</span>
             </div>
           </div>
@@ -70,33 +70,33 @@ export default function Footer() {
       </div>
 
       {/* ─── Compact Main Footer Grid ─── */}
-      <div className="container mx-auto px-4 py-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="container mx-auto px-4 py-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
           {/* Brand & Socials */}
-          <div className="space-y-2.5">
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 bg-gradient-to-br from-orange-500 to-red-500 rounded-lg flex items-center justify-center text-white font-black text-xs shadow-md">
+          <div className="space-y-3">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 bg-gradient-to-br from-orange-500 to-red-500 rounded-xl flex items-center justify-center text-white font-black text-sm shadow-lg shadow-orange-500/25">
                 SK
               </div>
-              <h3 className="text-sm font-bold text-white tracking-tight">
+              <h3 className="font-display text-base font-bold text-white tracking-tight">
                 Sportify <span className="text-orange-500">Kashmir</span>
               </h3>
             </div>
-            <p className="text-gray-400 text-[11px] leading-relaxed">
-              Kashmir&apos;s premier sports destination. Authentic gear, apparel & cricket equipment.
+            <p className="text-zinc-400 text-[12px] leading-relaxed max-w-xs">
+              Kashmir&apos;s premier sports destination. Authentic gear, apparel & cricket equipment from the Valley.
             </p>
-            <div className="flex gap-2.5 pt-1">
-              <a href="#" className="w-7 h-7 rounded-lg bg-gray-900 hover:bg-orange-500 hover:text-white flex items-center justify-center text-gray-400 transition" aria-label="Instagram">
-                <Instagram size={13} />
+            <div className="flex gap-2 pt-1">
+              <a href="#" className="w-8 h-8 rounded-xl bg-zinc-900 hover:bg-orange-500 hover:text-white flex items-center justify-center text-zinc-400 transition" aria-label="Instagram">
+                <Instagram size={14} />
               </a>
-              <a href="#" className="w-7 h-7 rounded-lg bg-gray-900 hover:bg-orange-500 hover:text-white flex items-center justify-center text-gray-400 transition" aria-label="Facebook">
-                <Facebook size={13} />
+              <a href="#" className="w-8 h-8 rounded-xl bg-zinc-900 hover:bg-orange-500 hover:text-white flex items-center justify-center text-zinc-400 transition" aria-label="Facebook">
+                <Facebook size={14} />
               </a>
-              <a href="#" className="w-7 h-7 rounded-lg bg-gray-900 hover:bg-orange-500 hover:text-white flex items-center justify-center text-gray-400 transition" aria-label="Twitter">
-                <Twitter size={13} />
+              <a href="#" className="w-8 h-8 rounded-xl bg-zinc-900 hover:bg-orange-500 hover:text-white flex items-center justify-center text-zinc-400 transition" aria-label="Twitter">
+                <Twitter size={14} />
               </a>
-              <a href="#" className="w-7 h-7 rounded-lg bg-gray-900 hover:bg-orange-500 hover:text-white flex items-center justify-center text-gray-400 transition" aria-label="YouTube">
-                <Youtube size={13} />
+              <a href="#" className="w-8 h-8 rounded-xl bg-zinc-900 hover:bg-orange-500 hover:text-white flex items-center justify-center text-zinc-400 transition" aria-label="YouTube">
+                <Youtube size={14} />
               </a>
             </div>
           </div>

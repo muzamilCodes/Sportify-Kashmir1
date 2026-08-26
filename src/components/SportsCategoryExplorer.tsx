@@ -85,21 +85,21 @@ export default function SportsCategoryExplorer() {
   if (categories.length === 0) return null;
 
   return (
-    <div className="w-full my-6">
-      <div className="flex items-center justify-between mb-4">
+    <div className="w-full my-8">
+      <div className="flex items-end justify-between mb-5 gap-3">
         <div>
-          <h2 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white tracking-tight flex items-center gap-2">
-            <span>Explore Sports Departments</span>
+          <h2 className="sk-section-title text-xl sm:text-[26px] text-zinc-900 dark:text-white">
+            Explore Sports
           </h2>
-          <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-            Authentic equipment for Kashmiri athletes, clubs, and academies
+          <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 mt-1">
+            Football, cricket, badminton, fitness, running & outdoor gear
           </p>
         </div>
         <Link
           href="/products"
-          className="text-xs sm:text-sm font-bold text-orange-600 hover:text-orange-700 dark:text-orange-400 flex items-center gap-1 group"
+          className="text-xs sm:text-sm font-bold text-orange-600 hover:text-orange-700 dark:text-orange-400 flex items-center gap-1 group shrink-0"
         >
-          <span>All Departments</span>
+          <span>All Categories</span>
           <ChevronRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
         </Link>
       </div>
@@ -109,14 +109,14 @@ export default function SportsCategoryExplorer() {
           <Link
             key={cat.id}
             href={cat.link}
-            className="group relative bg-white dark:bg-gray-900 rounded-2xl p-3.5 border border-gray-200/80 dark:border-gray-800 shadow-xs hover:shadow-xl transition-all duration-300 flex flex-col items-center text-center hover:-translate-y-1 overflow-hidden cursor-pointer"
+            className="group relative bg-white dark:bg-zinc-900 rounded-2xl p-4 border border-zinc-200/80 dark:border-zinc-800 shadow-sm hover:shadow-xl hover:border-orange-400/50 transition-all duration-300 flex flex-col items-center text-center hover:-translate-y-1 overflow-hidden cursor-pointer"
           >
-            {/* Top Accent Icon Circle */}
-            <div className="w-14 h-14 rounded-2xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 flex items-center justify-center text-2xl shadow-inner mb-2.5 group-hover:scale-110 transition-transform">
+            <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-orange-500 to-red-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-500/15 dark:to-red-500/10 border border-orange-100 dark:border-orange-500/20 flex items-center justify-center text-2xl mb-2.5 group-hover:scale-110 transition-transform duration-300">
               {cat.icon}
             </div>
 
-            <h3 className="text-xs font-black text-gray-900 dark:text-white leading-tight group-hover:text-orange-600 transition-colors">
+            <h3 className="text-xs font-bold text-zinc-900 dark:text-white leading-tight group-hover:text-orange-600 transition-colors font-display">
               {cat.name}
             </h3>
             <span className="text-[10px] text-gray-500 dark:text-gray-400 font-semibold mt-0.5">
