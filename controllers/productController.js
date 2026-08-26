@@ -420,7 +420,7 @@ exports.getAllProducts = async (req, res) => {
     const products = await productsQuery.lean();
     const total = hasPagination && req.query.includeTotal !== "false" ? await Product.countDocuments(query) : products.length;
 
-    res.set("Cache-Control", "no-cache, no-store, must-revalidate");
+    res.set("Cache-Control", "public, max-age=30, stale-while-revalidate=120");
     if (products.length > 0) {
       resHandler(res, 200, "Products Found", hasPagination ? { items: products, page, limit, total, pages: Math.ceil(total / limit) } : products);
     } else {
@@ -441,7 +441,7 @@ exports.getProductById = async (req, res) => {
       .populate("brand", "name")
       .lean();
 
-    res.set("Cache-Control", "no-cache, no-store, must-revalidate");
+    res.set("Cache-Control", "public, max-age=60, stale-while-revalidate=300");
     if (product) {
       return resHandler(res, 200, "Product Found!", product);
     } else {
@@ -478,8 +478,9 @@ exports.getProductsByCategory = async (req, res) => {
       category: categoryDoc._id,
       isAvailable: true,
       isArchived: false
-    }).populate('category', 'name').populate('brand', 'name').sort({ createdAt: -1 });
+    }).populate('category', 'name').populate('brand', 'name').sort({ createdAt: -1 }).lean();
 
+    res.set("Cache-Control", "public, max-age=60, stale-while-revalidate=300");
     if (products.length > 0) {
       resHandler(res, 200, "Products Found", products);
     } else {
@@ -503,8 +504,10 @@ exports.getSaleProducts = async (req, res) => {
     })
       .populate("category", "name")
       .populate("brand", "name")
-      .sort({ discount: -1, createdAt: -1 });
+      .sort({ discount: -1, createdAt: -1 })
+      .lean();
 
+    res.set("Cache-Control", "public, max-age=60, stale-while-revalidate=300");
     if (products.length > 0) {
       resHandler(res, 200, "Sale Products Found", products);
     } else {
