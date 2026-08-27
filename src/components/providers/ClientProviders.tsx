@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { LanguageProvider } from "@/context/LanguageContext";
@@ -21,8 +22,19 @@ export default function ClientProviders({
 }: {
   children: React.ReactNode;
 }) {
-  // Install request deduplication once before any child page requests
-  installRequestDedupe();
+  const [isIdleLoaded, setIsIdleLoaded] = useState(false);
+
+  useEffect(() => {
+    installRequestDedupe();
+
+    // Defer non-critical background widgets after main UI hydration (Instant 60fps start)
+    if ("requestIdleCallback" in window) {
+      (window as any).requestIdleCallback(() => setIsIdleLoaded(true), { timeout: 2000 });
+    } else {
+      const timer = setTimeout(() => setIsIdleLoaded(true), 1500);
+      return () => clearTimeout(timer);
+    }
+  }, []);
 
   return (
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
@@ -32,11 +44,15 @@ export default function ClientProviders({
           <MobileBottomNav />
           <ScrollToTop />
           <RouteChangeHandler />
-          <InstallPrompt />
-          <PWARegister />
-          <FloatingWhatsApp />
-          <LiveSalesPopup />
-          <SpinWheelModal />
+          {isIdleLoaded && (
+            <>
+              <InstallPrompt />
+              <PWARegister />
+              <FloatingWhatsApp />
+              <LiveSalesPopup />
+              <SpinWheelModal />
+            </>
+          )}
         </CartCountProvider>
       </LanguageProvider>
     </ThemeProvider>
