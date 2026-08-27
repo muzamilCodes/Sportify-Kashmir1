@@ -87,56 +87,23 @@ export default function SportsCategoryExplorer() {
     };
   }, [API_URL]);
 
-  // Smooth continuous Auto-Scroll from Right to Left
-  useEffect(() => {
-    if (categories.length === 0) return;
-
-    let animationFrameId: number;
-    let lastTime = performance.now();
-
-    const autoScroll = (time: number) => {
-      const delta = time - lastTime;
-      lastTime = time;
-
-      if (!isPaused && scrollRef.current) {
-        const el = scrollRef.current;
-        // Scroll 40 pixels per second
-        el.scrollLeft += (40 * delta) / 1000;
-
-        // Loop around seamlessly
-        if (el.scrollLeft >= el.scrollWidth / 2) {
-          el.scrollLeft = 0;
-        }
-      }
-
-      animationFrameId = requestAnimationFrame(autoScroll);
-    };
-
-    animationFrameId = requestAnimationFrame(autoScroll);
-    return () => cancelAnimationFrame(animationFrameId);
-  }, [isPaused, categories.length]);
-
   // Manual instant scroll buttons (No waiting)
   const handleScrollLeft = () => {
     if (scrollRef.current) {
-      scrollRef.current.scrollBy({ left: -280, behavior: "smooth" });
-      setIsPaused(true);
-      setTimeout(() => setIsPaused(false), 3000);
+      scrollRef.current.scrollBy({ left: -320, behavior: "smooth" });
     }
   };
 
   const handleScrollRight = () => {
     if (scrollRef.current) {
-      scrollRef.current.scrollBy({ left: 280, behavior: "smooth" });
-      setIsPaused(true);
-      setTimeout(() => setIsPaused(false), 3000);
+      scrollRef.current.scrollBy({ left: 320, behavior: "smooth" });
     }
   };
 
   if (categories.length === 0) return null;
 
   // Duplicate items for infinite seamless scroll
-  const displayItems = [...categories, ...categories, ...categories];
+  const displayItems = [...categories, ...categories, ...categories, ...categories];
 
   return (
     <div className="w-full my-8 relative group/explorer">
@@ -191,11 +158,7 @@ export default function SportsCategoryExplorer() {
 
       {/* ─── Single-Line Continuous Stream with Left/Right Floating Buttons ─── */}
       <div
-        className="relative -mx-3 px-3 sm:-mx-6 sm:px-6 py-2"
-        onMouseEnter={() => setIsPaused(true)}
-        onMouseLeave={() => setIsPaused(false)}
-        onTouchStart={() => setIsPaused(true)}
-        onTouchEnd={() => setIsPaused(false)}
+        className="relative -mx-3 px-3 sm:-mx-6 sm:px-6 py-2 overflow-hidden"
       >
         {/* Left Floating Quick Scroll Button */}
         <button
@@ -224,36 +187,38 @@ export default function SportsCategoryExplorer() {
         {/* Scrollable Ribbon Track */}
         <div
           ref={scrollRef}
-          className="flex items-center gap-3 sm:gap-4 overflow-x-auto scrollbar-none py-1 scroll-smooth select-none"
+          className="flex items-center overflow-x-auto scrollbar-none py-1 scroll-smooth select-none px-2"
         >
-          {displayItems.map((cat, idx) => (
-            <Link
-              key={`${cat.id}-${idx}`}
-              href={cat.link}
-              className="group shrink-0 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md rounded-2xl px-4 py-3 border border-zinc-200/90 dark:border-zinc-800 shadow-xs hover:shadow-xl hover:border-orange-500/60 transition-all duration-300 flex items-center gap-3.5 hover:-translate-y-0.5 min-w-[170px] sm:min-w-[190px] cursor-pointer"
-            >
-              {/* Category Emoji Icon Box */}
-              <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-orange-50 to-amber-50 dark:from-orange-950/60 dark:to-zinc-800 border border-orange-200/60 dark:border-orange-500/20 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform duration-300 shadow-xs shrink-0">
-                <span>{cat.icon}</span>
-              </div>
+          <div className="flex items-center gap-3 sm:gap-4 animate-marquee-rtl-sports py-1">
+            {displayItems.map((cat, idx) => (
+              <Link
+                key={`${cat.id}-${idx}`}
+                href={cat.link}
+                className="group shrink-0 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md rounded-2xl px-4 py-3 border border-zinc-200/90 dark:border-zinc-800 shadow-xs hover:shadow-xl hover:border-orange-500/60 transition-all duration-300 flex items-center gap-3.5 hover:-translate-y-0.5 min-w-[170px] sm:min-w-[190px] cursor-pointer"
+              >
+                {/* Category Emoji Icon Box */}
+                <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-orange-50 to-amber-50 dark:from-orange-950/60 dark:to-zinc-800 border border-orange-200/60 dark:border-orange-500/20 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform duration-300 shadow-xs shrink-0">
+                  <span>{cat.icon}</span>
+                </div>
 
-              {/* Text Info */}
-              <div className="flex flex-col min-w-0">
-                <h3 className="text-xs sm:text-sm font-extrabold text-zinc-900 dark:text-white group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors truncate font-display">
-                  {cat.name}
-                </h3>
-                <span className="text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 mt-0.5">
-                  {cat.count}
-                </span>
-              </div>
+                {/* Text Info */}
+                <div className="flex flex-col min-w-0">
+                  <h3 className="text-xs sm:text-sm font-extrabold text-zinc-900 dark:text-white group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors truncate font-display">
+                    {cat.name}
+                  </h3>
+                  <span className="text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 mt-0.5">
+                    {cat.count}
+                  </span>
+                </div>
 
-              {/* Subtle chevron arrow */}
-              <ChevronRight
-                size={14}
-                className="text-zinc-400 group-hover:text-orange-500 group-hover:translate-x-0.5 transition-all ml-auto shrink-0"
-              />
-            </Link>
-          ))}
+                {/* Subtle chevron arrow */}
+                <ChevronRight
+                  size={14}
+                  className="text-zinc-400 group-hover:text-orange-500 group-hover:translate-x-0.5 transition-all ml-auto shrink-0"
+                />
+              </Link>
+            ))}
+          </div>
         </div>
       </div>
     </div>

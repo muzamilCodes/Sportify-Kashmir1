@@ -710,25 +710,40 @@
   contain-intrinsic-size: 0 400px;
 }
 
-/* ─── Smooth Infinite Right-to-Left Marquee Track ─────────────────── */
+/* ─── Ultra Smooth 120-FPS Infinite Right-to-Left GPU Marquee Track ─── */
 @keyframes marquee-rtl {
   0% {
-    transform: translateX(0%);
+    transform: translate3d(0, 0, 0);
   }
   100% {
-    transform: translateX(-50%);
+    transform: translate3d(-50%, 0, 0);
   }
 }
 
 .animate-marquee-rtl {
   display: flex;
   width: max-content;
-  animation: marquee-rtl 32s linear infinite;
+  animation: marquee-rtl 24s linear infinite;
   will-change: transform;
+  backface-visibility: hidden;
+  transform: translateZ(0);
+}
+
+.animate-marquee-rtl-sports {
+  display: flex;
+  width: max-content;
+  animation: marquee-rtl 28s linear infinite;
+  will-change: transform;
+  backface-visibility: hidden;
+  transform: translateZ(0);
 }
 
 .animate-marquee-rtl:hover,
-.animate-marquee-rtl:focus-within {
+.animate-marquee-rtl:focus-within,
+.animate-marquee-rtl-sports:hover,
+.animate-marquee-rtl-sports:focus-within,
+.group-hover\/ribbon:hover .animate-marquee-rtl,
+.group-hover\/explorer:hover .animate-marquee-rtl-sports {
   animation-play-state: paused;
 }
 

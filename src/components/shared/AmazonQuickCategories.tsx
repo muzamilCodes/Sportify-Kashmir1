@@ -184,58 +184,25 @@ export default function AmazonQuickCategories() {
     },
   ];
 
-  // Auto-scroll loop
-  useEffect(() => {
-    let animationFrameId: number;
-    let lastTime = performance.now();
-
-    const autoScroll = (time: number) => {
-      const delta = time - lastTime;
-      lastTime = time;
-
-      if (!isPaused && scrollRef.current) {
-        const el = scrollRef.current;
-        el.scrollLeft += (35 * delta) / 1000;
-
-        if (el.scrollLeft >= el.scrollWidth / 2) {
-          el.scrollLeft = 0;
-        }
-      }
-
-      animationFrameId = requestAnimationFrame(autoScroll);
-    };
-
-    animationFrameId = requestAnimationFrame(autoScroll);
-    return () => cancelAnimationFrame(animationFrameId);
-  }, [isPaused]);
-
-  // Manual scroll triggers
+  // Manual scroll triggers for fast navigation
   const handleScrollLeft = () => {
     if (scrollRef.current) {
-      scrollRef.current.scrollBy({ left: -220, behavior: "smooth" });
-      setIsPaused(true);
-      setTimeout(() => setIsPaused(false), 3000);
+      scrollRef.current.scrollBy({ left: -240, behavior: "smooth" });
     }
   };
 
   const handleScrollRight = () => {
     if (scrollRef.current) {
-      scrollRef.current.scrollBy({ left: 220, behavior: "smooth" });
-      setIsPaused(true);
-      setTimeout(() => setIsPaused(false), 3000);
+      scrollRef.current.scrollBy({ left: 240, behavior: "smooth" });
     }
   };
 
   // Duplicate items for infinite seamless right-to-left loop
-  const displayItems = [...categories, ...categories, ...categories];
+  const displayItems = [...categories, ...categories, ...categories, ...categories];
 
   return (
     <div
       className="w-full bg-[#f3f4f6]/95 dark:bg-gray-900/95 py-2 border-b border-gray-300/80 dark:border-gray-800 relative overflow-hidden select-none group/ribbon"
-      onMouseEnter={() => setIsPaused(true)}
-      onMouseLeave={() => setIsPaused(false)}
-      onTouchStart={() => setIsPaused(true)}
-      onTouchEnd={() => setIsPaused(false)}
     >
       {/* Left Quick Navigation Arrow Button */}
       <button
@@ -264,39 +231,41 @@ export default function AmazonQuickCategories() {
       {/* Right-to-Left Continuous Moving Track with Instant Manual Scroll */}
       <div
         ref={scrollRef}
-        className="flex items-center gap-2.5 overflow-x-auto scrollbar-none px-6 py-0.5 scroll-smooth"
+        className="flex items-center overflow-x-auto scrollbar-none px-4 py-0.5 scroll-smooth"
       >
-        {displayItems.map((cat, idx) => (
-          <Link
-            key={`${cat.id}-${idx}`}
-            href={cat.href}
-            className={`flex flex-col items-center justify-center p-2 rounded-2xl bg-gradient-to-b ${cat.bgGradient} bg-white/70 dark:bg-gray-800/70 backdrop-blur-xs border ${cat.borderColor} shadow-xs shrink-0 w-[72px] sm:w-[76px] text-center hover:scale-106 hover:-translate-y-0.5 transition-all duration-200 active:scale-95 relative group`}
-          >
-            {/* Top Badge */}
-            {cat.badge && (
-              <span
-                className={`absolute -top-2 right-0.5 text-[7.5px] font-black px-1.5 py-0.2 rounded-full shadow-xs uppercase tracking-tighter ${cat.badgeBg} border border-white/40 dark:border-black/30`}
-              >
-                {cat.badge}
+        <div className="flex items-center gap-2.5 animate-marquee-rtl py-0.5">
+          {displayItems.map((cat, idx) => (
+            <Link
+              key={`${cat.id}-${idx}`}
+              href={cat.href}
+              className={`flex flex-col items-center justify-center p-2 rounded-2xl bg-gradient-to-b ${cat.bgGradient} bg-white/70 dark:bg-gray-800/70 backdrop-blur-xs border ${cat.borderColor} shadow-xs shrink-0 w-[72px] sm:w-[76px] text-center hover:scale-106 hover:-translate-y-0.5 transition-all duration-200 active:scale-95 relative group`}
+            >
+              {/* Top Badge */}
+              {cat.badge && (
+                <span
+                  className={`absolute -top-2 right-0.5 text-[7.5px] font-black px-1.5 py-0.2 rounded-full shadow-xs uppercase tracking-tighter ${cat.badgeBg} border border-white/40 dark:border-black/30`}
+                >
+                  {cat.badge}
+                </span>
+              )}
+
+              {/* Icon */}
+              <div className="my-0.5 flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
+                {cat.icon}
+              </div>
+
+              {/* Main Label */}
+              <span className="text-[11px] font-black text-gray-900 dark:text-white leading-tight tracking-tight">
+                {cat.name}
               </span>
-            )}
 
-            {/* Icon */}
-            <div className="my-0.5 flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
-              {cat.icon}
-            </div>
-
-            {/* Main Label */}
-            <span className="text-[11px] font-black text-gray-900 dark:text-white leading-tight tracking-tight">
-              {cat.name}
-            </span>
-
-            {/* Sublabel */}
-            <span className="text-[8.5px] font-semibold text-gray-600 dark:text-gray-400 truncate max-w-[66px] leading-none mt-0.5">
-              {cat.sublabel}
-            </span>
-          </Link>
-        ))}
+              {/* Sublabel */}
+              <span className="text-[8.5px] font-semibold text-gray-600 dark:text-gray-400 truncate max-w-[66px] leading-none mt-0.5">
+                {cat.sublabel}
+              </span>
+            </Link>
+          ))}
+        </div>
       </div>
     </div>
   );
