@@ -104,9 +104,12 @@ const nextConfig = {
     ],
   },
   async headers() {
-    const scriptSource = isDev
-      ? "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://checkout.razorpay.com"
-      : "script-src 'self' 'unsafe-inline' https://checkout.razorpay.com";
+    if (isDev) {
+      return [];
+    }
+
+    const scriptSource =
+      "script-src 'self' 'unsafe-inline' https://checkout.razorpay.com";
 
     return [
       {

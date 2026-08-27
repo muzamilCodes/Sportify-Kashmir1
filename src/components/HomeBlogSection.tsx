@@ -11,7 +11,6 @@ import {
   ChevronLeft,
   BookOpen,
   Sparkles,
-  Award,
 } from "lucide-react";
 import {
   BlogPost,
@@ -19,40 +18,7 @@ import {
   formatBlogDate,
   calculateReadTime,
 } from "@/lib/blogData";
-
-// Curated high-value Kashmir Sports Guides used as backup/complement if DB has few posts
-const CURATED_KASHMIR_GUIDES: Partial<BlogPost>[] = [
-  {
-    _id: "guide-kashmir-willow",
-    postTitle: "Kashmir Willow vs English Willow: The Complete Player's Guide",
-    shortDesc: "Discover grain density, sweet-spot durability, and why international power hitters choose Kashmir grade 1 clefts.",
-    postDesc: "Kashmir willow is renowned globally for its natural toughness and unmatched value. Learn how to pick the right weight and balance for your batting style.",
-    postImgUrl: "https://res.cloudinary.com/dhjxicuo9/image/upload/v1787500292/fer4euivhuzwjqxtb2w1.jpg",
-    category: ["Cricket Willow", "Equipment Craft"],
-    createdAt: new Date(Date.now() - 2 * 24 * 3600 * 1000).toISOString(),
-    postAuthorId: { username: "Ustaad Farooq (Master Batmaker)" },
-  },
-  {
-    _id: "guide-bat-knocking",
-    postTitle: "Step-by-Step Bat Knocking, Oiling & Edge Protection Guide",
-    shortDesc: "Protect your new bat against high-velocity seam cracks with our 4-step artisan preparation guide.",
-    postDesc: "Linseed oiling, wooden mallet edge hammering, and anti-scuff sheet application explained step-by-step.",
-    postImgUrl: "https://res.cloudinary.com/dhjxicuo9/image/upload/v1787837853/yowoes2vybgrcfuoxu9y.jpg",
-    category: ["Bat Care & Maintenance"],
-    createdAt: new Date(Date.now() - 4 * 24 * 3600 * 1000).toISOString(),
-    postAuthorId: { username: "Sportify Gear Lab" },
-  },
-  {
-    _id: "guide-valley-football",
-    postTitle: "Valley High-Altitude Training & Boot Traction Selection",
-    shortDesc: "How Kashmir athletes optimize stamina in winter turf conditions and pick the right FG/AG studs.",
-    postDesc: "A deep dive into turf grip, ankle protection, and thermoregulation during high-intensity mountain matches.",
-    postImgUrl: null,
-    category: ["Football & Training"],
-    createdAt: new Date(Date.now() - 6 * 24 * 3600 * 1000).toISOString(),
-    postAuthorId: { username: "Coach Aadil" },
-  },
-];
+import { cachedJson } from "@/lib/clientCache";
 
 export default function HomeBlogSection() {
   const [posts, setPosts] = useState<BlogPost[]>([]);
@@ -66,30 +32,20 @@ export default function HomeBlogSection() {
 
   const fetchLatestPosts = async () => {
     try {
-      const response = await fetch(`${API_URL}/posts/getAll`);
-      const result = await response.json();
+      const result = await cachedJson<any>(`${API_URL}/posts/getAll`);
 
       let dbPosts: BlogPost[] = [];
-      if (result.success && Array.isArray(result.posts)) {
+      if (result?.success && Array.isArray(result.posts)) {
         dbPosts = result.posts;
-      } else if (result.success && Array.isArray(result.data)) {
+      } else if (result?.success && Array.isArray(result.data)) {
         dbPosts = result.data;
       }
 
-      // If DB has posts, merge with curated guides to ensure a rich infinite stream
-      if (dbPosts.length > 0) {
-        const remainingNeeded = Math.max(0, 4 - dbPosts.length);
-        const merged = [
-          ...dbPosts,
-          ...CURATED_KASHMIR_GUIDES.slice(0, remainingNeeded),
-        ] as BlogPost[];
-        setPosts(merged);
-      } else {
-        setPosts(CURATED_KASHMIR_GUIDES as BlogPost[]);
-      }
+      // Only display 100% real database posts - no dummy/hardcoded fallbacks
+      setPosts(dbPosts);
     } catch (error) {
       console.error("Error fetching homepage blog posts:", error);
-      setPosts(CURATED_KASHMIR_GUIDES as BlogPost[]);
+      setPosts([]);
     }
   };
 
@@ -105,10 +61,11 @@ export default function HomeBlogSection() {
     }
   };
 
+  // If no blog posts have been added to the database yet, do not render section
   if (posts.length === 0) return null;
 
-  // Duplicate items to ensure seamless infinite loop animation from right to left
-  const marqueeItems = [...posts, ...posts];
+  // Duplicate items for infinite stream if there are multiple posts
+  const marqueeItems = posts.length > 2 ? [...posts, ...posts] : posts;
 
   return (
     <section className="mb-16 relative overflow-hidden">
@@ -132,13 +89,11 @@ export default function HomeBlogSection() {
 
         {/* Right Side Navigation Controls */}
         <div className="flex items-center gap-3 self-end sm:self-auto shrink-0">
-          {/* Manual Scroll Controls */}
           <div className="flex items-center gap-1.5 bg-white dark:bg-zinc-850 p-1 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-xs">
             <button
               type="button"
               onClick={scrollLeft}
               className="p-1.5 rounded-lg hover:bg-orange-500/10 text-zinc-600 dark:text-zinc-300 hover:text-orange-500 transition cursor-pointer"
-              title="Previous guide"
               aria-label="Scroll left"
             >
               <ChevronLeft size={18} />
@@ -147,38 +102,37 @@ export default function HomeBlogSection() {
               type="button"
               onClick={scrollRight}
               className="p-1.5 rounded-lg hover:bg-orange-500/10 text-zinc-600 dark:text-zinc-300 hover:text-orange-500 transition cursor-pointer"
-              title="Next guide"
               aria-label="Scroll right"
             >
               <ChevronRight size={18} />
             </button>
           </div>
 
-          {/* Explore All Link */}
           <Link
             href="/blog"
-            className="inline-flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white rounded-xl text-xs sm:text-sm font-bold shadow-xs hover:shadow-md transition active:scale-95 group"
+            className="inline-flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white rounded-xl text-xs sm:text-sm font-extrabold shadow-md hover:shadow-lg transition active:scale-95"
           >
-            <span>Explore All Articles</span>
-            <ArrowRight size={15} className="group-hover:translate-x-1 transition-transform" />
+            <span>View All Guides</span>
+            <ChevronRight size={14} />
           </Link>
         </div>
       </div>
 
-      {/* ─── Continuous Right-to-Left Moving Marquee Stream ─── */}
+      {/* ─── Moving Stream from Right to Left (Pause on Hover/Touch) ─── */}
       <div
-        className="relative w-full group/stream overflow-hidden py-2"
+        className="relative -mx-3 px-3 sm:-mx-6 sm:px-6 overflow-x-auto scrollbar-none"
         onMouseEnter={() => setIsPaused(true)}
         onMouseLeave={() => setIsPaused(false)}
+        onTouchStart={() => setIsPaused(true)}
+        onTouchEnd={() => setIsPaused(false)}
       >
-        {/* Left & Right Edge Gradient Fade Masks */}
-        <div className="pointer-events-none absolute inset-y-0 left-0 w-8 sm:w-16 bg-gradient-to-r from-[var(--color-bg-primary)] to-transparent z-20" />
-        <div className="pointer-events-none absolute inset-y-0 right-0 w-8 sm:w-16 bg-gradient-to-l from-[var(--color-bg-primary)] to-transparent z-20" />
+        {/* Left & Right Gradient Fade Masks */}
+        <div className="hidden sm:block absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-zinc-50 dark:from-zinc-950 to-transparent z-10 pointer-events-none" />
+        <div className="hidden sm:block absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-zinc-50 dark:from-zinc-950 to-transparent z-10 pointer-events-none" />
 
-        {/* Marquee Track Moving Right to Left */}
         <div
           ref={scrollContainerRef}
-          className={`flex gap-5 py-2 animate-marquee-rtl`}
+          className={`flex gap-5 py-2 ${posts.length > 2 ? "animate-marquee-rtl" : ""}`}
           style={{
             animationPlayState: isPaused ? "paused" : "running",
           }}
@@ -198,7 +152,6 @@ export default function HomeBlogSection() {
                 ? post.category
                 : "Kashmir Craft";
 
-            // Clean title display if a URL was mistakenly entered as the title
             let cleanTitle = post.postTitle;
             if (cleanTitle.startsWith("http://") || cleanTitle.startsWith("https://")) {
               cleanTitle = "Handcrafted Kashmir Sports Article & Equipment Review";
@@ -234,63 +187,52 @@ export default function HomeBlogSection() {
                     )}
 
                     {/* Category Pill Tag */}
-                    <div className="absolute top-2.5 left-2.5 z-10">
-                      <span className="px-2.5 py-1 bg-black/70 backdrop-blur-md text-white text-[10px] font-extrabold rounded-full uppercase tracking-wider border border-white/20 shadow-sm flex items-center gap-1">
-                        <Sparkles size={10} className="text-amber-400" />
-                        <span>{postCategory}</span>
+                    <div className="absolute top-2.5 left-2.5">
+                      <span className="px-2.5 py-1 rounded-md bg-black/75 backdrop-blur-md text-orange-400 font-extrabold text-[10px] uppercase tracking-wider border border-white/10 shadow-md">
+                        {postCategory}
                       </span>
                     </div>
 
-                    {/* Read Time Badge */}
-                    <div className="absolute bottom-2.5 right-2.5 z-10 px-2.5 py-1 bg-black/70 backdrop-blur-md text-white text-[10px] font-bold rounded-lg flex items-center gap-1.5 border border-white/10 shadow-sm">
-                      <Clock size={11} className="text-orange-400" />
-                      <span>{readTime}</span>
+                    {/* Read Time Tag */}
+                    <div className="absolute bottom-2.5 right-2.5">
+                      <span className="px-2 py-0.5 rounded-md bg-black/70 backdrop-blur-md text-white text-[10px] font-bold flex items-center gap-1 border border-white/10">
+                        <Clock size={10} className="text-orange-400" />
+                        <span>{readTime}</span>
+                      </span>
                     </div>
                   </Link>
 
-                  {/* Body Content */}
-                  <div className="p-4 sm:p-5 space-y-2.5">
-                    {/* Meta Row */}
-                    <div className="flex items-center gap-2 text-[11px] text-zinc-400">
-                      <span className="flex items-center gap-1 text-zinc-500 dark:text-zinc-400">
-                        <Calendar size={12} className="text-orange-500" />
-                        <span>{formatBlogDate(post.createdAt)}</span>
-                      </span>
+                  {/* Article Text Content */}
+                  <div className="p-4 sm:p-5 space-y-2">
+                    <div className="flex items-center gap-2 text-[11px] text-zinc-500 dark:text-zinc-400 font-medium">
+                      <span>{authorName}</span>
                       <span>•</span>
-                      <span className="truncate font-medium text-zinc-600 dark:text-zinc-300">
-                        {authorName}
-                      </span>
+                      <span>{formatBlogDate(post.createdAt)}</span>
                     </div>
 
-                    {/* Title */}
-                    <Link href={`/blog/${post._id}`} className="block">
-                      <h3 className="text-sm sm:text-base font-extrabold text-zinc-900 dark:text-white group-hover/card:text-orange-600 dark:group-hover/card:text-orange-400 transition-colors line-clamp-2 leading-snug">
+                    <Link href={`/blog/${post._id}`} className="block group-hover/card:text-orange-500 transition-colors">
+                      <h3 className="font-extrabold text-sm sm:text-base text-zinc-900 dark:text-white leading-snug line-clamp-2">
                         {cleanTitle}
                       </h3>
                     </Link>
 
-                    {/* Summary */}
-                    <p className="text-xs text-zinc-600 dark:text-zinc-400 line-clamp-2 leading-relaxed font-normal">
-                      {post.shortDesc ||
-                        (post.postDesc
-                          ? post.postDesc.substring(0, 95) + "..."
-                          : "Explore professional craft notes, wood selection, and athlete equipment tips.")}
-                    </p>
+                    {post.shortDesc && (
+                      <p className="text-xs text-zinc-600 dark:text-zinc-300 line-clamp-2 leading-relaxed">
+                        {post.shortDesc}
+                      </p>
+                    )}
                   </div>
                 </div>
 
-                {/* Footer Action Bar */}
-                <div className="p-4 sm:p-5 pt-3 border-t border-zinc-100 dark:border-zinc-800/80 flex items-center justify-between text-xs bg-zinc-50/50 dark:bg-zinc-900/50">
+                {/* Card Footer Link */}
+                <div className="px-4 pb-4 sm:px-5 sm:pb-5 pt-0">
                   <Link
                     href={`/blog/${post._id}`}
-                    className="font-black text-orange-600 dark:text-orange-400 hover:text-orange-700 flex items-center gap-1.5 group/btn"
+                    className="inline-flex items-center gap-1.5 text-xs font-black text-orange-600 dark:text-orange-400 group-hover/card:translate-x-1 transition-transform"
                   >
                     <span>Read Full Guide</span>
-                    <ChevronRight size={14} className="group-hover/btn:translate-x-1 transition-transform" />
+                    <ArrowRight size={13} />
                   </Link>
-                  <span className="text-[10px] uppercase tracking-wider font-bold text-zinc-400 bg-zinc-200/50 dark:bg-zinc-800 px-2 py-0.5 rounded">
-                    Free Article
-                  </span>
                 </div>
               </article>
             );
