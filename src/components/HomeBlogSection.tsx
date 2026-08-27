@@ -64,11 +64,12 @@ export default function HomeBlogSection() {
   // If no blog posts have been added to the database yet, do not render section
   if (posts.length === 0) return null;
 
-  // Duplicate items for infinite stream if there are multiple posts
-  const marqueeItems = posts.length > 2 ? [...posts, ...posts] : posts;
+  // Infinite seamless repetition: Ensure plenty of items for a non-stop, endless stream
+  const repeatMultiplier = Math.max(2, Math.ceil(8 / Math.max(posts.length, 1)));
+  const marqueeItems = Array.from({ length: repeatMultiplier * 2 }, () => posts).flat();
 
   return (
-    <section className="mb-16 relative overflow-hidden">
+    <section className="mb-16 relative overflow-hidden group/blog">
       {/* ─── Header Section ─── */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-6 gap-4">
         <div>
@@ -120,23 +121,26 @@ export default function HomeBlogSection() {
 
       {/* ─── Moving Stream from Right to Left (Pause on Hover/Touch) ─── */}
       <div
-        className="relative -mx-3 px-3 sm:-mx-6 sm:px-6 overflow-x-auto scrollbar-none"
+        className="relative -mx-3 px-3 sm:-mx-6 sm:px-6 overflow-hidden"
         onMouseEnter={() => setIsPaused(true)}
         onMouseLeave={() => setIsPaused(false)}
         onTouchStart={() => setIsPaused(true)}
         onTouchEnd={() => setIsPaused(false)}
       >
         {/* Left & Right Gradient Fade Masks */}
-        <div className="hidden sm:block absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-zinc-50 dark:from-zinc-950 to-transparent z-10 pointer-events-none" />
-        <div className="hidden sm:block absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-zinc-50 dark:from-zinc-950 to-transparent z-10 pointer-events-none" />
+        <div className="hidden sm:block absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-zinc-50 dark:from-zinc-950 to-transparent z-10 pointer-events-none" />
+        <div className="hidden sm:block absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-zinc-50 dark:from-zinc-950 to-transparent z-10 pointer-events-none" />
 
         <div
           ref={scrollContainerRef}
-          className={`flex gap-5 py-2 ${posts.length > 2 ? "animate-marquee-rtl" : ""}`}
-          style={{
-            animationPlayState: isPaused ? "paused" : "running",
-          }}
+          className="flex overflow-x-auto scrollbar-none scroll-smooth py-2"
         >
+          <div
+            className="flex gap-5 animate-marquee-rtl-blog py-1"
+            style={{
+              animationPlayState: isPaused ? "paused" : "running",
+            }}
+          >
           {marqueeItems.map((post, idx) => {
             const readTime = calculateReadTime(post.postDesc);
             const postImg = getBlogImageUrl(post.postImgUrl);
@@ -237,6 +241,7 @@ export default function HomeBlogSection() {
               </article>
             );
           })}
+          </div>
         </div>
       </div>
     </section>

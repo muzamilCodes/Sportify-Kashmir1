@@ -723,7 +723,7 @@
 .animate-marquee-rtl {
   display: flex;
   width: max-content;
-  animation: marquee-rtl 24s linear infinite;
+  animation: marquee-rtl 42s linear infinite;
   will-change: transform;
   backface-visibility: hidden;
   transform: translateZ(0);
@@ -732,7 +732,16 @@
 .animate-marquee-rtl-sports {
   display: flex;
   width: max-content;
-  animation: marquee-rtl 28s linear infinite;
+  animation: marquee-rtl 58s linear infinite;
+  will-change: transform;
+  backface-visibility: hidden;
+  transform: translateZ(0);
+}
+
+.animate-marquee-rtl-blog {
+  display: flex;
+  width: max-content;
+  animation: marquee-rtl 65s linear infinite;
   will-change: transform;
   backface-visibility: hidden;
   transform: translateZ(0);
@@ -742,8 +751,11 @@
 .animate-marquee-rtl:focus-within,
 .animate-marquee-rtl-sports:hover,
 .animate-marquee-rtl-sports:focus-within,
+.animate-marquee-rtl-blog:hover,
+.animate-marquee-rtl-blog:focus-within,
 .group-hover\/ribbon:hover .animate-marquee-rtl,
-.group-hover\/explorer:hover .animate-marquee-rtl-sports {
+.group-hover\/explorer:hover .animate-marquee-rtl-sports,
+.group-hover\/blog:hover .animate-marquee-rtl-blog {
   animation-play-state: paused;
 }
 

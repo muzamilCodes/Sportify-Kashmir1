@@ -42,10 +42,18 @@ import {
   BookOpen,
   Trash2,
   ShieldCheck,
-  AlertOctagon,
   Laptop,
   Smartphone,
   KeyRound,
+  Plus,
+  Landmark,
+  CheckCircle2,
+  Copy,
+  QrCode,
+  Building,
+  ArrowUpRight,
+  ArrowDownLeft,
+  Send,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -76,21 +84,9 @@ function ProfileContent() {
   const searchParams = useSearchParams();
   const tabParam = searchParams.get("tab");
 
-  const [user, setUser] = useState<UserProfile | null>(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const saved = localStorage.getItem("user");
-        if (saved) return JSON.parse(saved);
-      } catch {}
-    }
-    return null;
-  });
-  const [loading, setLoading] = useState<boolean>(() => {
-    if (typeof window !== "undefined" && localStorage.getItem("user")) {
-      return false;
-    }
-    return true;
-  });
+  const [user, setUser] = useState<UserProfile | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [mounted, setMounted] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState(tabParam || "overview");
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isSecurityModalOpen, setIsSecurityModalOpen] = useState(false);
@@ -107,6 +103,14 @@ function ProfileContent() {
   const [walletBalance, setWalletBalance] = useState<number>(500);
   const [addAmount, setAddAmount] = useState<string>("");
   const [isAddingMoney, setIsAddingMoney] = useState<boolean>(false);
+  // Sportify Pay Withdrawal & Filter State
+  const [isWithdrawOpen, setIsWithdrawOpen] = useState(false);
+  const [withdrawAmount, setWithdrawAmount] = useState("");
+  const [withdrawTargetType, setWithdrawTargetType] = useState<"bank" | "upi">("bank");
+  const [withdrawTargetId, setWithdrawTargetId] = useState("");
+  const [isWithdrawing, setIsWithdrawing] = useState(false);
+  const [txFilter, setTxFilter] = useState<"all" | "credit" | "debit">("all");
+
   const [walletTransactions, setWalletTransactions] = useState<Array<{
     id: string;
     title: string;
@@ -162,8 +166,68 @@ function ProfileContent() {
   const [addingCartId, setAddingCartId] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [selectedProfilePic, setSelectedProfilePic] = useState<File | null>(null);
   const [buyAgainProducts, setBuyAgainProducts] = useState<any[]>([]);
+
+  // Real User Payment Methods & Saved Accounts State
+  const [paymentSubTab, setPaymentSubTab] = useState<"cards" | "upi" | "bank" | "wallet">("cards");
+  const [savedCards, setSavedCards] = useState<Array<{
+    _id: string;
+    cardHolder: string;
+    cardNumber: string;
+    rawLast4?: string;
+    expiryDate: string;
+    cardType: string;
+    bankName: string;
+    createdAt: string;
+  }>>([]);
+  const [savedUpi, setSavedUpi] = useState<Array<{
+    _id: string;
+    vpa: string;
+    name?: string;
+    provider?: string;
+    createdAt: string;
+  }>>([]);
+  const [savedBankAccounts, setSavedBankAccounts] = useState<Array<{
+    _id: string;
+    accountHolder: string;
+    accountNumber: string;
+    ifscCode: string;
+    bankName: string;
+    branchName?: string;
+    createdAt: string;
+  }>>([]);
+  const [loadingPaymentMethods, setLoadingPaymentMethods] = useState(false);
+
+  // Forms for adding payment accounts
+  const [cardForm, setCardForm] = useState({
+    cardHolder: "",
+    cardNumber: "",
+    expiryDate: "",
+    cvv: "",
+    cardType: "Debit Card",
+    bankName: "J&K Bank",
+  });
+  const [isAddingCard, setIsAddingCard] = useState(false);
+  const [showAddCardForm, setShowAddCardForm] = useState(false);
+
+  const [upiForm, setUpiForm] = useState({
+    vpa: "",
+    name: "Primary UPI",
+    provider: "GooglePay / PhonePe / Paytm",
+  });
+  const [isAddingUpi, setIsAddingUpi] = useState(false);
+  const [showAddUpiForm, setShowAddUpiForm] = useState(false);
+
+  const [bankForm, setBankForm] = useState({
+    accountHolder: "",
+    accountNumber: "",
+    confirmAccountNumber: "",
+    ifscCode: "",
+    bankName: "Jammu & Kashmir Bank",
+    branchName: "Srinagar Main Branch",
+  });
+  const [isAddingBank, setIsAddingBank] = useState(false);
+  const [showAddBankForm, setShowAddBankForm] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const modalFileInputRef = useRef<HTMLInputElement>(null);
@@ -226,7 +290,20 @@ function ProfileContent() {
   }, [tabParam]);
 
   useEffect(() => {
+    setMounted(true);
+    try {
+      const savedUser = localStorage.getItem("user");
+      if (savedUser) {
+        setUser(JSON.parse(savedUser));
+        setLoading(false);
+      }
+      const savedBal = localStorage.getItem("sportify_wallet_balance");
+      if (savedBal) setWalletBalance(parseFloat(savedBal) || 500);
+      const savedTx = localStorage.getItem("sportify_wallet_transactions");
+      if (savedTx) setWalletTransactions(JSON.parse(savedTx));
+    } catch {}
     fetchUserProfile();
+    fetchPaymentMethods();
     loadBuyAgainProducts();
   }, []);
 
@@ -239,6 +316,221 @@ function ProfileContent() {
       }
     } catch {
       // silent fallback
+    }
+  };
+
+  const fetchPaymentMethods = async () => {
+    try {
+      setLoadingPaymentMethods(true);
+      const token = localStorage.getItem("token");
+      if (!token) return;
+      const res = await fetch(`${API_URL}/user/payment-methods`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const result = await res.json();
+      if (result.success && result.data) {
+        setSavedCards(result.data.savedCards || []);
+        setSavedUpi(result.data.savedUpi || []);
+        setSavedBankAccounts(result.data.savedBankAccounts || []);
+        if (result.data.walletBalance !== undefined && result.data.walletBalance !== null) {
+          setWalletBalance(result.data.walletBalance);
+          localStorage.setItem("sportify_wallet_balance", result.data.walletBalance.toString());
+        }
+        if (Array.isArray(result.data.walletTransactions) && result.data.walletTransactions.length > 0) {
+          setWalletTransactions(result.data.walletTransactions);
+          localStorage.setItem("sportify_wallet_transactions", JSON.stringify(result.data.walletTransactions));
+        }
+      }
+    } catch (err) {
+      console.error("Failed to load payment methods:", err);
+    } finally {
+      setLoadingPaymentMethods(false);
+    }
+  };
+
+  const handleAddCard = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!cardForm.cardHolder.trim() || !cardForm.cardNumber.trim() || !cardForm.expiryDate.trim()) {
+      toast.error("Please enter Cardholder Name, 16-Digit Card Number & Expiry");
+      return;
+    }
+    const cleanNum = cardForm.cardNumber.replace(/\s+/g, "");
+    if (cleanNum.length < 12 || cleanNum.length > 19) {
+      toast.error("Please enter a valid 16-digit ATM / Card number");
+      return;
+    }
+
+    try {
+      setIsAddingCard(true);
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_URL}/user/add-card`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(cardForm),
+      });
+      const result = await res.json();
+      if (result.success) {
+        toast.success("ATM / Debit Card added successfully! 💳");
+        setShowAddCardForm(false);
+        setCardForm({
+          cardHolder: "",
+          cardNumber: "",
+          expiryDate: "",
+          cvv: "",
+          cardType: "Debit Card",
+          bankName: "J&K Bank",
+        });
+        fetchPaymentMethods();
+      } else {
+        toast.error(result.message || "Failed to add card");
+      }
+    } catch {
+      toast.error("Network error adding card");
+    } finally {
+      setIsAddingCard(false);
+    }
+  };
+
+  const handleDeleteCard = async (cardId: string) => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_URL}/user/delete-card/${cardId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const result = await res.json();
+      if (result.success) {
+        toast.success("Card removed successfully");
+        setSavedCards((prev) => prev.filter((c) => c._id !== cardId));
+      } else {
+        toast.error(result.message);
+      }
+    } catch {
+      toast.error("Failed to delete card");
+    }
+  };
+
+  const handleAddUpi = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!upiForm.vpa.trim() || !upiForm.vpa.includes("@")) {
+      toast.error("Please enter a valid UPI ID (e.g. yourname@oksbi or 9682645124@upi)");
+      return;
+    }
+
+    try {
+      setIsAddingUpi(true);
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_URL}/user/add-upi`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(upiForm),
+      });
+      const result = await res.json();
+      if (result.success) {
+        toast.success("UPI ID linked successfully! ⚡");
+        setShowAddUpiForm(false);
+        setUpiForm({
+          vpa: "",
+          name: "Primary UPI",
+          provider: "GooglePay / PhonePe / Paytm",
+        });
+        fetchPaymentMethods();
+      } else {
+        toast.error(result.message || "Failed to link UPI");
+      }
+    } catch {
+      toast.error("Network error linking UPI");
+    } finally {
+      setIsAddingUpi(false);
+    }
+  };
+
+  const handleDeleteUpi = async (upiId: string) => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_URL}/user/delete-upi/${upiId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const result = await res.json();
+      if (result.success) {
+        toast.success("UPI ID unlinked successfully");
+        setSavedUpi((prev) => prev.filter((u) => u._id !== upiId));
+      } else {
+        toast.error(result.message);
+      }
+    } catch {
+      toast.error("Failed to delete UPI");
+    }
+  };
+
+  const handleAddBankAccount = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!bankForm.accountHolder.trim() || !bankForm.accountNumber.trim() || !bankForm.ifscCode.trim() || !bankForm.bankName.trim()) {
+      toast.error("Please fill in Account Holder, Account Number, IFSC and Bank Name");
+      return;
+    }
+    if (bankForm.accountNumber.trim() !== bankForm.confirmAccountNumber.trim()) {
+      toast.error("Account Numbers do not match!");
+      return;
+    }
+
+    try {
+      setIsAddingBank(true);
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_URL}/user/add-bank-account`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(bankForm),
+      });
+      const result = await res.json();
+      if (result.success) {
+        toast.success("Bank Account linked successfully! 🏦");
+        setShowAddBankForm(false);
+        setBankForm({
+          accountHolder: "",
+          accountNumber: "",
+          confirmAccountNumber: "",
+          ifscCode: "",
+          bankName: "Jammu & Kashmir Bank",
+          branchName: "Srinagar Main Branch",
+        });
+        fetchPaymentMethods();
+      } else {
+        toast.error(result.message || "Failed to add bank account");
+      }
+    } catch {
+      toast.error("Network error saving bank details");
+    } finally {
+      setIsAddingBank(false);
+    }
+  };
+
+  const handleDeleteBankAccount = async (bankId: string) => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_URL}/user/delete-bank-account/${bankId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const result = await res.json();
+      if (result.success) {
+        toast.success("Bank Account removed successfully");
+        setSavedBankAccounts((prev) => prev.filter((b) => b._id !== bankId));
+      } else {
+        toast.error(result.message);
+      }
+    } catch {
+      toast.error("Failed to delete bank account");
     }
   };
 
@@ -553,40 +845,128 @@ function ProfileContent() {
     }
   };
 
-  const handleAddWalletMoney = (amountToAdd?: number) => {
+  
+  const handleCopyVpa = (vpaText: string) => {
+    if (!vpaText) return;
+    navigator.clipboard.writeText(vpaText);
+    toast.success("Sportify VPA copied to clipboard! 📋");
+  };
+
+  const handleWithdrawMoney = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const num = parseFloat(withdrawAmount);
+    if (!num || isNaN(num) || num <= 0) {
+      toast.error("Please enter a valid amount to withdraw");
+      return;
+    }
+    if (num > walletBalance) {
+      toast.error(`Insufficient wallet balance! Available: ₹${walletBalance.toLocaleString("en-IN")}`);
+      return;
+    }
+
+    let targetDetail = "";
+    if (withdrawTargetType === "bank") {
+      const selectedBank = savedBankAccounts.find((b) => b._id === withdrawTargetId) || savedBankAccounts[0];
+      if (!selectedBank) {
+        toast.error("Please add a Bank Account first to withdraw money");
+        setPaymentSubTab("bank");
+        setShowAddBankForm(true);
+        return;
+      }
+      targetDetail = `${selectedBank.bankName} (${selectedBank.accountNumber.slice(-4)})`;
+    } else {
+      const selectedUpi = savedUpi.find((u) => u._id === withdrawTargetId) || savedUpi[0];
+      if (!selectedUpi) {
+        toast.error("Please link a UPI ID first to withdraw money");
+        setPaymentSubTab("upi");
+        setShowAddUpiForm(true);
+        return;
+      }
+      targetDetail = selectedUpi.vpa;
+    }
+
+    try {
+      setIsWithdrawing(true);
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_URL}/user/wallet/withdraw`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          amount: num,
+          targetType: withdrawTargetType,
+          targetDetail,
+        }),
+      });
+
+      const result = await res.json();
+      if (result.success && result.data) {
+        setWalletBalance(result.data.walletBalance);
+        localStorage.setItem("sportify_wallet_balance", result.data.walletBalance.toString());
+        if (Array.isArray(result.data.walletTransactions)) {
+          setWalletTransactions(result.data.walletTransactions);
+          localStorage.setItem("sportify_wallet_transactions", JSON.stringify(result.data.walletTransactions));
+        }
+        setWithdrawAmount("");
+        setIsWithdrawOpen(false);
+        toast.success(`₹${num.toLocaleString("en-IN")} transferred successfully! 💸`);
+      } else {
+        toast.error(result.message || "Failed to process withdrawal");
+      }
+    } catch {
+      toast.error("Network error processing withdrawal");
+    } finally {
+      setIsWithdrawing(false);
+    }
+  };
+
+  const handleAddWalletMoney = async (amountToAdd?: number) => {
     const amount = amountToAdd || parseFloat(addAmount);
     if (!amount || isNaN(amount) || amount <= 0) {
       toast.error("Please enter a valid amount to recharge");
       return;
     }
-    setIsAddingMoney(true);
-    setTimeout(() => {
-      const newBal = walletBalance + amount;
-      setWalletBalance(newBal);
-      localStorage.setItem("sportify_wallet_balance", newBal.toString());
-      const newTx = {
-        id: `tx-${Date.now()}`,
-        title: "Sportify Pay Wallet Recharge (UPI/Card)",
-        type: "credit" as const,
-        amount,
-        date: new Date().toLocaleDateString("en-IN", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }),
-        status: "Completed",
-      };
-      const updatedTxs = [newTx, ...walletTransactions];
-      setWalletTransactions(updatedTxs);
-      localStorage.setItem("sportify_wallet_transactions", JSON.stringify(updatedTxs));
+
+    try {
+      setIsAddingMoney(true);
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_URL}/user/wallet/recharge`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ amount }),
+      });
+
+      const result = await res.json();
+      if (result.success && result.data) {
+        setWalletBalance(result.data.walletBalance);
+        localStorage.setItem("sportify_wallet_balance", result.data.walletBalance.toString());
+        if (Array.isArray(result.data.walletTransactions)) {
+          setWalletTransactions(result.data.walletTransactions);
+          localStorage.setItem("sportify_wallet_transactions", JSON.stringify(result.data.walletTransactions));
+        }
+        setAddAmount("");
+        toast.success(`₹${amount.toLocaleString('en-IN')} added to Sportify Pay successfully! 🎉`);
+        try {
+          confetti({
+            particleCount: 50,
+            spread: 60,
+            origin: { y: 0.7 },
+            colors: ["#10b981", "#f59e0b", "#3b82f6"],
+          });
+        } catch {}
+      } else {
+        toast.error(result.message || "Failed to recharge wallet");
+      }
+    } catch {
+      toast.error("Network error recharging wallet");
+    } finally {
       setIsAddingMoney(false);
-      setAddAmount("");
-      toast.success(`₹${amount.toLocaleString('en-IN')} added to Sportify Pay successfully! 🎉`);
-      try {
-        confetti({
-          particleCount: 50,
-          spread: 60,
-          origin: { y: 0.7 },
-          colors: ["#10b981", "#f59e0b", "#3b82f6"],
-        });
-      } catch {}
-    }, 400);
+    }
   };
 
   const handleDeleteAccount = async () => {
@@ -661,7 +1041,7 @@ function ProfileContent() {
 
   const profileImageUrl = previewUrl || getImageUrl(user?.profilePic);
 
-  if (loading) {
+  if (!mounted || loading) {
     return (
       <div className="min-h-screen bg-[var(--color-bg-primary)] flex items-center justify-center">
         <div className="text-center">
@@ -1977,160 +2357,925 @@ function ProfileContent() {
         </div>
       )}
       {/* ═══════════════════════════════════════════════════════════════════════
-          SPORTIFY PAY & WALLET DEDICATED MODAL
+          SPORTIFY PAY & REAL PAYMENT / BANK ACCOUNTS SUITE MODAL
       ═══════════════════════════════════════════════════════════════════════ */}
       {isWalletModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
           <div
-            className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-3xl w-full max-w-lg shadow-2xl border border-gray-200 dark:border-gray-700 max-h-[90vh] overflow-y-auto flex flex-col"
+            className="bg-white dark:bg-gray-850 text-gray-900 dark:text-white rounded-3xl w-full max-w-xl shadow-2xl border border-gray-200 dark:border-gray-700 max-h-[92vh] overflow-y-auto flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
-            <div className="p-4 sm:p-6 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between sticky top-0 bg-white/95 dark:bg-gray-800/95 backdrop-blur-md z-10">
+            <div className="p-4 sm:p-5 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between sticky top-0 bg-white/95 dark:bg-gray-850/95 backdrop-blur-md z-10">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-950/60 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
-                  <Wallet size={22} />
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-600 flex items-center justify-center text-white shadow-md">
+                  <CreditCard size={20} />
                 </div>
                 <div>
-                  <h3 className="font-extrabold text-base sm:text-lg">Sportify Pay &amp; Wallet</h3>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">Instant checkout, rewards &amp; athlete cashback</p>
+                  <h3 className="font-extrabold text-base sm:text-lg text-gray-900 dark:text-white">Payment &amp; Account Details</h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">ATM Cards, UPI IDs, Bank Accounts &amp; Wallet</p>
                 </div>
               </div>
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    fetchPaymentMethods();
+                    toast.success("Payment details refreshed! 🔄");
+                  }}
+                  title="Refresh Balance & Accounts"
+                  className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-750 text-gray-500 dark:text-gray-400 hover:text-orange-500 transition cursor-pointer"
+                >
+                  <RefreshCw size={16} className={loadingPaymentMethods ? "animate-spin text-orange-500" : ""} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsWalletModalOpen(false)}
+                  className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-750 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition cursor-pointer"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+            </div>
+
+            {/* Sub-Tab Selector */}
+            <div className="flex border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 sm:px-5 pt-2 gap-2 overflow-x-auto scrollbar-none">
               <button
                 type="button"
-                onClick={() => setIsWalletModalOpen(false)}
-                className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-750 text-gray-500 transition cursor-pointer"
+                onClick={() => setPaymentSubTab("cards")}
+                className={`pb-2.5 px-3 font-extrabold text-xs flex items-center gap-1.5 border-b-2 transition cursor-pointer whitespace-nowrap ${
+                  paymentSubTab === "cards"
+                    ? "border-orange-500 text-orange-600 dark:text-orange-400"
+                    : "border-transparent text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
+                }`}
               >
-                <X size={20} />
+                <CreditCard size={14} />
+                <span>ATM / Cards ({savedCards.length})</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setPaymentSubTab("upi")}
+                className={`pb-2.5 px-3 font-extrabold text-xs flex items-center gap-1.5 border-b-2 transition cursor-pointer whitespace-nowrap ${
+                  paymentSubTab === "upi"
+                    ? "border-orange-500 text-orange-600 dark:text-orange-400"
+                    : "border-transparent text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
+                }`}
+              >
+                <QrCode size={14} />
+                <span>UPI IDs ({savedUpi.length})</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setPaymentSubTab("bank")}
+                className={`pb-2.5 px-3 font-extrabold text-xs flex items-center gap-1.5 border-b-2 transition cursor-pointer whitespace-nowrap ${
+                  paymentSubTab === "bank"
+                    ? "border-orange-500 text-orange-600 dark:text-orange-400"
+                    : "border-transparent text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
+                }`}
+              >
+                <Landmark size={14} />
+                <span>Bank Accounts ({savedBankAccounts.length})</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setPaymentSubTab("wallet")}
+                className={`pb-2.5 px-3 font-extrabold text-xs flex items-center gap-1.5 border-b-2 transition cursor-pointer whitespace-nowrap ${
+                  paymentSubTab === "wallet"
+                    ? "border-emerald-500 text-emerald-600 dark:text-emerald-400"
+                    : "border-transparent text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
+                }`}
+              >
+                <Wallet size={14} />
+                <span>Wallet (₹{walletBalance.toLocaleString("en-IN")})</span>
               </button>
             </div>
 
             {/* Modal Content Body */}
             <div className="p-4 sm:p-6 space-y-5">
-              {/* 1. Main Wallet Card */}
-              <div className="p-5 sm:p-6 rounded-3xl bg-gradient-to-br from-emerald-600 via-emerald-700 to-teal-900 text-white shadow-xl relative overflow-hidden">
-                <div className="flex items-center justify-between relative z-1 mb-4">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-black tracking-wider uppercase bg-white/20 px-2.5 py-0.5 rounded-md backdrop-blur-xs">
-                      Sportify Pay
-                    </span>
-                    <span className="text-[10px] bg-emerald-400/30 text-emerald-100 font-bold px-2 py-0.5 rounded-full">
-                      Verified Athlete
-                    </span>
-                  </div>
-                  <span className="text-xs font-bold text-emerald-200">24h Valley Express</span>
-                </div>
-
-                <div className="relative z-1 mb-5">
-                  <p className="text-xs text-emerald-100 font-medium">Available Wallet Balance</p>
-                  <h2 className="text-3xl sm:text-4xl font-black mt-1 tracking-tight">
-                    ₹{walletBalance.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-                  </h2>
-                </div>
-
-                <div className="relative z-1 pt-3 border-t border-white/20 flex items-center justify-between text-xs text-emerald-100">
-                  <span className="truncate">VPA: {user?.username?.toLowerCase() || "user"}@sportifypay</span>
-                  <span className="font-mono text-[11px]">SK-WAL-{user?._id?.slice(-6).toUpperCase() || "789123"}</span>
-                </div>
-              </div>
-
-              {/* 2. Add Money / Recharge Wallet */}
-              <div className="p-4 bg-gray-50 dark:bg-gray-750 rounded-2xl border border-gray-200 dark:border-gray-700 space-y-3">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-xs sm:text-sm font-extrabold text-gray-900 dark:text-white flex items-center gap-1.5">
-                    <span>⚡ Recharge Sportify Pay</span>
-                  </h4>
-                  <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-bold">Instant Top-up</span>
-                </div>
-
-                {/* Quick Add Chips */}
-                <div className="flex gap-2 flex-wrap">
-                  {[200, 500, 1000, 2000].map((amt) => (
+              {/* 💳 TAB 1: ATM / DEBIT & CREDIT CARDS */}
+              {paymentSubTab === "cards" && (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="text-sm font-extrabold text-gray-900 dark:text-white">Saved ATM &amp; Debit/Credit Cards</h4>
+                      <p className="text-[11px] text-gray-500 dark:text-gray-400">Used for 1-click instant orders &amp; Kashmir express checkout</p>
+                    </div>
                     <button
-                      key={amt}
                       type="button"
-                      onClick={() => handleAddWalletMoney(amt)}
-                      className="px-3 py-1.5 bg-white dark:bg-gray-700 hover:bg-orange-500 hover:text-white dark:hover:bg-orange-500 text-gray-800 dark:text-gray-200 rounded-xl text-xs font-bold border border-gray-300 dark:border-gray-600 transition cursor-pointer active:scale-95 shadow-xs"
+                      onClick={() => setShowAddCardForm(!showAddCardForm)}
+                      className="px-3.5 py-1.5 bg-orange-600 hover:bg-orange-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95"
                     >
-                      + ₹{amt}
+                      <Plus size={14} />
+                      <span>{showAddCardForm ? "Close Form" : "+ Add Card"}</span>
                     </button>
-                  ))}
-                </div>
+                  </div>
 
-                {/* Custom Amount Form */}
-                <div className="flex items-center gap-2 pt-1">
-                  <div className="relative flex-1">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-bold">₹</span>
-                    <input
-                      type="number"
-                      placeholder="Enter custom amount"
-                      value={addAmount}
-                      onChange={(e) => setAddAmount(e.target.value)}
-                      className="w-full pl-7 pr-3 py-2.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl outline-none text-xs font-bold"
-                    />
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => handleAddWalletMoney()}
-                    disabled={isAddingMoney}
-                    className="px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-xl text-xs font-bold transition shadow-xs cursor-pointer active:scale-95 disabled:opacity-50"
-                  >
-                    {isAddingMoney ? "Adding..." : "Add Money"}
-                  </button>
-                </div>
-              </div>
-
-              {/* 3. Account Details Overview */}
-              <div className="space-y-2 text-xs">
-                <h4 className="font-extrabold text-gray-900 dark:text-white text-xs uppercase tracking-wider">
-                  Linked Account Information
-                </h4>
-                <div className="divide-y divide-gray-100 dark:divide-gray-750 bg-gray-50 dark:bg-gray-750 rounded-2xl p-3.5 border border-gray-200 dark:border-gray-700">
-                  <div className="py-1.5 flex justify-between">
-                    <span className="text-gray-500 dark:text-gray-400">Account Holder:</span>
-                    <span className="font-bold">{user?.username || "Verified Athlete"}</span>
-                  </div>
-                  <div className="py-1.5 flex justify-between">
-                    <span className="text-gray-500 dark:text-gray-400">Linked Mobile:</span>
-                    <span className="font-bold">{user?.mobile || "+91 9682645127"}</span>
-                  </div>
-                  <div className="py-1.5 flex justify-between">
-                    <span className="text-gray-500 dark:text-gray-400">Linked Email:</span>
-                    <span className="font-bold truncate max-w-[200px]">{user?.email}</span>
-                  </div>
-                  <div className="py-1.5 flex justify-between">
-                    <span className="text-gray-500 dark:text-gray-400">KYC Status:</span>
-                    <span className="font-bold text-emerald-600 dark:text-emerald-400">Verified ✅</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* 4. Recent Wallet Transactions */}
-              <div className="space-y-2 text-xs">
-                <h4 className="font-extrabold text-gray-900 dark:text-white text-xs uppercase tracking-wider">
-                  Recent Wallet Activity
-                </h4>
-                <div className="space-y-2">
-                  {walletTransactions.map((tx) => (
-                    <div
-                      key={tx.id}
-                      className="p-3 bg-white dark:bg-gray-750 rounded-xl border border-gray-200 dark:border-gray-700 flex items-center justify-between shadow-xs"
+                  {/* Add New Card Form */}
+                  {showAddCardForm && (
+                    <form
+                      onSubmit={handleAddCard}
+                      className="p-4 sm:p-5 bg-orange-50/70 dark:bg-gray-800 rounded-2xl border border-orange-200 dark:border-orange-900/50 space-y-3 animate-in fade-in duration-200 shadow-inner"
                     >
-                      <div>
-                        <p className="font-bold text-xs text-gray-900 dark:text-white">{tx.title}</p>
-                        <p className="text-[10px] text-gray-400 mt-0.5">{tx.date} • {tx.status}</p>
+                      <h5 className="font-extrabold text-xs text-orange-900 dark:text-orange-300 uppercase tracking-wider flex items-center gap-1.5">
+                        <CreditCard size={14} />
+                        <span>Enter ATM / Card Details</span>
+                      </h5>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-[11px] font-bold text-gray-700 dark:text-gray-300 mb-1">
+                            Name on Card *
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            placeholder="e.g. Muzamil Ahmad"
+                            value={cardForm.cardHolder}
+                            onChange={(e) => setCardForm({ ...cardForm, cardHolder: e.target.value })}
+                            className="w-full px-3 py-2.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl outline-none text-xs font-semibold text-gray-900 dark:text-white placeholder-gray-400"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-[11px] font-bold text-gray-700 dark:text-gray-300 mb-1">
+                            Bank Name
+                          </label>
+                          <select
+                            value={cardForm.bankName}
+                            onChange={(e) => setCardForm({ ...cardForm, bankName: e.target.value })}
+                            className="w-full px-3 py-2.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl outline-none text-xs font-semibold text-gray-900 dark:text-white"
+                          >
+                            <option value="Jammu & Kashmir Bank">Jammu &amp; Kashmir Bank (J&amp;K Bank)</option>
+                            <option value="State Bank of India">State Bank of India (SBI)</option>
+                            <option value="HDFC Bank">HDFC Bank</option>
+                            <option value="Punjab National Bank">Punjab National Bank (PNB)</option>
+                            <option value="ICICI Bank">ICICI Bank</option>
+                            <option value="Axis Bank">Axis Bank</option>
+                            <option value="Ellaquai Dehati Bank">Ellaquai Dehati Bank</option>
+                            <option value="Other Bank">Other Bank</option>
+                          </select>
+                        </div>
+
+                        <div className="sm:col-span-2">
+                          <label className="block text-[11px] font-bold text-gray-700 dark:text-gray-300 mb-1">
+                            16-Digit ATM Card Number *
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            maxLength={19}
+                            placeholder="4532 1234 5678 9012"
+                            value={cardForm.cardNumber}
+                            onChange={(e) => {
+                              const val = e.target.value.replace(/\D/g, "").replace(/(\d{4})/g, "$1 ").trim();
+                              setCardForm({ ...cardForm, cardNumber: val });
+                            }}
+                            className="w-full px-3 py-2.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl outline-none font-mono text-xs font-bold tracking-wider text-gray-900 dark:text-white placeholder-gray-400"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-[11px] font-bold text-gray-700 dark:text-gray-300 mb-1">
+                            Expiry (MM/YY) *
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            maxLength={5}
+                            placeholder="MM/YY (e.g. 08/29)"
+                            value={cardForm.expiryDate}
+                            onChange={(e) => {
+                              let val = e.target.value.replace(/\D/g, "");
+                              if (val.length >= 3) val = `${val.slice(0, 2)}/${val.slice(2, 4)}`;
+                              setCardForm({ ...cardForm, expiryDate: val });
+                            }}
+                            className="w-full px-3 py-2.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl outline-none text-xs font-mono font-bold text-gray-900 dark:text-white placeholder-gray-400"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-[11px] font-bold text-gray-700 dark:text-gray-300 mb-1">
+                            Card Type
+                          </label>
+                          <select
+                            value={cardForm.cardType}
+                            onChange={(e) => setCardForm({ ...cardForm, cardType: e.target.value })}
+                            className="w-full px-3 py-2.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl outline-none text-xs font-semibold text-gray-900 dark:text-white"
+                          >
+                            <option value="Debit Card">Debit Card / ATM</option>
+                            <option value="Credit Card">Credit Card</option>
+                            <option value="RuPay Card">RuPay Platinum</option>
+                            <option value="Visa Platinum">Visa Platinum</option>
+                            <option value="Mastercard">Mastercard World</option>
+                          </select>
+                        </div>
                       </div>
-                      <span
-                        className={`text-xs font-black ${
-                          tx.type === "credit" ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600"
-                        }`}
+
+                      <button
+                        type="submit"
+                        disabled={isAddingCard}
+                        className="w-full py-2.5 bg-orange-600 hover:bg-orange-700 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer shadow-md disabled:opacity-50 active:scale-98"
                       >
-                        {tx.type === "credit" ? "+" : "-"} ₹{tx.amount.toLocaleString("en-IN")}
+                        {isAddingCard ? <Loader2 size={15} className="animate-spin" /> : <ShieldCheck size={15} />}
+                        <span>{isAddingCard ? "Saving Card..." : "Save Card to My Account"}</span>
+                      </button>
+                    </form>
+                  )}
+
+                  {/* List of Saved Cards */}
+                  {savedCards.length === 0 ? (
+                    <div className="p-8 text-center bg-gray-50 dark:bg-gray-800 rounded-2xl border border-dashed border-gray-300 dark:border-gray-700 space-y-2">
+                      <CreditCard className="w-10 h-10 mx-auto text-gray-400" />
+                      <p className="text-xs font-bold text-gray-800 dark:text-gray-200">No ATM / Cards Saved Yet</p>
+                      <p className="text-[11px] text-gray-500 dark:text-gray-400">Click &ldquo;+ Add Card&rdquo; above to link your ATM / Debit card for instant checkout.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {savedCards.map((c) => (
+                        <div
+                          key={c._id}
+                          className="p-4 rounded-2xl bg-gradient-to-r from-zinc-950 via-zinc-900 to-zinc-950 text-white shadow-lg border border-zinc-700 relative overflow-hidden"
+                        >
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-2">
+                              <div className="w-7 h-5 rounded-md bg-amber-400 flex items-center justify-center border border-amber-300 shadow-xs">
+                                <div className="w-3.5 h-2.5 rounded-xs border border-amber-800 bg-amber-200/50" />
+                              </div>
+                              <span className="text-xs font-black tracking-wider text-orange-400">{c.bankName}</span>
+                            </div>
+                            <span className="text-[10px] font-bold uppercase bg-white/15 px-2.5 py-0.5 rounded-md text-zinc-200 border border-white/10">
+                              {c.cardType}
+                            </span>
+                          </div>
+
+                          <p className="font-mono text-base sm:text-lg tracking-widest text-zinc-100 font-bold mb-3">
+                            {c.cardNumber}
+                          </p>
+
+                          <div className="flex items-center justify-between text-xs text-zinc-400">
+                            <div>
+                              <span className="block text-[9px] uppercase tracking-wider text-zinc-500">Card Holder</span>
+                              <span className="font-bold text-white uppercase">{c.cardHolder}</span>
+                            </div>
+                            <div>
+                              <span className="block text-[9px] uppercase tracking-wider text-zinc-500">Expires</span>
+                              <span className="font-bold text-white">{c.expiryDate}</span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteCard(c._id)}
+                              className="p-2 rounded-lg bg-rose-500/20 hover:bg-rose-500 text-rose-300 hover:text-white transition cursor-pointer active:scale-95"
+                              title="Delete Card"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* 📱 TAB 2: LINKED UPI IDs */}
+              {paymentSubTab === "upi" && (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="text-sm font-extrabold text-gray-900 dark:text-white">Linked UPI IDs &amp; VPA</h4>
+                      <p className="text-[11px] text-gray-500 dark:text-gray-400">Google Pay, PhonePe, Paytm, Amazon Pay &amp; BHIM UPI</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowAddUpiForm(!showAddUpiForm)}
+                      className="px-3.5 py-1.5 bg-orange-600 hover:bg-orange-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95"
+                    >
+                      <Plus size={14} />
+                      <span>{showAddUpiForm ? "Close Form" : "+ Link UPI"}</span>
+                    </button>
+                  </div>
+
+                  {/* Add New UPI Form */}
+                  {showAddUpiForm && (
+                    <form
+                      onSubmit={handleAddUpi}
+                      className="p-4 sm:p-5 bg-emerald-50/70 dark:bg-gray-800 rounded-2xl border border-emerald-200 dark:border-emerald-900/50 space-y-3 animate-in fade-in duration-200 shadow-inner"
+                    >
+                      <h5 className="font-extrabold text-xs text-emerald-900 dark:text-emerald-300 uppercase tracking-wider flex items-center gap-1.5">
+                        <QrCode size={14} />
+                        <span>Enter UPI Virtual Payment Address (VPA)</span>
+                      </h5>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-[11px] font-bold text-gray-700 dark:text-gray-300 mb-1">
+                            UPI ID / VPA *
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            placeholder="e.g. 9682645124@upi or muzamil@oksbi"
+                            value={upiForm.vpa}
+                            onChange={(e) => setUpiForm({ ...upiForm, vpa: e.target.value })}
+                            className="w-full px-3 py-2.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl outline-none text-xs font-mono font-bold text-gray-900 dark:text-white placeholder-gray-400"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-[11px] font-bold text-gray-700 dark:text-gray-300 mb-1">
+                            Provider / App
+                          </label>
+                          <select
+                            value={upiForm.provider}
+                            onChange={(e) => setUpiForm({ ...upiForm, provider: e.target.value })}
+                            className="w-full px-3 py-2.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl outline-none text-xs font-semibold text-gray-900 dark:text-white"
+                          >
+                            <option value="Google Pay (GPay)">Google Pay (GPay)</option>
+                            <option value="PhonePe">PhonePe</option>
+                            <option value="Paytm UPI">Paytm UPI</option>
+                            <option value="BHIM UPI">BHIM UPI</option>
+                            <option value="Amazon Pay UPI">Amazon Pay UPI</option>
+                            <option value="Cred UPI">Cred UPI</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <button
+                        type="submit"
+                        disabled={isAddingUpi}
+                        className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer shadow-md disabled:opacity-50 active:scale-98"
+                      >
+                        {isAddingUpi ? <Loader2 size={15} className="animate-spin" /> : <CheckCircle2 size={15} />}
+                        <span>{isAddingUpi ? "Linking UPI..." : "Link UPI ID to Sportify"}</span>
+                      </button>
+                    </form>
+                  )}
+
+                  {/* List of Saved UPI IDs */}
+                  {savedUpi.length === 0 ? (
+                    <div className="p-8 text-center bg-gray-50 dark:bg-gray-800 rounded-2xl border border-dashed border-gray-300 dark:border-gray-700 space-y-2">
+                      <QrCode className="w-10 h-10 mx-auto text-gray-400" />
+                      <p className="text-xs font-bold text-gray-800 dark:text-gray-200">No UPI ID Linked Yet</p>
+                      <p className="text-[11px] text-gray-500 dark:text-gray-400">Click &ldquo;+ Link UPI&rdquo; to add your GPay, PhonePe or Paytm VPA.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2.5">
+                      {savedUpi.map((u) => (
+                        <div
+                          key={u._id}
+                          className="p-3.5 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 flex items-center justify-between shadow-xs hover:border-emerald-500/50 transition"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-xl bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                              <QrCode size={18} />
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <span className="font-mono font-bold text-xs sm:text-sm text-gray-900 dark:text-white">{u.vpa}</span>
+                                <span className="text-[10px] bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 font-bold px-2 py-0.5 rounded-full">
+                                  Verified ✅
+                                </span>
+                              </div>
+                              <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">{u.provider || "UPI App"}</p>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => handleCopyVpa(u.vpa)}
+                              className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300 transition cursor-pointer"
+                              title="Copy UPI ID"
+                            >
+                              <Copy size={13} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteUpi(u._id)}
+                              className="p-2 rounded-lg bg-gray-100 hover:bg-rose-50 dark:bg-gray-700 dark:hover:bg-rose-950/60 text-gray-500 hover:text-rose-600 transition cursor-pointer"
+                              title="Delete UPI ID"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* 🏦 TAB 3: BANK ACCOUNTS */}
+              {paymentSubTab === "bank" && (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="text-sm font-extrabold text-gray-900 dark:text-white">Linked Bank Accounts</h4>
+                      <p className="text-[11px] text-gray-500 dark:text-gray-400">Direct transfer, instant cashbacks &amp; tournament refunds</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowAddBankForm(!showAddBankForm)}
+                      className="px-3.5 py-1.5 bg-orange-600 hover:bg-orange-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95"
+                    >
+                      <Plus size={14} />
+                      <span>{showAddBankForm ? "Close Form" : "+ Add Bank"}</span>
+                    </button>
+                  </div>
+
+                  {/* Add New Bank Account Form */}
+                  {showAddBankForm && (
+                    <form
+                      onSubmit={handleAddBankAccount}
+                      className="p-4 sm:p-5 bg-blue-50/70 dark:bg-gray-800 rounded-2xl border border-blue-200 dark:border-blue-900/50 space-y-3 animate-in fade-in duration-200 shadow-inner"
+                    >
+                      <h5 className="font-extrabold text-xs text-blue-900 dark:text-blue-300 uppercase tracking-wider flex items-center gap-1.5">
+                        <Landmark size={14} />
+                        <span>Enter Bank Account Details</span>
+                      </h5>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-[11px] font-bold text-gray-700 dark:text-gray-300 mb-1">
+                            Account Holder Name *
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            placeholder="e.g. Muzamil Ahmad"
+                            value={bankForm.accountHolder}
+                            onChange={(e) => setBankForm({ ...bankForm, accountHolder: e.target.value })}
+                            className="w-full px-3 py-2.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl outline-none text-xs font-semibold text-gray-900 dark:text-white placeholder-gray-400"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-[11px] font-bold text-gray-700 dark:text-gray-300 mb-1">
+                            Bank Name *
+                          </label>
+                          <select
+                            value={bankForm.bankName}
+                            onChange={(e) => setBankForm({ ...bankForm, bankName: e.target.value })}
+                            className="w-full px-3 py-2.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl outline-none text-xs font-semibold text-gray-900 dark:text-white"
+                          >
+                            <option value="Jammu & Kashmir Bank">Jammu &amp; Kashmir Bank (J&amp;K Bank)</option>
+                            <option value="State Bank of India">State Bank of India (SBI)</option>
+                            <option value="HDFC Bank">HDFC Bank</option>
+                            <option value="Punjab National Bank">Punjab National Bank (PNB)</option>
+                            <option value="ICICI Bank">ICICI Bank</option>
+                            <option value="Axis Bank">Axis Bank</option>
+                            <option value="Ellaquai Dehati Bank">Ellaquai Dehati Bank</option>
+                            <option value="Canara Bank">Canara Bank</option>
+                          </select>
+                        </div>
+
+                        <div>
+                          <label className="block text-[11px] font-bold text-gray-700 dark:text-gray-300 mb-1">
+                            Account Number *
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            placeholder="e.g. 0123456789012345"
+                            value={bankForm.accountNumber}
+                            onChange={(e) => setBankForm({ ...bankForm, accountNumber: e.target.value })}
+                            className="w-full px-3 py-2.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl outline-none font-mono text-xs font-bold text-gray-900 dark:text-white placeholder-gray-400"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-[11px] font-bold text-gray-700 dark:text-gray-300 mb-1">
+                            Re-enter Account Number *
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            placeholder="Re-enter Account Number"
+                            value={bankForm.confirmAccountNumber}
+                            onChange={(e) => setBankForm({ ...bankForm, confirmAccountNumber: e.target.value })}
+                            className="w-full px-3 py-2.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl outline-none font-mono text-xs font-bold text-gray-900 dark:text-white placeholder-gray-400"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-[11px] font-bold text-gray-700 dark:text-gray-300 mb-1">
+                            IFSC Code *
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            placeholder="e.g. JAKA0NAIDKH"
+                            value={bankForm.ifscCode}
+                            onChange={(e) => setBankForm({ ...bankForm, ifscCode: e.target.value.toUpperCase() })}
+                            className="w-full px-3 py-2.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl outline-none font-mono text-xs uppercase font-bold text-gray-900 dark:text-white placeholder-gray-400"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-[11px] font-bold text-gray-700 dark:text-gray-300 mb-1">
+                            Branch Name
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="e.g. Srinagar Main Branch / Lal Chowk"
+                            value={bankForm.branchName}
+                            onChange={(e) => setBankForm({ ...bankForm, branchName: e.target.value })}
+                            className="w-full px-3 py-2.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl outline-none text-xs font-semibold text-gray-900 dark:text-white placeholder-gray-400"
+                          />
+                        </div>
+                      </div>
+
+                      <button
+                        type="submit"
+                        disabled={isAddingBank}
+                        className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer shadow-md disabled:opacity-50 active:scale-98"
+                      >
+                        {isAddingBank ? <Loader2 size={15} className="animate-spin" /> : <Building size={15} />}
+                        <span>{isAddingBank ? "Saving Bank Details..." : "Save Bank Account"}</span>
+                      </button>
+                    </form>
+                  )}
+
+                  {/* List of Saved Bank Accounts */}
+                  {savedBankAccounts.length === 0 ? (
+                    <div className="p-8 text-center bg-gray-50 dark:bg-gray-800 rounded-2xl border border-dashed border-gray-300 dark:border-gray-700 space-y-2">
+                      <Landmark className="w-10 h-10 mx-auto text-gray-400" />
+                      <p className="text-xs font-bold text-gray-800 dark:text-gray-200">No Bank Account Linked</p>
+                      <p className="text-[11px] text-gray-500 dark:text-gray-400">Add your J&amp;K Bank or other bank details for seamless direct payouts.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2.5">
+                      {savedBankAccounts.map((b) => (
+                        <div
+                          key={b._id}
+                          className="p-4 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 space-y-2 shadow-xs hover:border-blue-500/50 transition"
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2.5">
+                              <div className="w-9 h-9 rounded-xl bg-blue-100 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+                                <Landmark size={18} />
+                              </div>
+                              <div>
+                                <h5 className="font-extrabold text-xs text-gray-900 dark:text-white">{b.bankName}</h5>
+                                <p className="text-[10px] text-gray-500 dark:text-gray-400">{b.branchName || "Kashmir Branch"}</p>
+                              </div>
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteBankAccount(b._id)}
+                              className="p-2 rounded-lg bg-gray-100 hover:bg-rose-50 dark:bg-gray-700 dark:hover:bg-rose-950/60 text-gray-500 hover:text-rose-600 transition cursor-pointer"
+                              title="Delete Bank Account"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-2 pt-2 border-t border-gray-100 dark:border-gray-700 text-xs">
+                            <div>
+                              <span className="text-[10px] text-gray-500 dark:text-gray-400 block font-medium">Account Holder</span>
+                              <span className="font-bold text-gray-900 dark:text-white uppercase">{b.accountHolder}</span>
+                            </div>
+                            <div>
+                              <span className="text-[10px] text-gray-500 dark:text-gray-400 block font-medium">Account Number</span>
+                              <span className="font-mono font-bold text-gray-900 dark:text-white">{b.accountNumber}</span>
+                            </div>
+                            <div>
+                              <span className="text-[10px] text-gray-500 dark:text-gray-400 block font-medium">IFSC Code</span>
+                              <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">{b.ifscCode}</span>
+                            </div>
+                            <div>
+                              <span className="text-[10px] text-gray-500 dark:text-gray-400 block font-medium">Status</span>
+                              <span className="font-bold text-emerald-600 dark:text-emerald-400">Active &amp; Linked ✅</span>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* ⚡ TAB 4: SPORTIFY WALLET */}
+              {paymentSubTab === "wallet" && (
+                <div className="space-y-4">
+                  {/* 1. Main Wallet Card */}
+                  <div className="p-5 sm:p-6 rounded-3xl bg-gradient-to-br from-emerald-600 via-emerald-700 to-teal-900 text-white shadow-xl relative overflow-hidden">
+                    <div className="flex items-center justify-between relative z-1 mb-4">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-black tracking-wider uppercase bg-white/20 px-2.5 py-0.5 rounded-md backdrop-blur-xs">
+                          Sportify Pay
+                        </span>
+                        <span className="text-[10px] bg-emerald-400/30 text-emerald-100 font-bold px-2 py-0.5 rounded-full">
+                          Verified Athlete
+                        </span>
+                      </div>
+                      <span className="text-xs font-bold text-emerald-200">24h Valley Express</span>
+                    </div>
+
+                    <div className="relative z-1 mb-5">
+                      <p className="text-xs text-emerald-100 font-medium">Available Wallet Balance</p>
+                      <h2 className="text-3xl sm:text-4xl font-black mt-1 tracking-tight text-white">
+                        ₹{walletBalance.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                      </h2>
+                    </div>
+
+                    <div className="relative z-1 pt-3 border-t border-white/20 flex items-center justify-between text-xs text-emerald-100">
+                      <div className="flex items-center gap-2">
+                        <span className="truncate">VPA: {user?.username?.toLowerCase() || "warm"}@sportifypay</span>
+                        <button
+                          type="button"
+                          onClick={() => handleCopyVpa(`${user?.username?.toLowerCase() || "warm"}@sportifypay`)}
+                          className="p-1 hover:bg-white/20 rounded-md transition cursor-pointer"
+                          title="Copy Sportify VPA"
+                        >
+                          <Copy size={13} />
+                        </button>
+                      </div>
+                      <span className="font-mono text-[11px]">SK-WAL-{user?._id?.slice(-6).toUpperCase() || "53B85F"}</span>
+                    </div>
+                  </div>
+
+                  {/* 2. Add Money / Top-up Box */}
+                  <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-xs sm:text-sm font-extrabold text-gray-900 dark:text-white flex items-center gap-1.5">
+                        <Sparkles size={15} className="text-emerald-500" />
+                        <span>⚡ Recharge Sportify Pay</span>
+                      </h4>
+                      <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-full">
+                        Instant Top-up
                       </span>
                     </div>
-                  ))}
+
+                    {/* Quick Add Chips */}
+                    <div className="flex gap-2 flex-wrap">
+                      {[100, 200, 500, 1000, 2000].map((amt) => (
+                        <button
+                          key={amt}
+                          type="button"
+                          onClick={() => handleAddWalletMoney(amt)}
+                          className="px-3 py-1.5 bg-white dark:bg-gray-700 hover:bg-emerald-600 hover:text-white dark:hover:bg-emerald-600 text-gray-800 dark:text-gray-200 rounded-xl text-xs font-bold border border-gray-300 dark:border-gray-600 transition cursor-pointer active:scale-95 shadow-xs"
+                        >
+                          + ₹{amt}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Custom Amount Form */}
+                    <div className="flex items-center gap-2 pt-1">
+                      <div className="relative flex-1">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-600 dark:text-gray-300 font-bold text-sm">₹</span>
+                        <input
+                          type="number"
+                          placeholder="Enter custom amount"
+                          value={addAmount}
+                          onChange={(e) => setAddAmount(e.target.value)}
+                          className="w-full pl-8 pr-3 py-2.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl outline-none text-xs font-bold text-gray-900 dark:text-white placeholder-gray-400"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleAddWalletMoney()}
+                        disabled={isAddingMoney}
+                        className="px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-xl text-xs font-bold transition shadow-xs cursor-pointer active:scale-95 disabled:opacity-50 flex items-center gap-1.5"
+                      >
+                        {isAddingMoney ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
+                        <span>{isAddingMoney ? "Adding..." : "Add Money"}</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* 2.5 Withdraw / Transfer to Bank Option */}
+                  <div className="p-4 bg-blue-50/60 dark:bg-gray-800 rounded-2xl border border-blue-200 dark:border-blue-900/40 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-xs sm:text-sm font-extrabold text-blue-950 dark:text-blue-200 flex items-center gap-1.5">
+                        <Landmark size={15} className="text-blue-500" />
+                        <span>Withdraw / Payout to Bank</span>
+                      </h4>
+                      <button
+                        type="button"
+                        onClick={() => setIsWithdrawOpen(!isWithdrawOpen)}
+                        className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
+                      >
+                        {isWithdrawOpen ? "Close Payout" : "Withdraw Funds →"}
+                      </button>
+                    </div>
+
+                    {isWithdrawOpen && (
+                      <div className="space-y-3 pt-2 border-t border-blue-100 dark:border-gray-700 animate-in fade-in duration-150">
+                        <div className="grid grid-cols-2 gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setWithdrawTargetType("bank")}
+                            className={`py-2 px-3 rounded-xl text-xs font-bold border transition cursor-pointer flex items-center justify-center gap-1.5 ${
+                              withdrawTargetType === "bank"
+                                ? "bg-blue-600 text-white border-blue-600 shadow-xs"
+                                : "bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600"
+                            }`}
+                          >
+                            <Landmark size={13} />
+                            <span>Bank Account ({savedBankAccounts.length})</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setWithdrawTargetType("upi")}
+                            className={`py-2 px-3 rounded-xl text-xs font-bold border transition cursor-pointer flex items-center justify-center gap-1.5 ${
+                              withdrawTargetType === "upi"
+                                ? "bg-blue-600 text-white border-blue-600 shadow-xs"
+                                : "bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600"
+                            }`}
+                          >
+                            <QrCode size={13} />
+                            <span>UPI ID ({savedUpi.length})</span>
+                          </button>
+                        </div>
+
+                        {withdrawTargetType === "bank" ? (
+                          savedBankAccounts.length === 0 ? (
+                            <div className="p-3 bg-white dark:bg-gray-700 rounded-xl text-center text-xs text-gray-600 dark:text-gray-300 space-y-1">
+                              <p>No saved bank account found.</p>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setPaymentSubTab("bank");
+                                  setShowAddBankForm(true);
+                                }}
+                                className="text-blue-600 dark:text-blue-400 font-bold underline"
+                              >
+                                + Link Bank Account
+                              </button>
+                            </div>
+                          ) : (
+                            <div>
+                              <label className="block text-[11px] font-bold text-gray-700 dark:text-gray-300 mb-1">
+                                Select Destination Bank
+                              </label>
+                              <select
+                                value={withdrawTargetId}
+                                onChange={(e) => setWithdrawTargetId(e.target.value)}
+                                className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl outline-none text-xs font-semibold text-gray-900 dark:text-white"
+                              >
+                                {savedBankAccounts.map((b) => (
+                                  <option key={b._id} value={b._id}>
+                                    {b.bankName} - {b.accountNumber} ({b.accountHolder})
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                          )
+                        ) : (
+                          savedUpi.length === 0 ? (
+                            <div className="p-3 bg-white dark:bg-gray-700 rounded-xl text-center text-xs text-gray-600 dark:text-gray-300 space-y-1">
+                              <p>No saved UPI ID found.</p>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setPaymentSubTab("upi");
+                                  setShowAddUpiForm(true);
+                                }}
+                                className="text-blue-600 dark:text-blue-400 font-bold underline"
+                              >
+                                + Link UPI ID
+                              </button>
+                            </div>
+                          ) : (
+                            <div>
+                              <label className="block text-[11px] font-bold text-gray-700 dark:text-gray-300 mb-1">
+                                Select Destination UPI
+                              </label>
+                              <select
+                                value={withdrawTargetId}
+                                onChange={(e) => setWithdrawTargetId(e.target.value)}
+                                className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl outline-none text-xs font-semibold text-gray-900 dark:text-white"
+                              >
+                                {savedUpi.map((u) => (
+                                  <option key={u._id} value={u._id}>
+                                    {u.vpa} ({u.provider})
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                          )
+                        )}
+
+                        <div className="flex items-center gap-2">
+                          <div className="relative flex-1">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-600 dark:text-gray-300 font-bold text-sm">₹</span>
+                            <input
+                              type="number"
+                              placeholder="Amount to withdraw"
+                              value={withdrawAmount}
+                              onChange={(e) => setWithdrawAmount(e.target.value)}
+                              className="w-full pl-8 pr-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl outline-none text-xs font-bold text-gray-900 dark:text-white placeholder-gray-400"
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleWithdrawMoney()}
+                            disabled={isWithdrawing}
+                            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition shadow-xs cursor-pointer active:scale-95 disabled:opacity-50 flex items-center gap-1.5"
+                          >
+                            {isWithdrawing ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />}
+                            <span>{isWithdrawing ? "Transferring..." : "Transfer Now"}</span>
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* 3. Linked Account Information Box */}
+                  <div className="space-y-2 text-xs">
+                    <h4 className="font-extrabold text-gray-900 dark:text-white text-xs uppercase tracking-wider">
+                      Linked Account Information
+                    </h4>
+                    <div className="divide-y divide-gray-200 dark:divide-gray-700 bg-gray-50 dark:bg-gray-800 rounded-2xl p-4 border border-gray-200 dark:border-gray-700">
+                      <div className="py-2 flex justify-between items-center">
+                        <span className="text-gray-600 dark:text-gray-400 font-semibold">Account Holder:</span>
+                        <span className="font-bold text-gray-900 dark:text-white">{user?.username || "warm"}</span>
+                      </div>
+                      <div className="py-2 flex justify-between items-center">
+                        <span className="text-gray-600 dark:text-gray-400 font-semibold">Linked Mobile:</span>
+                        <span className="font-bold text-gray-900 dark:text-white">{user?.mobile || "9682645124"}</span>
+                      </div>
+                      <div className="py-2 flex justify-between items-center">
+                        <span className="text-gray-600 dark:text-gray-400 font-semibold">Linked Email:</span>
+                        <span className="font-bold text-gray-900 dark:text-white truncate max-w-[200px]">{user?.email || "warmuzamil68@gmail.com"}</span>
+                      </div>
+                      <div className="py-2 flex justify-between items-center">
+                        <span className="text-gray-600 dark:text-gray-400 font-semibold">KYC Status:</span>
+                        <span className="font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-950/80 px-2.5 py-0.5 rounded-full text-[11px]">
+                          Verified ✅
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 4. Recent Wallet Activity */}
+                  <div className="space-y-3 text-xs">
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-extrabold text-gray-900 dark:text-white text-xs uppercase tracking-wider">
+                        Recent Wallet Activity
+                      </h4>
+                      <div className="flex gap-1">
+                        {(["all", "credit", "debit"] as const).map((f) => (
+                          <button
+                            key={f}
+                            type="button"
+                            onClick={() => setTxFilter(f)}
+                            className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase transition cursor-pointer ${
+                              txFilter === f
+                                ? "bg-orange-500 text-white"
+                                : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200"
+                            }`}
+                          >
+                            {f}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      {walletTransactions
+                        .filter((tx) => txFilter === "all" || tx.type === txFilter)
+                        .map((tx) => (
+                          <div
+                            key={tx.id || tx.title + tx.date}
+                            className="p-3.5 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 flex items-center justify-between shadow-xs hover:border-gray-300 dark:hover:border-gray-600 transition"
+                          >
+                            <div className="flex items-center gap-3">
+                              <div
+                                className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
+                                  tx.type === "credit"
+                                    ? "bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400"
+                                    : "bg-rose-100 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400"
+                                }`}
+                              >
+                                {tx.type === "credit" ? <ArrowDownLeft size={16} /> : <ArrowUpRight size={16} />}
+                              </div>
+                              <div>
+                                <p className="font-bold text-xs text-gray-900 dark:text-white">{tx.title}</p>
+                                <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">
+                                  {tx.date} • <span className="text-emerald-600 dark:text-emerald-400 font-semibold">{tx.status || "Completed"}</span>
+                                </p>
+                              </div>
+                            </div>
+                            <span
+                              className={`text-xs sm:text-sm font-black ${
+                                tx.type === "credit" ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"
+                              }`}
+                            >
+                              {tx.type === "credit" ? "+" : "-"} ₹{tx.amount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                            </span>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           </div>
         </div>
