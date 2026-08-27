@@ -90,6 +90,7 @@ export default function NotificationCenter() {
   // Fetch notifications
   const fetchNotifications = async () => {
     try {
+      if (typeof window === "undefined") return;
       const token = localStorage.getItem("token");
       if (!token) {
         setNotifications([]);
@@ -101,12 +102,18 @@ export default function NotificationCenter() {
 
       checkAdminStatus();
 
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+
       // 1. Fetch User notifications
       const userRes = await fetch(`${API_URL}/notifications?limit=30`, {
         headers: { Authorization: `Bearer ${token}` },
-      });
+        signal: controller.signal,
+      }).catch(() => null);
 
-      if (userRes.ok) {
+      clearTimeout(timeoutId);
+
+      if (userRes && userRes.ok) {
         const data = await userRes.json();
         if (data.success) {
           setNotifications(data.data || []);
@@ -118,11 +125,17 @@ export default function NotificationCenter() {
       const userStr = localStorage.getItem("user");
       const userObj = userStr ? JSON.parse(userStr) : null;
       if (userObj?.isAdmin) {
+        const adminController = new AbortController();
+        const adminTimeoutId = setTimeout(() => adminController.abort(), 5000);
+
         const adminRes = await fetch(`${API_URL}/notifications/admin?limit=30`, {
           headers: { Authorization: `Bearer ${token}` },
-        });
+          signal: adminController.signal,
+        }).catch(() => null);
 
-        if (adminRes.ok) {
+        clearTimeout(adminTimeoutId);
+
+        if (adminRes && adminRes.ok) {
           const adminData = await adminRes.json();
           if (adminData.success) {
             setAdminNotifications(adminData.data || []);
@@ -130,8 +143,8 @@ export default function NotificationCenter() {
           }
         }
       }
-    } catch (err) {
-      console.warn("[NotificationCenter] fetch error:", err);
+    } catch {
+      // Quietly ignore transient network failures during server reboot
     }
   };
 

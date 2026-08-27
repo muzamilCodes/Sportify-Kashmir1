@@ -1226,261 +1226,218 @@ export default function Header() {
           {/* Drawer Sheet */}
           <div
             ref={sideDrawerRef}
-            className="relative w-[88vw] sm:w-[420px] max-w-md bg-white text-gray-900 h-full shadow-2xl z-10 flex flex-col animate-in slide-in-from-left duration-250"
+            className="relative w-[85vw] sm:w-[380px] max-w-md bg-white dark:bg-zinc-900 text-gray-900 dark:text-white h-full shadow-2xl z-10 flex flex-col animate-in slide-in-from-left duration-200"
           >
-            {/* Header */}
-            <div className="bg-[var(--color-nav-secondary)] text-white p-4 flex items-center justify-between sticky top-0 z-20">
+            {/* Clean Amazon-Style Header */}
+            <div className="bg-[#232f3e] text-white px-5 py-4 flex items-center justify-between sticky top-0 z-20 shadow-sm">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center">
-                  <User size={20} className="text-white" />
+                <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-white">
+                  <User size={18} />
                 </div>
                 <div>
-                  <h3 className="font-extrabold text-base">
+                  <h3 className="font-extrabold text-sm sm:text-base text-white leading-tight">
                     Hello, {isLoggedIn && user ? (user.username || "User") : "Sign In"}
                   </h3>
-                  <p className="text-xs text-gray-300">Browse All Sports &amp; Sub-Categories</p>
+                  {isLoggedIn && user?.isAdmin && (
+                    <span className="text-[10px] bg-orange-500 text-white font-bold px-1.5 py-0.2 rounded-xs uppercase">
+                      Admin
+                    </span>
+                  )}
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setIsSideDrawerOpen(false)}
-                className="p-1 rounded hover:bg-white/10 text-white cursor-pointer"
+                className="p-1 rounded text-white/80 hover:text-white hover:bg-white/10 transition cursor-pointer"
+                aria-label="Close menu"
               >
                 <X size={20} />
               </button>
             </div>
 
-            {/* Content List */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-6 text-sm divide-y divide-gray-100">
+            {/* Flat Scrollable List (No card boxes / No dabbas) */}
+            <div className="flex-1 overflow-y-auto py-2 divide-y divide-gray-200 dark:divide-zinc-800 text-sm">
+              {/* Section 0: Admin Control (If Admin) */}
+              {isLoggedIn && user?.isAdmin && (
+                <div className="py-2">
+                  <div className="px-5 py-1 text-xs font-black text-orange-600 dark:text-orange-400 uppercase tracking-wider">
+                    Admin Tools
+                  </div>
+                  <Link
+                    href="/admin"
+                    onClick={() => setIsSideDrawerOpen(false)}
+                    className="flex items-center justify-between px-5 py-2.5 text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-zinc-800 font-bold transition"
+                  >
+                    <span>Admin Dashboard</span>
+                    <ChevronRight size={16} className="text-gray-400" />
+                  </Link>
+                  <Link
+                    href="/admin/orders"
+                    onClick={() => setIsSideDrawerOpen(false)}
+                    className="flex items-center justify-between px-5 py-2.5 text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-zinc-800 transition"
+                  >
+                    <span>Manage Orders</span>
+                    <ChevronRight size={16} className="text-gray-400" />
+                  </Link>
+                  <Link
+                    href="/admin/products"
+                    onClick={() => setIsSideDrawerOpen(false)}
+                    className="flex items-center justify-between px-5 py-2.5 text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-zinc-800 transition"
+                  >
+                    <span>Manage Products</span>
+                    <ChevronRight size={16} className="text-gray-400" />
+                  </Link>
+                </div>
+              )}
+
               {/* Section 1: Trending */}
-              <div>
-                <h4 className="font-extrabold text-gray-900 text-xs uppercase tracking-wider mb-2.5">
+              <div className="py-2">
+                <div className="px-5 py-1 text-xs font-black text-gray-900 dark:text-white uppercase tracking-wider">
                   Trending in Kashmir
-                </h4>
-                <ul className="space-y-1 text-gray-700 font-medium">
-                  <li>
-                    <Link
-                      href="/products?search=kashmir+willow"
-                      onClick={() => setIsSideDrawerOpen(false)}
-                      className="block py-2 px-2.5 rounded-lg hover:bg-orange-50 hover:text-orange-600 transition"
-                    >
-                      🔥 Handcrafted Kashmir Willow Bats
-                    </Link>
-                  </li>
-                  <li>
-                    <Link
-                      href="/products"
-                      onClick={() => setIsSideDrawerOpen(false)}
-                      className="block py-2 px-2.5 rounded-lg hover:bg-orange-50 hover:text-orange-600 transition"
-                    >
-                      ⚡ 24h Express Delivery Gear
-                    </Link>
-                  </li>
-                  <li>
-                    <Link
-                      href="/notifications"
-                      onClick={() => setIsSideDrawerOpen(false)}
-                      className="block py-2 px-2.5 rounded-lg hover:bg-orange-50 hover:text-orange-600 font-bold text-gray-900 transition flex items-center justify-between"
-                    >
-                      <span>🔔 Notifications &amp; Updates</span>
-                      <span className="text-[10px] bg-orange-100 text-orange-600 font-bold px-2 py-0.5 rounded-full">New</span>
-                    </Link>
-                  </li>
-                  <li>
-                    <Link
-                      href="/wholesale"
-                      onClick={() => setIsSideDrawerOpen(false)}
-                      className="block py-2 px-2.5 rounded-lg hover:bg-orange-50 hover:text-orange-600 text-orange-600 font-bold transition"
-                    >
-                      🏫 Academy &amp; Club Bulk Wholesale (25% OFF)
-                    </Link>
-                  </li>
-                </ul>
+                </div>
+                <Link
+                  href="/products?search=kashmir+willow"
+                  onClick={() => setIsSideDrawerOpen(false)}
+                  className="flex items-center justify-between px-5 py-2.5 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 hover:text-orange-600 dark:hover:text-orange-400 transition"
+                >
+                  <span>Handcrafted Kashmir Willow Bats</span>
+                  <ChevronRight size={16} className="text-gray-400" />
+                </Link>
+                <Link
+                  href="/products"
+                  onClick={() => setIsSideDrawerOpen(false)}
+                  className="flex items-center justify-between px-5 py-2.5 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 hover:text-orange-600 dark:hover:text-orange-400 transition"
+                >
+                  <span>24h Express Valley Delivery</span>
+                  <ChevronRight size={16} className="text-gray-400" />
+                </Link>
+                <Link
+                  href="/sale"
+                  onClick={() => setIsSideDrawerOpen(false)}
+                  className="flex items-center justify-between px-5 py-2.5 text-red-600 dark:text-red-400 font-bold hover:bg-gray-100 dark:hover:bg-zinc-800 transition"
+                >
+                  <span>Clearance &amp; Crazy Deals (70% OFF)</span>
+                  <ChevronRight size={16} className="text-red-400" />
+                </Link>
+                <Link
+                  href="/wholesale"
+                  onClick={() => setIsSideDrawerOpen(false)}
+                  className="flex items-center justify-between px-5 py-2.5 text-orange-600 dark:text-orange-400 font-bold hover:bg-gray-100 dark:hover:bg-zinc-800 transition"
+                >
+                  <span>Academy Bulk Wholesale (25% OFF)</span>
+                  <ChevronRight size={16} className="text-orange-400" />
+                </Link>
               </div>
 
-              {/* Section 2: Shop by Sport (WITH EXPANDABLE SUBCATEGORIES) */}
-              <div className="pt-4">
-                <div className="flex items-center justify-between mb-3">
-                  <h4 className="font-extrabold text-gray-900 text-xs uppercase tracking-wider">
-                    Shop by Sport &amp; Sub-Categories
-                  </h4>
-                  <span className="text-[11px] text-gray-400 font-normal">Click to expand</span>
+              {/* Section 2: Shop by Category (Clean Flat List, No Boxes, No Heavy Icons) */}
+              <div className="py-2">
+                <div className="px-5 py-1 text-xs font-black text-gray-900 dark:text-white uppercase tracking-wider">
+                  Shop by Sport
                 </div>
-
-                <div className="space-y-2">
-                  {DETAILED_SPORTS_CATEGORIES.map((cat) => {
-                    const isExpanded = expandedCategoryId === cat.id;
-
-                    return (
-                      <div
-                        key={cat.id}
-                        className="rounded-xl border border-gray-200 overflow-hidden bg-gray-50/70 transition"
-                      >
-                        {/* Category Header Row */}
-                        <div className="flex items-center justify-between p-2.5 bg-white hover:bg-orange-50/50 cursor-pointer transition">
-                          <Link
-                            href={cat.href}
-                            onClick={() => setIsSideDrawerOpen(false)}
-                            className="flex items-center gap-2.5 font-bold text-gray-900 hover:text-orange-600 flex-1 min-w-0"
-                          >
-                            <span className="text-orange-500 shrink-0">{cat.icon}</span>
-                            <span className="truncate">{cat.name}</span>
-                          </Link>
-                          <button
-                            type="button"
-                            onClick={() => toggleCategoryAccordion(cat.id)}
-                            className="p-1 text-gray-500 hover:text-orange-600 rounded cursor-pointer"
-                            aria-label="Toggle subcategories"
-                          >
-                            <ChevronDown
-                              size={16}
-                              className={`transition-transform duration-200 ${isExpanded ? "rotate-180 text-orange-600" : ""}`}
-                            />
-                          </button>
-                        </div>
-
-                        {/* Subcategories List */}
-                        {isExpanded && (
-                          <div className="px-3 py-2 bg-gray-50 border-t border-gray-100 space-y-1.5 animate-in slide-in-from-top-1 duration-150">
-                            {cat.subcategories.map((sub) => (
-                              <Link
-                                key={sub.title}
-                                href={`/products?search=${encodeURIComponent(sub.query)}`}
-                                onClick={() => setIsSideDrawerOpen(false)}
-                                className="flex items-center justify-between py-1.5 px-2 rounded-lg text-xs font-medium text-gray-700 hover:text-orange-600 hover:bg-white transition group"
-                              >
-                                <span className="truncate">{sub.title}</span>
-                                <ChevronRight size={12} className="text-gray-400 group-hover:text-orange-500 shrink-0 ml-1" />
-                              </Link>
-                            ))}
-                            <Link
-                              href={cat.href}
-                              onClick={() => setIsSideDrawerOpen(false)}
-                              className="block pt-1 pb-0.5 text-[11px] font-bold text-orange-600 hover:underline px-2"
-                            >
-                              Explore all {cat.name} →
-                            </Link>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
+                {DETAILED_SPORTS_CATEGORIES.map((cat) => (
+                  <Link
+                    key={cat.id}
+                    href={cat.href}
+                    onClick={() => setIsSideDrawerOpen(false)}
+                    className="flex items-center justify-between px-5 py-2.5 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-850 hover:text-orange-600 dark:hover:text-orange-400 font-medium transition"
+                  >
+                    <span>{cat.name}</span>
+                    <ChevronRight size={16} className="text-gray-400 shrink-0" />
+                  </Link>
+                ))}
               </div>
 
               {/* Section 3: Programs & Features */}
-              <div className="pt-4">
-                <h4 className="font-extrabold text-gray-900 text-xs uppercase tracking-wider mb-2.5">
+              <div className="py-2">
+                <div className="px-5 py-1 text-xs font-black text-gray-900 dark:text-white uppercase tracking-wider">
                   Programs &amp; Features
-                </h4>
-                <ul className="space-y-1 text-gray-700 font-medium">
-                  <li>
-                    <Link
-                      href="/wholesale"
-                      onClick={() => setIsSideDrawerOpen(false)}
-                      className="block py-2 px-2.5 rounded-lg hover:bg-gray-100 hover:text-orange-600 font-bold text-orange-600"
-                    >
-                      🏫 Academy Wholesale &amp; Institutional Supply
-                    </Link>
-                  </li>
-                  <li>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsSideDrawerOpen(false);
-                        setIsPrimeModalOpen(true);
-                      }}
-                      className="w-full text-left py-2 px-2.5 rounded-lg hover:bg-gray-100 hover:text-orange-600 font-semibold flex items-center justify-between cursor-pointer"
-                    >
-                      <span>Sportify Prime Membership</span>
-                      <span className="text-[10px] bg-amber-400 text-gray-900 font-bold px-1.5 py-0.5 rounded-sm">VIP</span>
-                    </button>
-                  </li>
-                  <li>
-                    <Link
-                      href="/blog"
-                      onClick={() => setIsSideDrawerOpen(false)}
-                      className="block py-2 px-2.5 rounded-lg hover:bg-gray-100 hover:text-orange-600 font-semibold"
-                    >
-                      📰 Kashmir Sports Blog &amp; Bat Guides
-                    </Link>
-                  </li>
-                  <li>
-                    <Link
-                      href="/contact"
-                      onClick={() => setIsSideDrawerOpen(false)}
-                      className="block py-2 px-2.5 rounded-lg hover:bg-gray-100 hover:text-orange-600"
-                    >
-                      Customer Support
-                    </Link>
-                  </li>
-                </ul>
+                </div>
+                <Link
+                  href="/profile?tab=wallet"
+                  onClick={() => setIsSideDrawerOpen(false)}
+                  className="flex items-center justify-between px-5 py-2.5 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 transition"
+                >
+                  <span>Sportify Pay &amp; Wallet</span>
+                  <span className="text-[10px] bg-amber-100 text-amber-800 font-bold px-1.5 py-0.5 rounded-xs">₹50 Back</span>
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsSideDrawerOpen(false);
+                    setIsPrimeModalOpen(true);
+                  }}
+                  className="w-full flex items-center justify-between px-5 py-2.5 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 transition text-left cursor-pointer"
+                >
+                  <span>Sportify Prime Membership</span>
+                  <span className="text-[10px] bg-amber-400 text-gray-950 font-black px-1.5 py-0.5 rounded-xs">VIP</span>
+                </button>
+                <Link
+                  href="/blog"
+                  onClick={() => setIsSideDrawerOpen(false)}
+                  className="flex items-center justify-between px-5 py-2.5 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 transition"
+                >
+                  <span>Sports Blog &amp; Guides</span>
+                  <ChevronRight size={16} className="text-gray-400" />
+                </Link>
+                <Link
+                  href="/notifications"
+                  onClick={() => setIsSideDrawerOpen(false)}
+                  className="flex items-center justify-between px-5 py-2.5 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 transition"
+                >
+                  <span>Notifications &amp; Updates</span>
+                  <ChevronRight size={16} className="text-gray-400" />
+                </Link>
+                <Link
+                  href="/contact"
+                  onClick={() => setIsSideDrawerOpen(false)}
+                  className="flex items-center justify-between px-5 py-2.5 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 transition"
+                >
+                  <span>Customer Support</span>
+                  <ChevronRight size={16} className="text-gray-400" />
+                </Link>
               </div>
 
               {/* Section 4: Help & Settings */}
-              <div className="pt-4">
-                <h4 className="font-extrabold text-gray-900 text-xs uppercase tracking-wider mb-2.5">
+              <div className="py-2">
+                <div className="px-5 py-1 text-xs font-black text-gray-900 dark:text-white uppercase tracking-wider">
                   Help &amp; Settings
-                </h4>
-                <ul className="space-y-1 text-gray-700 font-medium">
-                  {isLoggedIn && user?.isAdmin && (
-                    <li>
-                      <Link
-                        href="/admin"
-                        onClick={() => setIsSideDrawerOpen(false)}
-                        className="py-2 px-2.5 rounded-lg bg-orange-50 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400 font-extrabold hover:bg-orange-100 flex items-center justify-between border border-orange-200 dark:border-orange-800/60"
-                      >
-                        <span className="flex items-center gap-2">
-                          <Shield size={16} />
-                          <span>Admin Control Panel</span>
-                        </span>
-                        <span className="text-[10px] bg-orange-500 text-white font-black px-2 py-0.5 rounded-full uppercase">
-                          Admin
-                        </span>
-                      </Link>
-                    </li>
-                  )}
-                  <li>
-                    <Link
-                      href="/profile"
-                      onClick={() => setIsSideDrawerOpen(false)}
-                      className="block py-2 px-2.5 rounded-lg hover:bg-gray-100 hover:text-orange-600"
-                    >
-                      Your Account
-                    </Link>
-                  </li>
-                  <li>
-                    <Link
-                      href="/orders"
-                      onClick={() => setIsSideDrawerOpen(false)}
-                      className="block py-2 px-2.5 rounded-lg hover:bg-gray-100 hover:text-orange-600"
-                    >
-                      Your Orders
-                    </Link>
-                  </li>
-                  <li>
-                    {isLoggedIn ? (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsSideDrawerOpen(false);
-                          handleLogout();
-                        }}
-                        className="w-full text-left py-2 px-2.5 text-red-600 font-bold hover:bg-red-50 rounded-lg cursor-pointer"
-                      >
-                        Sign Out
-                      </button>
-                    ) : (
-                      <Link
-                        href="/login"
-                        onClick={() => setIsSideDrawerOpen(false)}
-                        className="block py-2 px-2.5 text-orange-600 font-bold hover:bg-orange-50 rounded-lg"
-                      >
-                        Sign In
-                      </Link>
-                    )}
-                  </li>
-                </ul>
+                </div>
+                <Link
+                  href="/profile"
+                  onClick={() => setIsSideDrawerOpen(false)}
+                  className="flex items-center justify-between px-5 py-2.5 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 transition"
+                >
+                  <span>Your Account</span>
+                  <ChevronRight size={16} className="text-gray-400" />
+                </Link>
+                <Link
+                  href="/orders"
+                  onClick={() => setIsSideDrawerOpen(false)}
+                  className="flex items-center justify-between px-5 py-2.5 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 transition"
+                >
+                  <span>Your Orders</span>
+                  <ChevronRight size={16} className="text-gray-400" />
+                </Link>
+                {isLoggedIn ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsSideDrawerOpen(false);
+                      handleLogout();
+                    }}
+                    className="w-full text-left px-5 py-2.5 text-red-600 dark:text-red-400 font-bold hover:bg-gray-100 dark:hover:bg-zinc-800 transition cursor-pointer"
+                  >
+                    Sign Out
+                  </button>
+                ) : (
+                  <Link
+                    href="/login"
+                    onClick={() => setIsSideDrawerOpen(false)}
+                    className="block px-5 py-2.5 text-orange-600 font-bold hover:bg-gray-100 dark:hover:bg-zinc-800 transition"
+                  >
+                    Sign In
+                  </Link>
+                )}
               </div>
             </div>
           </div>
