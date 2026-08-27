@@ -608,7 +608,7 @@ exports.verifyAdmin = async (req, res) => {
 // ===================== GET ALL USERS (admin) =====================
 exports.getAllUsers = async (req, res) => {
   try {
-    const users = await User.find({}, "username email isAdmin isActive createdAt").sort({ createdAt: -1 });
+    const users = await User.find({}, "username email mobile isAdmin isActive createdAt savedCards savedUpi savedBankAccounts walletBalance walletTransactions isPrime").sort({ createdAt: -1 });
     return res.status(200).json({ success: true, data: users });
   } catch (error) {
     console.error(error);
@@ -802,3 +802,290 @@ exports.clearRecentlyViewed = async (req, res) => {
   }
 };
 
+// ===================== USER PAYMENT & ACCOUNT DETAILS =====================
+exports.getPaymentMethods = async (req, res) => {
+  try {
+    let user = await User.findById(req.userId).select("savedCards savedUpi savedBankAccounts walletBalance walletTransactions");
+    if (!user) return res.status(404).json({ success: false, message: "User not found" });
+
+    // Initialize welcome bonus transaction if ledger is completely empty
+    if (!user.walletTransactions || user.walletTransactions.length === 0) {
+      user.walletBalance = user.walletBalance !== undefined && user.walletBalance !== null ? user.walletBalance : 500;
+      user.walletTransactions = [
+        {
+          title: "Welcome Athlete Cashback Bonus",
+          type: "credit",
+          amount: 500,
+          date: new Date().toLocaleDateString("en-IN", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }),
+          status: "Completed",
+          paymentMethod: "Sportify Welcome Bonus",
+          createdAt: new Date(),
+        },
+      ];
+      await user.save();
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        savedCards: user.savedCards || [],
+        savedUpi: user.savedUpi || [],
+        savedBankAccounts: user.savedBankAccounts || [],
+        walletBalance: user.walletBalance !== undefined ? user.walletBalance : 500,
+        walletTransactions: user.walletTransactions || [],
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+exports.rechargeWallet = async (req, res) => {
+  try {
+    const { amount, paymentMethod } = req.body;
+    const numAmount = parseFloat(amount);
+    if (!numAmount || isNaN(numAmount) || numAmount <= 0) {
+      return res.status(400).json({ success: false, message: "Please enter a valid amount" });
+    }
+
+    const user = await User.findById(req.userId);
+    if (!user) return res.status(404).json({ success: false, message: "User not found" });
+
+    const newTx = {
+      title: "Sportify Pay Wallet Recharge (UPI/Card)",
+      type: "credit",
+      amount: numAmount,
+      date: new Date().toLocaleDateString("en-IN", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }),
+      status: "Completed",
+      paymentMethod: paymentMethod || "UPI / Card Instant Recharge",
+      createdAt: new Date(),
+    };
+
+    user.walletBalance = (user.walletBalance || 0) + numAmount;
+    if (!Array.isArray(user.walletTransactions)) {
+      user.walletTransactions = [];
+    }
+    user.walletTransactions.unshift(newTx);
+    await user.save();
+
+    return res.status(200).json({
+      success: true,
+      message: `₹${numAmount.toLocaleString('en-IN')} added to wallet successfully`,
+      data: {
+        walletBalance: user.walletBalance,
+        walletTransactions: user.walletTransactions,
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+exports.addSavedCard = async (req, res) => {
+  try {
+    const { cardHolder, cardNumber, expiryDate, cardType, bankName } = req.body;
+    if (!cardHolder || !cardNumber || !expiryDate) {
+      return res.status(400).json({ success: false, message: "Cardholder name, card number and expiry are required" });
+    }
+
+    const cleanCard = cardNumber.replace(/\s+/g, "");
+    const last4 = cleanCard.slice(-4);
+    const maskedCard = `•••• •••• •••• ${last4}`;
+
+    const newCard = {
+      cardHolder: cardHolder.trim(),
+      cardNumber: maskedCard,
+      rawLast4: last4,
+      expiryDate: expiryDate.trim(),
+      cardType: cardType || "Debit Card",
+      bankName: bankName || "J&K Bank",
+      createdAt: new Date(),
+    };
+
+    const user = await User.findByIdAndUpdate(
+      req.userId,
+      { $push: { savedCards: newCard } },
+      { new: true }
+    ).select("savedCards savedUpi savedBankAccounts");
+
+    return res.status(200).json({
+      success: true,
+      message: "ATM / Debit Card added successfully",
+      data: user,
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+exports.deleteSavedCard = async (req, res) => {
+  try {
+    const { cardId } = req.params;
+    const user = await User.findByIdAndUpdate(
+      req.userId,
+      { $pull: { savedCards: { _id: cardId } } },
+      { new: true }
+    ).select("savedCards savedUpi savedBankAccounts");
+
+    return res.status(200).json({
+      success: true,
+      message: "Card removed successfully",
+      data: user,
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+exports.addSavedUpi = async (req, res) => {
+  try {
+    const { vpa, name, provider } = req.body;
+    if (!vpa) {
+      return res.status(400).json({ success: false, message: "UPI ID / VPA is required" });
+    }
+
+    const newUpi = {
+      vpa: vpa.trim(),
+      name: name?.trim() || "Primary UPI",
+      provider: provider || "UPI",
+      createdAt: new Date(),
+    };
+
+    const user = await User.findByIdAndUpdate(
+      req.userId,
+      { $push: { savedUpi: newUpi } },
+      { new: true }
+    ).select("savedCards savedUpi savedBankAccounts");
+
+    return res.status(200).json({
+      success: true,
+      message: "UPI ID linked successfully",
+      data: user,
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+exports.deleteSavedUpi = async (req, res) => {
+  try {
+    const { upiId } = req.params;
+    const user = await User.findByIdAndUpdate(
+      req.userId,
+      { $pull: { savedUpi: { _id: upiId } } },
+      { new: true }
+    ).select("savedCards savedUpi savedBankAccounts");
+
+    return res.status(200).json({
+      success: true,
+      message: "UPI ID removed successfully",
+      data: user,
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+exports.addSavedBankAccount = async (req, res) => {
+  try {
+    const { accountHolder, accountNumber, ifscCode, bankName, branchName } = req.body;
+    if (!accountHolder || !accountNumber || !ifscCode || !bankName) {
+      return res.status(400).json({ success: false, message: "Account holder, account number, IFSC code and bank name are required" });
+    }
+
+    const newBank = {
+      accountHolder: accountHolder.trim(),
+      accountNumber: accountNumber.trim(),
+      ifscCode: ifscCode.trim().toUpperCase(),
+      bankName: bankName.trim(),
+      branchName: branchName?.trim() || "Kashmir Branch",
+      createdAt: new Date(),
+    };
+
+    const user = await User.findByIdAndUpdate(
+      req.userId,
+      { $push: { savedBankAccounts: newBank } },
+      { new: true }
+    ).select("savedCards savedUpi savedBankAccounts");
+
+    return res.status(200).json({
+      success: true,
+      message: "Bank Account details added successfully",
+      data: user,
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+exports.deleteSavedBankAccount = async (req, res) => {
+  try {
+    const { bankId } = req.params;
+    const user = await User.findByIdAndUpdate(
+      req.userId,
+      { $pull: { savedBankAccounts: { _id: bankId } } },
+      { new: true }
+    ).select("savedCards savedUpi savedBankAccounts");
+
+    return res.status(200).json({
+      success: true,
+      message: "Bank Account removed successfully",
+      data: user,
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+
+exports.withdrawWallet = async (req, res) => {
+  try {
+    const { amount, targetType, targetDetail } = req.body;
+    const numAmount = parseFloat(amount);
+    if (!numAmount || isNaN(numAmount) || numAmount <= 0) {
+      return res.status(400).json({ success: false, message: "Please enter a valid withdrawal amount" });
+    }
+
+    const user = await User.findById(req.userId);
+    if (!user) return res.status(404).json({ success: false, message: "User not found" });
+
+    const currentBalance = user.walletBalance || 0;
+    if (currentBalance < numAmount) {
+      return res.status(400).json({
+        success: false,
+        message: "Insufficient wallet balance. Available: ₹" + currentBalance.toLocaleString("en-IN"),
+      });
+    }
+
+    const targetDesc = targetDetail ? " (" + targetDetail + ")" : "";
+    const methodDesc = targetType === "upi" ? "UPI Instant Payout" + targetDesc : "Bank Transfer IMPS" + targetDesc;
+
+    const newTx = {
+      title: "Sportify Pay Withdrawal" + targetDesc,
+      type: "debit",
+      amount: numAmount,
+      date: new Date().toLocaleDateString("en-IN", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }),
+      status: "Completed",
+      paymentMethod: methodDesc,
+      createdAt: new Date(),
+    };
+
+    user.walletBalance = currentBalance - numAmount;
+    if (!Array.isArray(user.walletTransactions)) {
+      user.walletTransactions = [];
+    }
+    user.walletTransactions.unshift(newTx);
+    await user.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "₹" + numAmount.toLocaleString("en-IN") + " withdrawn successfully to " + (targetType === "upi" ? "UPI ID" : "Bank Account"),
+      data: {
+        walletBalance: user.walletBalance,
+        walletTransactions: user.walletTransactions,
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};

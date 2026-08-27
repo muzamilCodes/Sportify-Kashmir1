@@ -59,6 +59,53 @@ const userSchema = new mongoose.Schema(
     primeMemberId: { type: String },
     primeExpiresAt: { type: Date },
     primePaymentId: { type: String },
+
+    // Saved User Payment Methods & Bank Details
+    savedCards: [
+      {
+        cardHolder: { type: String, required: true },
+        cardNumber: { type: String, required: true },
+        rawLast4: { type: String },
+        expiryDate: { type: String, required: true },
+        cardType: { type: String, default: "Debit Card" },
+        bankName: { type: String, default: "J&K Bank" },
+        createdAt: { type: Date, default: Date.now },
+      },
+    ],
+
+    savedUpi: [
+      {
+        vpa: { type: String, required: true },
+        name: { type: String },
+        provider: { type: String, default: "UPI" },
+        createdAt: { type: Date, default: Date.now },
+      },
+    ],
+
+    savedBankAccounts: [
+      {
+        accountHolder: { type: String, required: true },
+        accountNumber: { type: String, required: true },
+        ifscCode: { type: String, required: true },
+        bankName: { type: String, required: true },
+        branchName: { type: String },
+        createdAt: { type: Date, default: Date.now },
+      },
+    ],
+
+    // Real Sportify Wallet & Ledger
+    walletBalance: { type: Number, default: 500 },
+    walletTransactions: [
+      {
+        title: { type: String, required: true },
+        type: { type: String, enum: ["credit", "debit"], default: "credit" },
+        amount: { type: Number, required: true },
+        date: { type: String },
+        status: { type: String, default: "Completed" },
+        paymentMethod: { type: String, default: "UPI / NetBanking" },
+        createdAt: { type: Date, default: Date.now },
+      },
+    ],
   },
   { timestamps: true }
 );

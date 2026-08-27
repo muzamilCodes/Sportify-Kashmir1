@@ -55,6 +55,17 @@ router.get("/recently-viewed", authorize, controller.getRecentlyViewed);
 router.post("/recently-viewed", authorize, controller.addRecentlyViewed);
 router.delete("/recently-viewed", authorize, controller.clearRecentlyViewed);
 
+// User Payment & Account Details
+router.get("/payment-methods", authorize, controller.getPaymentMethods);
+router.post("/wallet/recharge", authorize, controller.rechargeWallet);
+router.post("/wallet/withdraw", authorize, controller.withdrawWallet);
+router.post("/add-card", authorize, controller.addSavedCard);
+router.delete("/delete-card/:cardId", authorize, controller.deleteSavedCard);
+router.post("/add-upi", authorize, controller.addSavedUpi);
+router.delete("/delete-upi/:upiId", authorize, controller.deleteSavedUpi);
+router.post("/add-bank-account", authorize, controller.addSavedBankAccount);
+router.delete("/delete-bank-account/:bankId", authorize, controller.deleteSavedBankAccount);
+
 // Admin User Management
 router.get("/getAll", authorize, admin, controller.getAllUsers);
 router.put("/:userId", authorize, admin, controller.updateUserStatus);
@@ -63,3 +74,4 @@ router.put("/make-admin/:userId", authorize, admin, controller.makeAdmin);
 router.delete("/account/me", authorize, controller.deleteMyAccount);
 
 module.exports = router;
+
