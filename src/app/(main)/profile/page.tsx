@@ -70,13 +70,70 @@ function ProfileContent() {
   const searchParams = useSearchParams();
   const tabParam = searchParams.get("tab");
 
-  const [user, setUser] = useState<UserProfile | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<UserProfile | null>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const saved = localStorage.getItem("user");
+        if (saved) return JSON.parse(saved);
+      } catch {}
+    }
+    return null;
+  });
+  const [loading, setLoading] = useState<boolean>(() => {
+    if (typeof window !== "undefined" && localStorage.getItem("user")) {
+      return false;
+    }
+    return true;
+  });
   const [activeTab, setActiveTab] = useState(tabParam || "overview");
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isSecurityModalOpen, setIsSecurityModalOpen] = useState(false);
+  const [isWalletModalOpen, setIsWalletModalOpen] = useState(tabParam === "wallet");
   const [isPrimeModalOpen, setIsPrimeModalOpen] = useState(false);
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const [primeData, setPrimeData] = useState<any>(null);
+  
+  // Sportify Pay & Wallet State
+  const [walletBalance, setWalletBalance] = useState<number>(500);
+  const [addAmount, setAddAmount] = useState<string>("");
+  const [isAddingMoney, setIsAddingMoney] = useState<boolean>(false);
+  const [walletTransactions, setWalletTransactions] = useState<Array<{
+    id: string;
+    title: string;
+    type: "credit" | "debit";
+    amount: number;
+    date: string;
+    status: string;
+  }>>([
+    {
+      id: "tx-1",
+      title: "Welcome Athlete Cashback Bonus",
+      type: "credit",
+      amount: 500,
+      date: "Active",
+      status: "Completed",
+    },
+    {
+      id: "tx-2",
+      title: "Lucky Spin Wheel Reward",
+      type: "credit",
+      amount: 50,
+      date: "Recent",
+      status: "Completed",
+    },
+  ]);
+
+  const [securityForm, setSecurityForm] = useState({
+    username: "",
+    email: "",
+    mobile: "",
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [updatingSecurity, setUpdatingSecurity] = useState(false);
   const [editForm, setEditForm] = useState({
     username: "",
     email: "",
@@ -132,8 +189,26 @@ function ProfileContent() {
     return () => window.removeEventListener("primeMembershipUpdated", checkPrime);
   }, []);
 
+  // Load persistent wallet balance & transactions
   useEffect(() => {
-    if (tabParam === "edit" || tabParam === "settings") {
+    try {
+      const savedBal = localStorage.getItem("sportify_wallet_balance");
+      if (savedBal !== null) {
+        setWalletBalance(parseFloat(savedBal));
+      }
+      const savedTxs = localStorage.getItem("sportify_wallet_transactions");
+      if (savedTxs) {
+        setWalletTransactions(JSON.parse(savedTxs));
+      }
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    if (tabParam === "wallet") {
+      setIsWalletModalOpen(true);
+    } else if (tabParam === "security" || tabParam === "login") {
+      setIsSecurityModalOpen(true);
+    } else if (tabParam === "edit" || tabParam === "settings") {
       setIsEditModalOpen(true);
     } else if (tabParam === "prime") {
       setIsPrimeModalOpen(true);
@@ -159,10 +234,12 @@ function ProfileContent() {
 
   const fetchUserProfile = async () => {
     try {
-      setLoading(true);
       const token = localStorage.getItem("token");
       if (!token) {
-        router.push("/login");
+        const cachedUser = localStorage.getItem("user");
+        if (!cachedUser) {
+          router.push("/login");
+        }
         return;
       }
 
@@ -171,24 +248,32 @@ function ProfileContent() {
       });
 
       const result = await response.json();
-      if (result.payload) {
-        setUser(result.payload);
+      const profileUser = result.payload || result.user || result.data;
+      if (profileUser) {
+        setUser(profileUser);
+        localStorage.setItem("user", JSON.stringify(profileUser));
         setEditForm({
-          username: result.payload.username || "",
-          email: result.payload.email || "",
-          mobile: result.payload.mobile || "",
+          username: profileUser.username || "",
+          email: profileUser.email || "",
+          mobile: profileUser.mobile || "",
           city: "Srinagar",
           pincode: "190009",
           newPassword: "",
           confirmPassword: "",
           currentPassword: "",
-          sportsInterests: result.payload.sportsInterests || [],
+          sportsInterests: profileUser.sportsInterests || [],
         });
-        if (result.payload.sportsInterests) {
-          setSelectedSports(result.payload.sportsInterests);
+        setSecurityForm({
+          username: profileUser.username || "",
+          email: profileUser.email || "",
+          mobile: profileUser.mobile || "",
+          currentPassword: "",
+          newPassword: "",
+          confirmPassword: "",
+        });
+        if (profileUser.sportsInterests) {
+          setSelectedSports(profileUser.sportsInterests);
         }
-      } else {
-        router.push("/login");
       }
     } catch (error) {
       console.error("Error fetching profile:", error);
@@ -367,6 +452,131 @@ function ProfileContent() {
     setSelectedSports((prev) =>
       prev.includes(sport) ? prev.filter((s) => s !== sport) : [...prev, sport]
     );
+  };
+
+  const handleSaveSecurity = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      if (!securityForm.username.trim()) {
+        toast.error("Username cannot be empty");
+        return;
+      }
+      if (!securityForm.email.trim() || !securityForm.email.includes("@")) {
+        toast.error("Please enter a valid email");
+        return;
+      }
+
+      if (securityForm.newPassword) {
+        if (!securityForm.currentPassword) {
+          toast.error("Please enter your current password to set a new password");
+          return;
+        }
+        if (securityForm.newPassword.length < 6) {
+          toast.error("New password must be at least 6 characters");
+          return;
+        }
+        if (securityForm.newPassword !== securityForm.confirmPassword) {
+          toast.error("New passwords do not match");
+          return;
+        }
+      }
+
+      setUpdatingSecurity(true);
+      const token = localStorage.getItem("token");
+      if (!token) {
+        toast.error("Please login again");
+        router.push("/login");
+        return;
+      }
+
+      const payload: any = {
+        username: securityForm.username.trim(),
+        email: securityForm.email.trim(),
+        mobile: securityForm.mobile.trim(),
+      };
+
+      if (securityForm.newPassword) {
+        payload.currentPassword = securityForm.currentPassword;
+        payload.newPassword = securityForm.newPassword;
+      }
+
+      const response = await fetch(`${API_URL}/user/update-profile`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const result = await response.json();
+      if (result.success) {
+        const updatedUser = result.user || {
+          ...user,
+          username: securityForm.username,
+          email: securityForm.email,
+          mobile: securityForm.mobile,
+        };
+        setUser(updatedUser);
+        localStorage.setItem("user", JSON.stringify(updatedUser));
+        window.dispatchEvent(new Event("authUpdated"));
+        toast.success(
+          securityForm.newPassword
+            ? "Password & Security settings updated successfully!"
+            : "Login & Security settings saved!"
+        );
+        setIsSecurityModalOpen(false);
+        setSecurityForm((prev) => ({
+          ...prev,
+          currentPassword: "",
+          newPassword: "",
+          confirmPassword: "",
+        }));
+        fetchUserProfile();
+      } else {
+        toast.error(result.message || "Failed to update security settings");
+      }
+    } catch {
+      toast.error("Network error while updating security settings");
+    } finally {
+      setUpdatingSecurity(false);
+    }
+  };
+
+  const handleAddWalletMoney = (amountToAdd?: number) => {
+    const amount = amountToAdd || parseFloat(addAmount);
+    if (!amount || isNaN(amount) || amount <= 0) {
+      toast.error("Please enter a valid amount to recharge");
+      return;
+    }
+    setIsAddingMoney(true);
+    setTimeout(() => {
+      const newBal = walletBalance + amount;
+      setWalletBalance(newBal);
+      localStorage.setItem("sportify_wallet_balance", newBal.toString());
+      const newTx = {
+        id: `tx-${Date.now()}`,
+        title: "Sportify Pay Wallet Recharge (UPI/Card)",
+        type: "credit" as const,
+        amount,
+        date: new Date().toLocaleDateString("en-IN", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }),
+        status: "Completed",
+      };
+      const updatedTxs = [newTx, ...walletTransactions];
+      setWalletTransactions(updatedTxs);
+      localStorage.setItem("sportify_wallet_transactions", JSON.stringify(updatedTxs));
+      setIsAddingMoney(false);
+      setAddAmount("");
+      toast.success(`₹${amount.toLocaleString('en-IN')} added to Sportify Pay successfully! 🎉`);
+      try {
+        confetti({
+          particleCount: 50,
+          spread: 60,
+          origin: { y: 0.7 },
+          colors: ["#10b981", "#f59e0b", "#3b82f6"],
+        });
+      } catch {}
+    }, 400);
   };
 
   const handleQuickAddToCart = async (productId: string, e: React.MouseEvent) => {
@@ -658,9 +868,10 @@ function ProfileContent() {
           </Link>
 
           {/* Quick 4: Sportify Pay Wallet */}
-          <Link
-            href="/cart"
-            className="flex items-center gap-3 p-3 sm:p-3.5 bg-white dark:bg-gray-850 rounded-2xl border border-gray-200/90 dark:border-gray-700/80 hover:border-orange-500 dark:hover:border-orange-500 shadow-xs hover:shadow-md transition active:scale-[0.98] group"
+          <button
+            type="button"
+            onClick={() => setIsWalletModalOpen(true)}
+            className="flex items-center gap-3 p-3 sm:p-3.5 bg-white dark:bg-gray-850 rounded-2xl border border-gray-200/90 dark:border-gray-700/80 hover:border-orange-500 dark:hover:border-orange-500 shadow-xs hover:shadow-md transition active:scale-[0.98] group text-left cursor-pointer"
           >
             <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200/60 dark:border-emerald-800/40 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0 group-hover:scale-105 transition-transform">
               <Wallet size={20} />
@@ -671,14 +882,14 @@ function ProfileContent() {
                   Sportify Pay
                 </p>
                 <span className="text-[11px] font-extrabold text-emerald-600 dark:text-emerald-400">
-                  ₹500
+                  ₹{walletBalance.toLocaleString("en-IN")}
                 </span>
               </div>
               <p className="text-[11px] text-gray-500 dark:text-gray-400 truncate">
-                Wallet balance
+                Wallet balance (Tap to Manage)
               </p>
             </div>
-          </Link>
+          </button>
         </div>
 
         {/* ═══════════════════════════════════════════════════════════════════════
@@ -734,7 +945,17 @@ function ProfileContent() {
           {/* Card 2: Login & Security */}
           <button
             type="button"
-            onClick={() => setIsEditModalOpen(true)}
+            onClick={() => {
+              setSecurityForm({
+                username: user?.username || "",
+                email: user?.email || "",
+                mobile: user?.mobile || "",
+                currentPassword: "",
+                newPassword: "",
+                confirmPassword: "",
+              });
+              setIsSecurityModalOpen(true);
+            }}
             className="flex items-start gap-3.5 sm:gap-4 p-4 sm:p-5 bg-white dark:bg-gray-850 rounded-2xl border border-gray-200/90 dark:border-gray-700/80 hover:border-orange-500 dark:hover:border-orange-500 hover:shadow-md transition active:scale-[0.99] text-left group cursor-pointer"
           >
             <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200/60 dark:border-blue-800/40 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
@@ -745,10 +966,10 @@ function ProfileContent() {
                 <h2 className="text-sm sm:text-base font-bold text-gray-900 dark:text-white group-hover:text-orange-600 transition">
                   Login &amp; Security
                 </h2>
-                <span className="text-[11px] font-bold text-orange-600 hover:underline">Edit ›</span>
+                <span className="text-[11px] font-bold text-orange-600 hover:underline">Manage ›</span>
               </div>
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 leading-relaxed">
-                Edit login, username, email, password, and mobile number
+                Change password, update email, username, and manage account credentials
               </p>
             </div>
           </button>
@@ -850,7 +1071,11 @@ function ProfileContent() {
           </Link>
 
           {/* Card 7: Sportify Pay Balance */}
-          <div className="flex items-start gap-3.5 sm:gap-4 p-4 sm:p-5 bg-white dark:bg-gray-850 rounded-2xl border border-gray-200/90 dark:border-gray-700/80 hover:border-orange-500 dark:hover:border-orange-500 hover:shadow-md transition active:scale-[0.99] group">
+          <button
+            type="button"
+            onClick={() => setIsWalletModalOpen(true)}
+            className="flex items-start gap-3.5 sm:gap-4 p-4 sm:p-5 bg-white dark:bg-gray-850 rounded-2xl border border-gray-200/90 dark:border-gray-700/80 hover:border-orange-500 dark:hover:border-orange-500 hover:shadow-md transition active:scale-[0.99] group text-left cursor-pointer"
+          >
             <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200/60 dark:border-amber-800/40 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
               <Wallet className="w-6 h-6 sm:w-7 sm:h-7 text-amber-600 dark:text-amber-400" />
             </div>
@@ -860,14 +1085,14 @@ function ProfileContent() {
                   Sportify Pay Balance
                 </h2>
                 <span className="text-xs font-black text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950 px-2 py-0.5 rounded-md">
-                  ₹500.00
+                  ₹{walletBalance.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
                 </span>
               </div>
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 leading-relaxed">
-                Instant refunds, wallet balance &amp; 1-tap fast order
+                Instant refunds, wallet balance &amp; 1-tap fast order (Tap to View)
               </p>
             </div>
-          </div>
+          </button>
 
           {/* Card 8: Contact Us */}
           <Link
@@ -1347,6 +1572,366 @@ function ProfileContent() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ═══════════════════════════════════════════════════════════════════════
+          LOGIN & SECURITY DEDICATED MODAL
+      ═══════════════════════════════════════════════════════════════════════ */}
+      {isSecurityModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
+          <div
+            className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-3xl w-full max-w-lg shadow-2xl border border-gray-200 dark:border-gray-700 max-h-[90vh] overflow-y-auto flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="p-4 sm:p-6 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between sticky top-0 bg-white/95 dark:bg-gray-800/95 backdrop-blur-md z-10">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-950/60 flex items-center justify-center text-blue-600 dark:text-blue-400">
+                  <Shield size={22} />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-base sm:text-lg">Login &amp; Security</h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Manage credentials, password &amp; account protection</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsSecurityModalOpen(false);
+                  setSecurityForm((prev) => ({
+                    ...prev,
+                    currentPassword: "",
+                    newPassword: "",
+                    confirmPassword: "",
+                  }));
+                }}
+                className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-750 text-gray-500 transition cursor-pointer"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Modal Form */}
+            <form onSubmit={handleSaveSecurity} className="p-4 sm:p-6 space-y-4 text-xs sm:text-sm">
+              {/* Account Overview Tag */}
+              <div className="p-3 bg-blue-50 dark:bg-blue-950/40 border border-blue-200/60 dark:border-blue-800/40 rounded-2xl flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-blue-500 text-white flex items-center justify-center font-bold text-sm shrink-0">
+                  🔒
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="font-bold text-xs text-blue-950 dark:text-blue-200">
+                    256-Bit SSL Protected Account
+                  </p>
+                  <p className="text-[11px] text-blue-700/80 dark:text-blue-300/80 mt-0.5">
+                    Your password and login credentials are encrypted with salted BCrypt hashing.
+                  </p>
+                </div>
+              </div>
+
+              {/* Username Field */}
+              <div>
+                <label className="block font-bold text-gray-700 dark:text-gray-300 mb-1">
+                  Account Username *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={securityForm.username}
+                  onChange={(e) => setSecurityForm({ ...securityForm, username: e.target.value })}
+                  placeholder="e.g. warmuzamil"
+                  className="w-full px-3.5 py-2.5 bg-gray-50 dark:bg-gray-750 border border-gray-300 dark:border-gray-600 rounded-xl outline-none focus:ring-2 focus:ring-orange-500 text-gray-900 dark:text-white"
+                />
+              </div>
+
+              {/* Email Field */}
+              <div>
+                <label className="block font-bold text-gray-700 dark:text-gray-300 mb-1">
+                  Email Address (Primary Login ID) *
+                </label>
+                <input
+                  type="email"
+                  required
+                  value={securityForm.email}
+                  onChange={(e) => setSecurityForm({ ...securityForm, email: e.target.value })}
+                  placeholder="e.g. muzamil@example.com"
+                  className="w-full px-3.5 py-2.5 bg-gray-50 dark:bg-gray-750 border border-gray-300 dark:border-gray-600 rounded-xl outline-none focus:ring-2 focus:ring-orange-500 text-gray-900 dark:text-white"
+                />
+              </div>
+
+              {/* Mobile Phone Field */}
+              <div>
+                <label className="block font-bold text-gray-700 dark:text-gray-300 mb-1">
+                  Mobile Number (for Delivery &amp; OTP Verification)
+                </label>
+                <input
+                  type="tel"
+                  value={securityForm.mobile}
+                  onChange={(e) => setSecurityForm({ ...securityForm, mobile: e.target.value })}
+                  placeholder="e.g. 9682645127"
+                  className="w-full px-3.5 py-2.5 bg-gray-50 dark:bg-gray-750 border border-gray-300 dark:border-gray-600 rounded-xl outline-none focus:ring-2 focus:ring-orange-500 text-gray-900 dark:text-white"
+                />
+              </div>
+
+              {/* ─── Change Password Section ─── */}
+              <div className="pt-3 border-t border-gray-100 dark:border-gray-700 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="font-extrabold text-xs sm:text-sm text-gray-900 dark:text-white flex items-center gap-1.5">
+                    <Lock size={15} className="text-orange-500" />
+                    <span>Change Account Password</span>
+                  </span>
+                  <span className="text-[10px] text-gray-400 font-medium">Leave blank to keep unchanged</span>
+                </div>
+
+                {/* Current Password */}
+                <div>
+                  <label className="block font-semibold text-[11px] text-gray-600 dark:text-gray-400 mb-1">
+                    Current Password
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showCurrentPassword ? "text" : "password"}
+                      placeholder="Enter your current password"
+                      value={securityForm.currentPassword}
+                      onChange={(e) => setSecurityForm({ ...securityForm, currentPassword: e.target.value })}
+                      className="w-full px-3.5 py-2.5 pr-10 bg-gray-50 dark:bg-gray-750 border border-gray-300 dark:border-gray-600 rounded-xl outline-none focus:ring-2 focus:ring-orange-500 text-gray-900 dark:text-white text-xs"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer"
+                    >
+                      {showCurrentPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                    </button>
+                  </div>
+                </div>
+
+                {/* New Password & Confirm Password */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block font-semibold text-[11px] text-gray-600 dark:text-gray-400 mb-1">
+                      New Password (min 6 chars)
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showNewPassword ? "text" : "password"}
+                        placeholder="New password"
+                        value={securityForm.newPassword}
+                        onChange={(e) => setSecurityForm({ ...securityForm, newPassword: e.target.value })}
+                        className="w-full px-3.5 py-2.5 pr-10 bg-gray-50 dark:bg-gray-750 border border-gray-300 dark:border-gray-600 rounded-xl outline-none focus:ring-2 focus:ring-orange-500 text-gray-900 dark:text-white text-xs"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowNewPassword(!showNewPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer"
+                      >
+                        {showNewPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block font-semibold text-[11px] text-gray-600 dark:text-gray-400 mb-1">
+                      Confirm New Password
+                    </label>
+                    <input
+                      type={showNewPassword ? "text" : "password"}
+                      placeholder="Repeat new password"
+                      value={securityForm.confirmPassword}
+                      onChange={(e) => setSecurityForm({ ...securityForm, confirmPassword: e.target.value })}
+                      className="w-full px-3.5 py-2.5 bg-gray-50 dark:bg-gray-750 border border-gray-300 dark:border-gray-600 rounded-xl outline-none focus:ring-2 focus:ring-orange-500 text-gray-900 dark:text-white text-xs"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="pt-4 flex items-center gap-3">
+                <button
+                  type="submit"
+                  disabled={updatingSecurity}
+                  className="flex-1 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold rounded-xl shadow-md transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 active:scale-95"
+                >
+                  {updatingSecurity ? <Loader2 size={16} className="animate-spin" /> : <ShieldCheck size={16} />}
+                  <span>{updatingSecurity ? "Saving Security Changes..." : "Save Security Changes"}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsSecurityModalOpen(false);
+                    setSecurityForm((prev) => ({
+                      ...prev,
+                      currentPassword: "",
+                      newPassword: "",
+                      confirmPassword: "",
+                    }));
+                  }}
+                  className="px-5 py-3 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 font-bold rounded-xl transition cursor-pointer active:scale-95"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {/* ═══════════════════════════════════════════════════════════════════════
+          SPORTIFY PAY & WALLET DEDICATED MODAL
+      ═══════════════════════════════════════════════════════════════════════ */}
+      {isWalletModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
+          <div
+            className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-3xl w-full max-w-lg shadow-2xl border border-gray-200 dark:border-gray-700 max-h-[90vh] overflow-y-auto flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="p-4 sm:p-6 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between sticky top-0 bg-white/95 dark:bg-gray-800/95 backdrop-blur-md z-10">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-950/60 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+                  <Wallet size={22} />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-base sm:text-lg">Sportify Pay &amp; Wallet</h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Instant checkout, rewards &amp; athlete cashback</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsWalletModalOpen(false)}
+                className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-750 text-gray-500 transition cursor-pointer"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Modal Content Body */}
+            <div className="p-4 sm:p-6 space-y-5">
+              {/* 1. Main Wallet Card */}
+              <div className="p-5 sm:p-6 rounded-3xl bg-gradient-to-br from-emerald-600 via-emerald-700 to-teal-900 text-white shadow-xl relative overflow-hidden">
+                <div className="flex items-center justify-between relative z-1 mb-4">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-black tracking-wider uppercase bg-white/20 px-2.5 py-0.5 rounded-md backdrop-blur-xs">
+                      Sportify Pay
+                    </span>
+                    <span className="text-[10px] bg-emerald-400/30 text-emerald-100 font-bold px-2 py-0.5 rounded-full">
+                      Verified Athlete
+                    </span>
+                  </div>
+                  <span className="text-xs font-bold text-emerald-200">24h Valley Express</span>
+                </div>
+
+                <div className="relative z-1 mb-5">
+                  <p className="text-xs text-emerald-100 font-medium">Available Wallet Balance</p>
+                  <h2 className="text-3xl sm:text-4xl font-black mt-1 tracking-tight">
+                    ₹{walletBalance.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                  </h2>
+                </div>
+
+                <div className="relative z-1 pt-3 border-t border-white/20 flex items-center justify-between text-xs text-emerald-100">
+                  <span className="truncate">VPA: {user?.username?.toLowerCase() || "user"}@sportifypay</span>
+                  <span className="font-mono text-[11px]">SK-WAL-{user?._id?.slice(-6).toUpperCase() || "789123"}</span>
+                </div>
+              </div>
+
+              {/* 2. Add Money / Recharge Wallet */}
+              <div className="p-4 bg-gray-50 dark:bg-gray-750 rounded-2xl border border-gray-200 dark:border-gray-700 space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs sm:text-sm font-extrabold text-gray-900 dark:text-white flex items-center gap-1.5">
+                    <span>⚡ Recharge Sportify Pay</span>
+                  </h4>
+                  <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-bold">Instant Top-up</span>
+                </div>
+
+                {/* Quick Add Chips */}
+                <div className="flex gap-2 flex-wrap">
+                  {[200, 500, 1000, 2000].map((amt) => (
+                    <button
+                      key={amt}
+                      type="button"
+                      onClick={() => handleAddWalletMoney(amt)}
+                      className="px-3 py-1.5 bg-white dark:bg-gray-700 hover:bg-orange-500 hover:text-white dark:hover:bg-orange-500 text-gray-800 dark:text-gray-200 rounded-xl text-xs font-bold border border-gray-300 dark:border-gray-600 transition cursor-pointer active:scale-95 shadow-xs"
+                    >
+                      + ₹{amt}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Custom Amount Form */}
+                <div className="flex items-center gap-2 pt-1">
+                  <div className="relative flex-1">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-bold">₹</span>
+                    <input
+                      type="number"
+                      placeholder="Enter custom amount"
+                      value={addAmount}
+                      onChange={(e) => setAddAmount(e.target.value)}
+                      className="w-full pl-7 pr-3 py-2.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl outline-none text-xs font-bold"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleAddWalletMoney()}
+                    disabled={isAddingMoney}
+                    className="px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-xl text-xs font-bold transition shadow-xs cursor-pointer active:scale-95 disabled:opacity-50"
+                  >
+                    {isAddingMoney ? "Adding..." : "Add Money"}
+                  </button>
+                </div>
+              </div>
+
+              {/* 3. Account Details Overview */}
+              <div className="space-y-2 text-xs">
+                <h4 className="font-extrabold text-gray-900 dark:text-white text-xs uppercase tracking-wider">
+                  Linked Account Information
+                </h4>
+                <div className="divide-y divide-gray-100 dark:divide-gray-750 bg-gray-50 dark:bg-gray-750 rounded-2xl p-3.5 border border-gray-200 dark:border-gray-700">
+                  <div className="py-1.5 flex justify-between">
+                    <span className="text-gray-500 dark:text-gray-400">Account Holder:</span>
+                    <span className="font-bold">{user?.username || "Verified Athlete"}</span>
+                  </div>
+                  <div className="py-1.5 flex justify-between">
+                    <span className="text-gray-500 dark:text-gray-400">Linked Mobile:</span>
+                    <span className="font-bold">{user?.mobile || "+91 9682645127"}</span>
+                  </div>
+                  <div className="py-1.5 flex justify-between">
+                    <span className="text-gray-500 dark:text-gray-400">Linked Email:</span>
+                    <span className="font-bold truncate max-w-[200px]">{user?.email}</span>
+                  </div>
+                  <div className="py-1.5 flex justify-between">
+                    <span className="text-gray-500 dark:text-gray-400">KYC Status:</span>
+                    <span className="font-bold text-emerald-600 dark:text-emerald-400">Verified ✅</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* 4. Recent Wallet Transactions */}
+              <div className="space-y-2 text-xs">
+                <h4 className="font-extrabold text-gray-900 dark:text-white text-xs uppercase tracking-wider">
+                  Recent Wallet Activity
+                </h4>
+                <div className="space-y-2">
+                  {walletTransactions.map((tx) => (
+                    <div
+                      key={tx.id}
+                      className="p-3 bg-white dark:bg-gray-750 rounded-xl border border-gray-200 dark:border-gray-700 flex items-center justify-between shadow-xs"
+                    >
+                      <div>
+                        <p className="font-bold text-xs text-gray-900 dark:text-white">{tx.title}</p>
+                        <p className="text-[10px] text-gray-400 mt-0.5">{tx.date} • {tx.status}</p>
+                      </div>
+                      <span
+                        className={`text-xs font-black ${
+                          tx.type === "credit" ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600"
+                        }`}
+                      >
+                        {tx.type === "credit" ? "+" : "-"} ₹{tx.amount.toLocaleString("en-IN")}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}

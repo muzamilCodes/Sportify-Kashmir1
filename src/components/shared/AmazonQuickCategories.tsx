@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { 
   Flame, 
@@ -8,7 +8,9 @@ import {
   Trophy,
   Dumbbell,
   Goal,
-  BookOpen
+  BookOpen,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
 
@@ -44,6 +46,7 @@ interface QuickCategory {
 export default function AmazonQuickCategories() {
   const { t } = useLanguage();
   const [isPaused, setIsPaused] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   const categories: QuickCategory[] = [
     {
@@ -181,30 +184,89 @@ export default function AmazonQuickCategories() {
     },
   ];
 
-  // Duplicate for seamless infinite right-to-left loop
-  const marqueeItems = [...categories, ...categories];
+  // Auto-scroll loop
+  useEffect(() => {
+    let animationFrameId: number;
+    let lastTime = performance.now();
+
+    const autoScroll = (time: number) => {
+      const delta = time - lastTime;
+      lastTime = time;
+
+      if (!isPaused && scrollRef.current) {
+        const el = scrollRef.current;
+        el.scrollLeft += (35 * delta) / 1000;
+
+        if (el.scrollLeft >= el.scrollWidth / 2) {
+          el.scrollLeft = 0;
+        }
+      }
+
+      animationFrameId = requestAnimationFrame(autoScroll);
+    };
+
+    animationFrameId = requestAnimationFrame(autoScroll);
+    return () => cancelAnimationFrame(animationFrameId);
+  }, [isPaused]);
+
+  // Manual scroll triggers
+  const handleScrollLeft = () => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollBy({ left: -220, behavior: "smooth" });
+      setIsPaused(true);
+      setTimeout(() => setIsPaused(false), 3000);
+    }
+  };
+
+  const handleScrollRight = () => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollBy({ left: 220, behavior: "smooth" });
+      setIsPaused(true);
+      setTimeout(() => setIsPaused(false), 3000);
+    }
+  };
+
+  // Duplicate items for infinite seamless right-to-left loop
+  const displayItems = [...categories, ...categories, ...categories];
 
   return (
     <div
-      className="w-full bg-[#f3f4f6]/95 dark:bg-gray-900/95 py-2 border-b border-gray-300/80 dark:border-gray-800 relative overflow-hidden select-none"
+      className="w-full bg-[#f3f4f6]/95 dark:bg-gray-900/95 py-2 border-b border-gray-300/80 dark:border-gray-800 relative overflow-hidden select-none group/ribbon"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
       onTouchStart={() => setIsPaused(true)}
       onTouchEnd={() => setIsPaused(false)}
     >
-      {/* Edge Gradient Masks for Smooth Fade In/Out */}
-      <div className="pointer-events-none absolute inset-y-0 left-0 w-6 sm:w-10 bg-gradient-to-r from-[#f3f4f6] dark:from-gray-900 to-transparent z-10" />
-      <div className="pointer-events-none absolute inset-y-0 right-0 w-6 sm:w-10 bg-gradient-to-l from-[#f3f4f6] dark:from-gray-900 to-transparent z-10" />
-
-      {/* Right-to-Left Continuous Moving Track */}
-      <div
-        className="flex items-center gap-2.5 animate-marquee-rtl"
-        style={{
-          animationDuration: "24s",
-          animationPlayState: isPaused ? "paused" : "running",
-        }}
+      {/* Left Quick Navigation Arrow Button */}
+      <button
+        type="button"
+        onClick={handleScrollLeft}
+        className="absolute left-1 top-1/2 -translate-y-1/2 z-20 w-7 h-7 rounded-full bg-white/95 dark:bg-gray-800/95 text-gray-800 dark:text-white shadow-md border border-gray-200 dark:border-gray-700 flex items-center justify-center hover:bg-orange-500 hover:text-white transition-all hover:scale-110 active:scale-95 cursor-pointer opacity-85 group-hover/ribbon:opacity-100"
+        aria-label="Scroll categories left"
       >
-        {marqueeItems.map((cat, idx) => (
+        <ChevronLeft size={16} />
+      </button>
+
+      {/* Right Quick Navigation Arrow Button */}
+      <button
+        type="button"
+        onClick={handleScrollRight}
+        className="absolute right-1 top-1/2 -translate-y-1/2 z-20 w-7 h-7 rounded-full bg-white/95 dark:bg-gray-800/95 text-gray-800 dark:text-white shadow-md border border-gray-200 dark:border-gray-700 flex items-center justify-center hover:bg-orange-500 hover:text-white transition-all hover:scale-110 active:scale-95 cursor-pointer opacity-85 group-hover/ribbon:opacity-100"
+        aria-label="Scroll categories right"
+      >
+        <ChevronRight size={16} />
+      </button>
+
+      {/* Edge Gradient Masks for Smooth Fade In/Out */}
+      <div className="pointer-events-none absolute inset-y-0 left-0 w-8 bg-gradient-to-r from-[#f3f4f6] dark:from-gray-900 to-transparent z-10" />
+      <div className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-[#f3f4f6] dark:from-gray-900 to-transparent z-10" />
+
+      {/* Right-to-Left Continuous Moving Track with Instant Manual Scroll */}
+      <div
+        ref={scrollRef}
+        className="flex items-center gap-2.5 overflow-x-auto scrollbar-none px-6 py-0.5 scroll-smooth"
+      >
+        {displayItems.map((cat, idx) => (
           <Link
             key={`${cat.id}-${idx}`}
             href={cat.href}
