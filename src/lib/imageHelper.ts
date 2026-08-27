@@ -108,17 +108,17 @@ export const resolveProductImage = (product: any, customApiUrl?: string): string
     raw = `https:${raw}`;
   }
 
-  // Cloudinary Image Optimization (auto WebP/AVIF format, auto compression, max width 600px)
+  // Cloudinary Image Optimization (auto WebP/AVIF format, optimized eco compression, max width 500px for instant mobile/desktop loading)
   if (raw.includes("res.cloudinary.com") && raw.includes("/image/upload/")) {
-    if (!raw.includes("f_auto") && !raw.includes("q_auto")) {
-      raw = raw.replace("/image/upload/", "/image/upload/f_auto,q_auto,c_limit,w_600/");
+    if (!raw.includes("f_auto")) {
+      raw = raw.replace("/image/upload/", "/image/upload/f_auto,q_auto:eco,c_limit,w_500/");
     }
   }
 
   // Unsplash Image Optimization
   if (raw.includes("images.unsplash.com") && !raw.includes("auto=format")) {
     const separator = raw.includes("?") ? "&" : "?";
-    raw = `${raw}${separator}auto=format&fit=crop&q=75&w=600`;
+    raw = `${raw}${separator}auto=format&fit=crop&q=70&w=500`;
   }
 
   // Absolute HTTP / HTTPS or Data URI / Blob

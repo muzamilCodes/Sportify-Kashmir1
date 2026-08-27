@@ -221,6 +221,8 @@ export default function HomeBlogSection() {
                         alt={cleanTitle}
                         className="w-full h-full object-cover group-hover/card:scale-108 transition-transform duration-700 ease-out"
                         loading="lazy"
+                        decoding="async"
+                        fetchPriority="low"
                       />
                     ) : (
                       <div className="w-full h-full flex flex-col items-center justify-center p-4 bg-gradient-to-tr from-zinc-900 via-orange-950/40 to-zinc-900 text-center">

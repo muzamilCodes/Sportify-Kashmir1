@@ -732,4 +732,15 @@
   animation-play-state: paused;
 }
 
+/* High Performance Product Card Offscreen Rendering (Increases Scroll FPS & Eliminates Lag) */
+.sk-product-card {
+  content-visibility: auto;
+  contain-intrinsic-size: 1px 360px;
+  transform: translateZ(0);
+}
+
+img {
+  text-indent: -9999px;
+}
+
 
