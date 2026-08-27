@@ -100,6 +100,30 @@ class SoundEffectsManager {
       osc.stop(now + 0.36);
     });
   }
+
+  /**
+   * Plays a subtle spinning tick sound for lucky wheel.
+   */
+  public playWheelTick() {
+    const ctx = this.getContext();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = "triangle";
+    osc.frequency.setValueAtTime(520, now);
+    osc.frequency.exponentialRampToValueAtTime(180, now + 0.035);
+
+    gain.gain.setValueAtTime(0.2, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.start(now);
+    osc.stop(now + 0.045);
+  }
 }
 
 export const soundEffects = new SoundEffectsManager();

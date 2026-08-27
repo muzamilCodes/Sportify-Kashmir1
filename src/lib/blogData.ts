@@ -23,7 +23,15 @@ export const getBlogImageUrl = (url?: string | null): string | null => {
   const trimmed = url.trim();
   // Filter out any unsplash dummy placeholders
   if (trimmed.includes("unsplash.com") || trimmed.includes("placeholder")) return null;
-  if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) return trimmed;
+  
+  if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+    // High-Definition Optimization for Cloudinary images (avoids downsampling/blur)
+    if (trimmed.includes("cloudinary.com") && trimmed.includes("/image/upload/") && !trimmed.includes("/f_auto")) {
+      return trimmed.replace("/image/upload/", "/image/upload/f_auto,q_auto:best/");
+    }
+    return trimmed;
+  }
+  
   const apiUrl = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000").replace(/\/$/, "");
   if (trimmed.startsWith("/")) return `${apiUrl}${trimmed}`;
   return `${apiUrl}/uploads/${trimmed}`;

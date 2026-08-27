@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { X, Sparkles, Gift, Check, Copy, ArrowRight, Clock, Flame, RotateCcw } from "lucide-react";
 import toast from "react-hot-toast";
@@ -12,15 +12,58 @@ interface WheelSlice {
   discount: string;
   bg: string;
   color: string;
+  icon: string;
 }
 
 const SLICES: WheelSlice[] = [
-  { label: "10% OFF", percent: 10, discount: "10% Instant Discount on All Gear", bg: "#ea580c", color: "#ffffff" },
-  { label: "BETTER LUCK", percent: 0, discount: "Better Luck Next Time! Spin Again Tomorrow", bg: "#475569", color: "#ffffff" },
-  { label: "15% OFF", percent: 15, discount: "15% Mega Discount on Kashmir Willow", bg: "#f97316", color: "#ffffff" },
-  { label: "10% OFF", percent: 10, discount: "10% Flat Discount on Sports Wear", bg: "#d97706", color: "#ffffff" },
-  { label: "BETTER LUCK", percent: 0, discount: "Better Luck Next Time! Spin Again Tomorrow", bg: "#334155", color: "#ffffff" },
-  { label: "12% OFF", percent: 12, discount: "12% Special Discount on Entire Order", bg: "#ef4444", color: "#ffffff" },
+  {
+    label: "10% OFF",
+    percent: 10,
+    discount: "10% Instant Discount on All Gear",
+    bg: "#ea580c",
+    color: "#ffffff",
+    icon: "🏏",
+  },
+  {
+    label: "TRY AGAIN",
+    percent: 0,
+    discount: "Better Luck Next Time! Spin Again Tomorrow",
+    bg: "#475569",
+    color: "#ffffff",
+    icon: "😔",
+  },
+  {
+    label: "15% OFF",
+    percent: 15,
+    discount: "15% Mega Discount on Kashmir Willow",
+    bg: "#f97316",
+    color: "#ffffff",
+    icon: "🔥",
+  },
+  {
+    label: "10% OFF",
+    percent: 10,
+    discount: "10% Flat Discount on Sports Wear",
+    bg: "#d97706",
+    color: "#ffffff",
+    icon: "⚡",
+  },
+  {
+    label: "TRY AGAIN",
+    percent: 0,
+    discount: "Better Luck Next Time! Spin Again Tomorrow",
+    bg: "#334155",
+    color: "#ffffff",
+    icon: "🎯",
+  },
+  {
+    label: "12% OFF",
+    percent: 12,
+    discount: "12% Special Discount on Entire Order",
+    bg: "#ef4444",
+    color: "#ffffff",
+    icon: "🏆",
+  },
 ];
 
 interface ActiveSpinCoupon {
@@ -111,22 +154,39 @@ export default function SpinWheelModal() {
     const selected = SLICES[winIndex];
 
     const sliceAngle = 360 / SLICES.length;
-    // Calculate rotation: 5 full turns (1800 deg) + angle for the slice
-    const targetRotation = 1800 + (360 - winIndex * sliceAngle - sliceAngle / 2);
+    // The center bisector of the winning slice (measured clockwise from 12 o'clock / 0 deg)
+    const midAngle = winIndex * sliceAngle + sliceAngle / 2;
+
+    // Target rotation: align midAngle exactly with the top pointer (0 deg / 12 o'clock)
+    const baseSpins = 1800; // 5 full revolutions
+    const currentMod = rotation % 360;
+    const neededAngle = (360 - midAngle + 360) % 360;
+    let additionalRotation = (360 - currentMod + neededAngle) % 360;
+    if (additionalRotation === 0) additionalRotation = 360;
+
+    const targetRotation = rotation + baseSpins + additionalRotation;
     setRotation(targetRotation);
+
+    // Play spinning ticks
+    const tickInterval = setInterval(() => {
+      soundEffects.playWheelTick();
+    }, 200);
+
+    setTimeout(() => clearInterval(tickInterval), 3200);
 
     setTimeout(async () => {
       setIsSpinning(false);
       localStorage.setItem("sportify_last_spin_time", String(Date.now()));
 
       if (selected.percent === 0) {
-        // Better Luck Next Time
+        // Better Luck / Try Again: Absolutely NO coupon is generated or shown
         setBetterLuck(true);
+        setActiveCoupon(null);
         toast.error("Better luck next time! You can spin again tomorrow.");
         return;
       }
 
-      // Generate REAL single-use database coupon for this specific user
+      // Generate REAL single-use database coupon for this specific winning discount
       try {
         const res = await fetch(`${API_URL}/coupon/spin-generate`, {
           method: "POST",
@@ -174,6 +234,8 @@ export default function SpinWheelModal() {
           setActiveCoupon(newCouponData);
           setRemainingSeconds(15 * 60);
           localStorage.setItem("sportify_spin_coupon_v3", JSON.stringify(newCouponData));
+          soundEffects.playCelebrationChime();
+          toast.success(`🎉 You won ${selected.percent}% OFF! Use code ${fallbackCode}`);
         }
       } catch (err) {
         console.error("Spin coupon error:", err);
@@ -199,6 +261,19 @@ export default function SpinWheelModal() {
     return null;
   }
 
+  // Geometry for SVG Pie Slices
+  const R = 120;
+  const CX = 130;
+  const CY = 130;
+
+  const getCoordinatesForAngle = (angleDeg: number, radius = R) => {
+    const rad = (angleDeg * Math.PI) / 180;
+    return {
+      x: CX + radius * Math.sin(rad),
+      y: CY - radius * Math.cos(rad),
+    };
+  };
+
   return (
     <>
       {/* Floating Trigger Badge on Bottom-Left */}
@@ -223,7 +298,7 @@ export default function SpinWheelModal() {
 
       {/* Modal Backdrop */}
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/70 backdrop-blur-xs animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/75 backdrop-blur-xs animate-in fade-in duration-200">
           <div className="relative bg-white dark:bg-gray-900 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl border border-gray-200 dark:border-gray-800 p-6 flex flex-col items-center text-center animate-in zoom-in-95 duration-200">
             {/* Close Button */}
             <button
@@ -234,7 +309,7 @@ export default function SpinWheelModal() {
             </button>
 
             {/* Header */}
-            <div className="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center mb-2">
+            <div className="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center mb-2 shadow-inner">
               <Gift size={24} />
             </div>
             <h3 className="text-xl font-black text-gray-900 dark:text-white tracking-tight">
@@ -245,42 +320,108 @@ export default function SpinWheelModal() {
             </p>
 
             {/* Wheel Container */}
-            <div className="relative my-6 w-56 h-56 flex items-center justify-center">
-              {/* Pointer Indicator */}
-              <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-20 w-0 h-0 border-l-[10px] border-l-transparent border-r-[10px] border-r-transparent border-t-[20px] border-t-amber-400 drop-shadow-md" />
+            <div className="relative my-6 w-64 h-64 flex items-center justify-center select-none">
+              {/* Pointer Indicator at Top (12 o'clock, pointing down) */}
+              <div className="absolute -top-2 left-1/2 -translate-x-1/2 z-30 flex flex-col items-center pointer-events-none drop-shadow-xl">
+                <div className="w-0 h-0 border-l-[11px] border-l-transparent border-r-[11px] border-r-transparent border-t-[22px] border-t-amber-400 filter drop-shadow-md" />
+                <div className="w-3 h-3 rounded-full bg-amber-300 -mt-6 border-2 border-amber-600 shadow-xs" />
+              </div>
 
-              {/* Rotating Wheel Circle */}
+              {/* Rotating Wheel Container */}
               <div
-                className="w-full h-full rounded-full border-4 border-amber-400 shadow-2xl relative overflow-hidden transition-all ease-out"
+                className="w-full h-full rounded-full shadow-2xl relative overflow-hidden"
                 style={{
                   transform: `rotate(${rotation}deg)`,
-                  transitionDuration: isSpinning ? "4s" : "0s",
+                  transition: isSpinning ? "transform 4s cubic-bezier(0.15, 0.85, 0.35, 1.02)" : "none",
                 }}
               >
-                {SLICES.map((s, idx) => {
-                  const angle = (360 / SLICES.length) * idx;
-                  return (
-                    <div
-                      key={idx}
-                      className="absolute inset-0 origin-center flex items-start justify-center pt-2 font-black text-[9px] tracking-tight"
-                      style={{
-                        transform: `rotate(${angle}deg)`,
-                        backgroundColor: s.bg,
-                        color: s.color,
-                        clipPath: "polygon(50% 50%, 0% 0%, 100% 0%)",
-                      }}
-                    >
-                      <span className="mt-2 block rotate-90 transform uppercase font-extrabold">
-                        {s.label}
-                      </span>
-                    </div>
-                  );
-                })}
+                <svg viewBox="0 0 260 260" className="w-full h-full">
+                  <defs>
+                    <filter id="sliceShadow" x="-20%" y="-20%" width="140%" height="140%">
+                      <feDropShadow dx="0" dy="1" stdDeviation="1" floodColor="#000" floodOpacity="0.3" />
+                    </filter>
+                  </defs>
+
+                  {/* Slices */}
+                  {SLICES.map((s, idx) => {
+                    const startAngle = idx * 60;
+                    const endAngle = (idx + 1) * 60;
+                    const midAngle = startAngle + 30;
+                    const p1 = getCoordinatesForAngle(startAngle);
+                    const p2 = getCoordinatesForAngle(endAngle);
+
+                    const pathD = `M ${CX} ${CY} L ${p1.x.toFixed(2)} ${p1.y.toFixed(2)} A ${R} ${R} 0 0 1 ${p2.x.toFixed(2)} ${p2.y.toFixed(2)} Z`;
+
+                    return (
+                      <g key={idx}>
+                        {/* Slice Sector */}
+                        <path
+                          d={pathD}
+                          fill={s.bg}
+                          stroke="#ffffff"
+                          strokeWidth="1.5"
+                          strokeLinejoin="round"
+                        />
+
+                        {/* Centered Spoke Content (Rotated along midAngle) */}
+                        <g transform={`rotate(${midAngle}, ${CX}, ${CY})`}>
+                          {/* Slice Icon */}
+                          <text
+                            x={CX}
+                            y={CY - 90}
+                            textAnchor="middle"
+                            dominantBaseline="central"
+                            fontSize="12"
+                            transform={`rotate(90, ${CX}, ${CY - 90})`}
+                          >
+                            {s.icon}
+                          </text>
+
+                          {/* Slice Label */}
+                          <text
+                            x={CX}
+                            y={CY - 58}
+                            textAnchor="middle"
+                            dominantBaseline="central"
+                            fill={s.color}
+                            fontSize={s.percent === 0 ? "8.5" : "11"}
+                            fontWeight="900"
+                            letterSpacing="0.4px"
+                            transform={`rotate(90, ${CX}, ${CY - 58})`}
+                            style={{ filter: "url(#sliceShadow)" }}
+                          >
+                            {s.label}
+                          </text>
+                        </g>
+                      </g>
+                    );
+                  })}
+
+                  {/* Outer Golden Ring with Accent Dots */}
+                  <circle cx={CX} cy={CY} r={R} fill="none" stroke="#f59e0b" strokeWidth="4" />
+                  <circle cx={CX} cy={CY} r={R - 3} fill="none" stroke="#fbbf24" strokeWidth="1.5" opacity="0.6" />
+
+                  {/* Golden Outer Decorative Studs */}
+                  {Array.from({ length: 12 }).map((_, i) => {
+                    const dotPos = getCoordinatesForAngle(i * 30, R - 6);
+                    return (
+                      <circle
+                        key={i}
+                        cx={dotPos.x}
+                        cy={dotPos.y}
+                        r="2.5"
+                        fill="#fef08a"
+                        stroke="#b45309"
+                        strokeWidth="0.8"
+                      />
+                    );
+                  })}
+                </svg>
               </div>
 
               {/* Center Hub */}
-              <div className="absolute w-12 h-12 rounded-full bg-gray-900 text-white font-black text-xs border-2 border-amber-400 shadow-xl flex items-center justify-center z-10 pointer-events-none">
-                <Sparkles size={16} className="text-amber-400" />
+              <div className="absolute w-12 h-12 rounded-full bg-gradient-to-tr from-gray-950 via-gray-900 to-gray-800 text-white font-black text-xs border-3 border-amber-400 shadow-2xl flex items-center justify-center z-20 pointer-events-none ring-2 ring-amber-300/30">
+                <Sparkles size={16} className="text-amber-400 animate-spin duration-3000" />
               </div>
             </div>
 
@@ -336,16 +477,21 @@ export default function SpinWheelModal() {
                 </button>
               </div>
             ) : betterLuck ? (
-              <div className="w-full p-4 rounded-2xl bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 space-y-2">
-                <span className="text-xs font-bold text-gray-600 dark:text-gray-300">
-                  😔 Better Luck Next Time!
-                </span>
-                <p className="text-[11px] text-gray-500">
-                  You can spin the wheel again tomorrow to win 10% or 15% discount coupons.
-                </p>
+              <div className="w-full p-4 rounded-2xl bg-gray-50 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 space-y-2.5 animate-in zoom-in-95 duration-200">
+                <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center mx-auto text-xl">
+                  😔
+                </div>
+                <div>
+                  <span className="text-xs font-black text-gray-800 dark:text-gray-200 block">
+                    Better Luck Next Time!
+                  </span>
+                  <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">
+                    No coupon won on this spin. You can try your luck again tomorrow to win 10% to 15% discount coupons!
+                  </p>
+                </div>
                 <button
                   onClick={() => setIsOpen(false)}
-                  className="w-full py-2 bg-gray-900 text-white text-xs font-bold rounded-xl hover:bg-gray-800 transition cursor-pointer"
+                  className="w-full py-2.5 bg-gray-900 hover:bg-orange-600 text-white text-xs font-bold rounded-xl transition cursor-pointer"
                 >
                   Continue Browsing Gear
                 </button>
