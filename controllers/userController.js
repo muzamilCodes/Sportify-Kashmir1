@@ -213,6 +213,25 @@ exports.updateProfile = async (req, res) => {
         : `data:${req.file.mimetype};base64,${req.file.buffer.toString("base64")}`;
     }
 
+    // Secure Password Update within Login & Security
+    if (req.body.newPassword) {
+      if (!req.body.currentPassword) {
+        return res.status(400).json({ success: false, message: "Current password is required to set new password" });
+      }
+      const currentUser = await User.findById(userId);
+      if (currentUser && currentUser.password) {
+        const isMatch = await bcrypt.compare(req.body.currentPassword, currentUser.password);
+        if (!isMatch) {
+          return res.status(400).json({ success: false, message: "Current password is incorrect" });
+        }
+      }
+      if (req.body.newPassword.length < 6) {
+        return res.status(400).json({ success: false, message: "New password must be at least 6 characters long" });
+      }
+      const hashedPassword = await bcrypt.hash(req.body.newPassword, 12);
+      updateData.password = hashedPassword;
+    }
+
     Object.keys(updateData).forEach(
       (key) => updateData[key] === undefined && delete updateData[key]
     );
