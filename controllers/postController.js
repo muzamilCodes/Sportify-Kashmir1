@@ -19,7 +19,12 @@ exports.addPost = async (req, res) => {
     
     if (req.file) {
       try {
-        const upload = await cloudinary.uploader.upload(req.file.path);
+        const upload = await cloudinary.uploader.upload(req.file.path, {
+          folder: "sportify_posts",
+          resource_type: "image",
+          quality: "auto:best",
+          fetch_format: "auto",
+        });
         imageUrl = upload.secure_url;
       } catch (error) {
         console.error("Upload error:", error);
@@ -74,7 +79,25 @@ exports.getAllPosts = async (req, res) => {
 exports.getPostById = async (req, res) => {
   try {
     const { postId } = req.params;
-    const post = await Post.findById(postId).populate("postAuthorId", "username");
+    if (!postId) {
+      return res.status(400).json({ success: false, message: "Post ID is required" });
+    }
+
+    const mongoose = require("mongoose");
+    let post = null;
+
+    if (mongoose.Types.ObjectId.isValid(postId)) {
+      post = await Post.findById(postId).populate("postAuthorId", "username email");
+    }
+
+    if (!post) {
+      post = await Post.findOne({
+        $or: [
+          { slug: postId },
+          { postTitle: new RegExp(`^${postId}$`, "i") }
+        ]
+      }).populate("postAuthorId", "username email");
+    }
     
     if (!post) {
       return res.status(404).json({
@@ -89,10 +112,10 @@ exports.getPostById = async (req, res) => {
       post: post
     });
   } catch (error) {
-    console.error(error);
+    console.error("Get post error:", error);
     return res.status(500).json({
       success: false,
-      message: "Server Error"
+      message: error.message || "Server Error"
     });
   }
 };
@@ -139,7 +162,12 @@ exports.updatePost = async (req, res) => {
 
     let imageUrl = post.postImgUrl;
     if (req.file) {
-      const upload = await cloudinary.uploader.upload(req.file.path);
+      const upload = await cloudinary.uploader.upload(req.file.path, {
+        folder: "sportify_posts",
+        resource_type: "image",
+        quality: "auto:best",
+        fetch_format: "auto",
+      });
       imageUrl = upload.secure_url;
     }
 
