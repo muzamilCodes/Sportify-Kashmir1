@@ -53,6 +53,7 @@ import {
   Building,
   ArrowUpRight,
   ArrowDownLeft,
+  ArrowLeft,
   Send,
   AlertOctagon,
 } from "lucide-react";
@@ -102,7 +103,7 @@ function ProfileContent() {
   const [primeData, setPrimeData] = useState<any>(null);
   
   // Sportify Pay & Wallet State
-  const [walletBalance, setWalletBalance] = useState<number>(500);
+  const [walletBalance, setWalletBalance] = useState<number>(0);
   const [addAmount, setAddAmount] = useState<string>("");
   const [isAddingMoney, setIsAddingMoney] = useState<boolean>(false);
   // Sportify Pay Withdrawal & Filter State
@@ -120,24 +121,7 @@ function ProfileContent() {
     amount: number;
     date: string;
     status: string;
-  }>>([
-    {
-      id: "tx-1",
-      title: "Welcome Athlete Cashback Bonus",
-      type: "credit",
-      amount: 500,
-      date: "Active",
-      status: "Completed",
-    },
-    {
-      id: "tx-2",
-      title: "Lucky Spin Wheel Reward",
-      type: "credit",
-      amount: 50,
-      date: "Recent",
-      status: "Completed",
-    },
-  ]);
+  }>>([]);
 
   const [securityForm, setSecurityForm] = useState({
     username: "",
@@ -271,7 +255,8 @@ function ProfileContent() {
     try {
       const savedBal = localStorage.getItem("sportify_wallet_balance");
       if (savedBal !== null) {
-        setWalletBalance(parseFloat(savedBal));
+        const parsed = parseFloat(savedBal);
+        setWalletBalance(isNaN(parsed) ? 0 : parsed);
       }
       const savedTxs = localStorage.getItem("sportify_wallet_transactions");
       if (savedTxs) {
@@ -301,7 +286,7 @@ function ProfileContent() {
         setLoading(false);
       }
       const savedBal = localStorage.getItem("sportify_wallet_balance");
-      if (savedBal) setWalletBalance(parseFloat(savedBal) || 500);
+      if (savedBal !== null) setWalletBalance(parseFloat(savedBal) || 0);
       const savedTx = localStorage.getItem("sportify_wallet_transactions");
       if (savedTx) setWalletTransactions(JSON.parse(savedTx));
     } catch {}
@@ -2370,12 +2355,28 @@ function ProfileContent() {
           >
             {/* Modal Header */}
             <div className="p-4 sm:p-5 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between sticky top-0 bg-white/95 dark:bg-gray-850/95 backdrop-blur-md z-10">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-600 flex items-center justify-center text-white shadow-md">
+              <div className="flex items-center gap-2.5 sm:gap-3">
+                {/* ⬅️ Prominent Back Button */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsWalletModalOpen(false);
+                    if (typeof window !== "undefined" && window.location.search.includes("tab=wallet")) {
+                      router.push("/profile");
+                    }
+                  }}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 dark:bg-gray-750 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 font-extrabold text-xs transition cursor-pointer active:scale-95 border border-gray-200 dark:border-gray-700 shadow-xs group"
+                  title="Go Back to Profile"
+                >
+                  <ArrowLeft size={16} className="group-hover:-translate-x-0.5 transition-transform text-orange-500" />
+                  <span>Back</span>
+                </button>
+
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-600 flex items-center justify-center text-white shadow-md shrink-0">
                   <CreditCard size={20} />
                 </div>
                 <div>
-                  <h3 className="font-extrabold text-base sm:text-lg text-gray-900 dark:text-white">Payment &amp; Account Details</h3>
+                  <h3 className="font-extrabold text-base sm:text-lg text-gray-900 dark:text-white leading-tight">Payment &amp; Account Details</h3>
                   <p className="text-xs text-gray-500 dark:text-gray-400">ATM Cards, UPI IDs, Bank Accounts &amp; Wallet</p>
                 </div>
               </div>
@@ -2393,8 +2394,14 @@ function ProfileContent() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setIsWalletModalOpen(false)}
+                  onClick={() => {
+                    setIsWalletModalOpen(false);
+                    if (typeof window !== "undefined" && window.location.search.includes("tab=wallet")) {
+                      router.push("/profile");
+                    }
+                  }}
                   className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-750 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition cursor-pointer"
+                  title="Close"
                 >
                   <X size={20} />
                 </button>
@@ -3217,71 +3224,113 @@ function ProfileContent() {
                     </div>
                   </div>
 
-                  {/* 4. Recent Wallet Activity */}
-                  <div className="space-y-3 text-xs">
-                    <div className="flex items-center justify-between">
-                      <h4 className="font-extrabold text-gray-900 dark:text-white text-xs uppercase tracking-wider">
-                        Recent Wallet Activity
-                      </h4>
-                      <div className="flex gap-1">
-                        {(["all", "credit", "debit"] as const).map((f) => (
-                          <button
-                            key={f}
-                            type="button"
-                            onClick={() => setTxFilter(f)}
-                            className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase transition cursor-pointer ${
-                              txFilter === f
-                                ? "bg-orange-500 text-white"
-                                : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200"
-                            }`}
-                          >
-                            {f}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      {walletTransactions
-                        .filter((tx) => txFilter === "all" || tx.type === txFilter)
-                        .map((tx) => (
-                          <div
-                            key={tx.id || tx.title + tx.date}
-                            className="p-3.5 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 flex items-center justify-between shadow-xs hover:border-gray-300 dark:hover:border-gray-600 transition"
-                          >
-                            <div className="flex items-center gap-3">
-                              <div
-                                className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
-                                  tx.type === "credit"
-                                    ? "bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400"
-                                    : "bg-rose-100 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400"
+                    {/* 4. Recent Wallet Activity */}
+                    <div className="space-y-3 text-xs">
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-extrabold text-gray-900 dark:text-white text-xs uppercase tracking-wider">
+                          Recent Wallet Activity
+                        </h4>
+                        {walletTransactions.length > 0 && (
+                          <div className="flex gap-1">
+                            {(["all", "credit", "debit"] as const).map((f) => (
+                              <button
+                                key={f}
+                                type="button"
+                                onClick={() => setTxFilter(f)}
+                                className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase transition cursor-pointer ${
+                                  txFilter === f
+                                    ? "bg-orange-500 text-white"
+                                    : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200"
                                 }`}
                               >
-                                {tx.type === "credit" ? <ArrowDownLeft size={16} /> : <ArrowUpRight size={16} />}
-                              </div>
-                              <div>
-                                <p className="font-bold text-xs text-gray-900 dark:text-white">{tx.title}</p>
-                                <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">
-                                  {tx.date} • <span className="text-emerald-600 dark:text-emerald-400 font-semibold">{tx.status || "Completed"}</span>
-                                </p>
-                              </div>
-                            </div>
-                            <span
-                              className={`text-xs sm:text-sm font-black ${
-                                tx.type === "credit" ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"
-                              }`}
-                            >
-                              {tx.type === "credit" ? "+" : "-"} ₹{tx.amount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-                            </span>
+                                {f}
+                              </button>
+                            ))}
                           </div>
-                        ))}
+                        )}
+                      </div>
+
+                      {walletTransactions.length === 0 ? (
+                        <div className="p-8 text-center bg-gray-50 dark:bg-gray-800 rounded-2xl border border-dashed border-gray-300 dark:border-gray-700 space-y-2">
+                          <Wallet className="w-10 h-10 mx-auto text-gray-400" />
+                          <p className="text-xs font-bold text-gray-800 dark:text-gray-200">No Wallet Transactions Recorded</p>
+                          <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                            Recharge your wallet or place an order using Sportify Pay to see transaction records here.
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          {walletTransactions
+                            .filter((tx) => txFilter === "all" || tx.type === txFilter)
+                            .map((tx) => (
+                              <div
+                                key={tx.id || tx.title + tx.date}
+                                className="p-3.5 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 flex items-center justify-between shadow-xs hover:border-gray-300 dark:hover:border-gray-600 transition"
+                              >
+                                <div className="flex items-center gap-3">
+                                  <div
+                                    className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
+                                      tx.type === "credit"
+                                        ? "bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400"
+                                        : "bg-rose-100 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400"
+                                    }`}
+                                  >
+                                    {tx.type === "credit" ? <ArrowDownLeft size={16} /> : <ArrowUpRight size={16} />}
+                                  </div>
+                                  <div>
+                                    <p className="font-bold text-xs text-gray-900 dark:text-white">{tx.title}</p>
+                                    <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">
+                                      {tx.date} • <span className="text-emerald-600 dark:text-emerald-400 font-semibold">{tx.status || "Completed"}</span>
+                                    </p>
+                                  </div>
+                                </div>
+                                <span
+                                  className={`text-xs sm:text-sm font-black ${
+                                    tx.type === "credit" ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"
+                                  }`}
+                                >
+                                  {tx.type === "credit" ? "+" : "-"} ₹{tx.amount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                                </span>
+                              </div>
+                            ))}
+                        </div>
+                      )}
                     </div>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
+
+              {/* Modal Footer with Back Button */}
+              <div className="p-4 sm:p-5 border-t border-gray-100 dark:border-gray-700 flex items-center justify-between sticky bottom-0 bg-white/95 dark:bg-gray-850/95 backdrop-blur-md z-10">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsWalletModalOpen(false);
+                    if (typeof window !== "undefined" && window.location.search.includes("tab=wallet")) {
+                      router.push("/profile");
+                    }
+                  }}
+                  className="px-4 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-750 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer active:scale-95 border border-gray-200 dark:border-gray-700"
+                >
+                  <ArrowLeft size={14} />
+                  <span>← Back to Profile</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsWalletModalOpen(false);
+                    if (typeof window !== "undefined" && window.location.search.includes("tab=wallet")) {
+                      router.push("/profile");
+                    }
+                  }}
+                  className="px-5 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-xl text-xs font-bold transition cursor-pointer active:scale-95 shadow-xs"
+                >
+                  Done
+                </button>
+              </div>
             </div>
           </div>
-        </div>
       )}
 
       {/* Sportify Prime VIP Modal */}

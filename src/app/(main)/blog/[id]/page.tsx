@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -36,7 +36,6 @@ import {
   formatBlogDate,
   calculateReadTime,
 } from "@/lib/blogData";
-import { cachedJson, setCachedJson } from "@/lib/clientCache";
 
 interface PageProps {
   params?: Promise<{ id: string }> | { id: string };
@@ -66,30 +65,20 @@ export default function SinglePostPage({ params }: PageProps) {
   const [likeCount, setLikeCount] = useState(42);
   const [copied, setCopied] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [scrollProgress, setScrollProgress] = useState(0);
   const [fontSizeOffset, setFontSizeOffset] = useState(0);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
 
-  const progressBarRef = useRef<HTMLDivElement>(null);
   const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000").replace(/\/$/, "");
 
-  // High Performance: Direct DOM requestAnimationFrame Scroll Progress without triggering React Re-renders
+  // Scroll Progress Bar Tracker
   useEffect(() => {
-    let ticking = false;
-
     const handleScroll = () => {
-      if (!ticking) {
-        window.requestAnimationFrame(() => {
-          if (progressBarRef.current) {
-            const totalScroll = document.documentElement.scrollTop || document.body.scrollTop;
-            const windowHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
-            if (windowHeight > 0) {
-              const scrollPct = (totalScroll / windowHeight) * 100;
-              progressBarRef.current.style.width = `${Math.min(100, Math.max(0, scrollPct))}%`;
-            }
-          }
-          ticking = false;
-        });
-        ticking = true;
+      const totalScroll = document.documentElement.scrollTop || document.body.scrollTop;
+      const windowHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+      if (windowHeight > 0) {
+        const scrollPct = (totalScroll / windowHeight) * 100;
+        setScrollProgress(Math.min(100, Math.max(0, scrollPct)));
       }
     };
 
@@ -127,9 +116,10 @@ export default function SinglePostPage({ params }: PageProps) {
   const fetchPost = async (id: string) => {
     try {
       setLoading(true);
-      // 1. Direct cached fetch
-      const result = await cachedJson<any>(`${API_URL}/posts/${id}`);
-      if (result) {
+      // 1. Direct single-post fetch
+      const response = await fetch(`${API_URL}/posts/${id}`);
+      if (response.ok) {
+        const result = await response.json();
         const found = result.post || result.data;
         if (found) {
           setPost(found);
@@ -139,14 +129,15 @@ export default function SinglePostPage({ params }: PageProps) {
         }
       }
 
-      // 2. Fallback: Search in getAllPosts
-      const allResult = await cachedJson<any>(`${API_URL}/posts/getAll`);
-      if (allResult) {
+      // 2. Fallback: Search in getAllPosts in case of ID variation
+      const allRes = await fetch(`${API_URL}/posts/getAll`);
+      if (allRes.ok) {
+        const allResult = await allRes.json();
         const list: BlogPost[] = Array.isArray(allResult.posts)
           ? allResult.posts
           : Array.isArray(allResult.data)
-          ? allResult.data
-          : [];
+            ? allResult.data
+            : [];
         const match = list.find(
           (p) =>
             p._id === id ||
@@ -173,16 +164,17 @@ export default function SinglePostPage({ params }: PageProps) {
 
   const fetchAllPosts = async () => {
     try {
-      const result = await cachedJson<any>(`${API_URL}/posts/getAll`);
-      if (result?.success) {
+      const response = await fetch(`${API_URL}/posts/getAll`);
+      const result = await response.json();
+      if (result.success) {
         const raw = Array.isArray(result.posts)
           ? result.posts
           : Array.isArray(result.data)
-          ? result.data
-          : [];
+            ? result.data
+            : [];
         setAllPosts(raw);
       }
-    } catch {}
+    } catch { }
   };
 
   const handleLike = () => {
@@ -192,12 +184,12 @@ export default function SinglePostPage({ params }: PageProps) {
       toast.success("Thank you for liking this guide! ❤️");
       try {
         confetti({
-          particleCount: 40,
-          spread: 50,
+          particleCount: 50,
+          spread: 60,
           origin: { y: 0.8 },
           colors: ["#f97316", "#ef4444", "#fbbf24"],
         });
-      } catch {}
+      } catch { }
     } else {
       setLiked(false);
       setLikeCount((prev) => Math.max(0, prev - 1));
@@ -218,7 +210,7 @@ export default function SinglePostPage({ params }: PageProps) {
           text: post?.shortDesc,
           url: window.location.href,
         })
-        .catch(() => {});
+        .catch(() => { });
     } else if (typeof window !== "undefined" && navigator.clipboard) {
       navigator.clipboard.writeText(window.location.href);
       setCopied(true);
@@ -259,18 +251,6 @@ export default function SinglePostPage({ params }: PageProps) {
   const relatedPosts = useMemo(() => {
     return allPosts.filter((p) => p._id !== postId).slice(0, 3);
   }, [allPosts, postId]);
-
-  // Memoize formatted content HTML so regex isn't re-evaluated on every minor render
-  const formattedContentHtml = useMemo(() => {
-    if (!post?.postDesc) return "";
-    return post.postDesc
-      .replace(/^### (.*$)/gim, '<h3 class="text-lg sm:text-xl font-black text-zinc-900 dark:text-white mt-6 mb-2 border-b border-zinc-100 dark:border-zinc-800 pb-1.5 flex items-center gap-2"><span>🏏</span> $1</h3>')
-      .replace(/^## (.*$)/gim, '<h2 class="text-xl sm:text-2xl font-black text-zinc-900 dark:text-white mt-8 mb-3 text-orange-600 dark:text-orange-400 border-l-4 border-orange-500 pl-3">$1</h2>')
-      .replace(/^\* \*\*(.*?)\*\*: (.*$)/gim, '<li class="my-1.5 text-xs sm:text-sm"><strong class="text-zinc-900 dark:text-white font-black">$1:</strong> $2</li>')
-      .replace(/^- (.*$)/gim, '<li class="my-1.5 text-xs sm:text-sm text-zinc-700 dark:text-zinc-300 list-disc ml-5">$1</li>')
-      .replace(/\n\n/g, '<p class="my-4 text-xs sm:text-sm leading-relaxed text-zinc-700 dark:text-zinc-300"></p>')
-      .replace(/\n/g, "<br/>");
-  }, [post?.postDesc]);
 
   if (loading) {
     return (
@@ -325,8 +305,8 @@ export default function SinglePostPage({ params }: PageProps) {
     typeof post.postAuthorId === "object" && post.postAuthorId?.username
       ? post.postAuthorId.username
       : typeof post.postAuthorId === "string"
-      ? post.postAuthorId
-      : "Sportify Specialist";
+        ? post.postAuthorId
+        : "Sportify Specialist";
 
   const readTime = calculateReadTime(post.postDesc);
 
@@ -338,12 +318,11 @@ export default function SinglePostPage({ params }: PageProps) {
 
   return (
     <div className="min-h-screen bg-[var(--color-bg-primary)] text-gray-900 dark:text-white pb-24 md:pb-20 transition-colors duration-200">
-      {/* ─── Reading Progress Bar Fixed at Top (Hardware accelerated) ─── */}
+      {/* ─── Reading Progress Bar Fixed at Top ─── */}
       <div className="fixed top-0 left-0 right-0 z-50 h-1.5 bg-zinc-200/50 dark:bg-zinc-800/50 backdrop-blur-xs">
         <div
-          ref={progressBarRef}
-          className="h-full bg-gradient-to-r from-amber-400 via-orange-500 to-red-500 transition-all duration-75 ease-out shadow-xs"
-          style={{ width: "0%" }}
+          className="h-full bg-gradient-to-r from-amber-400 via-orange-500 to-red-500 transition-all duration-150 ease-out shadow-xs"
+          style={{ width: `${scrollProgress}%` }}
         />
       </div>
 
@@ -377,11 +356,10 @@ export default function SinglePostPage({ params }: PageProps) {
             <button
               type="button"
               onClick={handleBookmark}
-              className={`p-1.5 rounded-lg transition cursor-pointer ${
-                saved
-                  ? "bg-orange-500 text-white"
-                  : "bg-zinc-100 dark:bg-zinc-800 hover:bg-orange-500/10 text-zinc-600 dark:text-zinc-300 hover:text-orange-500"
-              }`}
+              className={`p-1.5 rounded-lg transition cursor-pointer ${saved
+                ? "bg-orange-500 text-white"
+                : "bg-zinc-100 dark:bg-zinc-800 hover:bg-orange-500/10 text-zinc-600 dark:text-zinc-300 hover:text-orange-500"
+                }`}
               title={saved ? "Saved" : "Save article"}
             >
               <Bookmark size={15} className={saved ? "fill-white" : ""} />
@@ -503,8 +481,6 @@ export default function SinglePostPage({ params }: PageProps) {
                 alt={cleanTitle}
                 className="w-full h-auto max-h-[750px] object-contain rounded-xl sm:rounded-2xl transition-transform duration-500 group-hover:scale-[1.01] cursor-pointer"
                 loading="eager"
-                decoding="async"
-                fetchPriority="high"
                 onClick={() => setIsLightboxOpen(true)}
               />
             </div>
@@ -536,7 +512,13 @@ export default function SinglePostPage({ params }: PageProps) {
             className="prose prose-base sm:prose-lg max-w-none text-zinc-800 dark:text-zinc-200 leading-relaxed space-y-4 break-words"
             style={{ fontSize: `${16 + fontSizeOffset}px`, overflowWrap: "anywhere" }}
             dangerouslySetInnerHTML={{
-              __html: formattedContentHtml,
+              __html: (post.postDesc || "")
+                .replace(/^### (.*$)/gim, '<h3 class="text-lg sm:text-xl font-black text-zinc-900 dark:text-white mt-6 mb-2 border-b border-zinc-100 dark:border-zinc-800 pb-1.5 flex items-center gap-2"><span>🏏</span> $1</h3>')
+                .replace(/^## (.*$)/gim, '<h2 class="text-xl sm:text-2xl font-black text-zinc-900 dark:text-white mt-8 mb-3 text-orange-600 dark:text-orange-400 border-l-4 border-orange-500 pl-3">$1</h2>')
+                .replace(/^\* \*\*(.*?)\*\*: (.*$)/gim, '<li class="my-1.5 text-xs sm:text-sm"><strong class="text-zinc-900 dark:text-white font-black">$1:</strong> $2</li>')
+                .replace(/^- (.*$)/gim, '<li class="my-1.5 text-xs sm:text-sm text-zinc-700 dark:text-zinc-300 list-disc ml-5">$1</li>')
+                .replace(/\n\n/g, '<p class="my-4 text-xs sm:text-sm leading-relaxed text-zinc-700 dark:text-zinc-300"></p>')
+                .replace(/\n/g, "<br/>"),
             }}
           />
 
@@ -555,7 +537,7 @@ export default function SinglePostPage({ params }: PageProps) {
             </div>
           </div>
 
-          {/* ─── Tags & Topics Chip Row ─── */}
+          {/* ─── Tags & Topics Chip Row (TAGES BE AACHA SA DAKHO) ─── */}
           <div className="pt-6 border-t border-zinc-100 dark:border-zinc-800 space-y-3.5">
             <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-zinc-600 dark:text-zinc-300">
               <Tag size={15} className="text-orange-500" />
@@ -584,11 +566,10 @@ export default function SinglePostPage({ params }: PageProps) {
               <button
                 type="button"
                 onClick={handleLike}
-                className={`px-4 py-2.5 rounded-xl text-xs font-black transition flex items-center gap-2 cursor-pointer active:scale-95 shadow-sm border ${
-                  liked
-                    ? "bg-rose-500 text-white border-rose-500 shadow-rose-500/20"
-                    : "bg-white dark:bg-zinc-800 hover:bg-zinc-100 text-zinc-700 dark:text-zinc-200 border-zinc-200 dark:border-zinc-700"
-                }`}
+                className={`px-4 py-2.5 rounded-xl text-xs font-black transition flex items-center gap-2 cursor-pointer active:scale-95 shadow-sm border ${liked
+                  ? "bg-rose-500 text-white border-rose-500 shadow-rose-500/20"
+                  : "bg-white dark:bg-zinc-800 hover:bg-zinc-100 text-zinc-700 dark:text-zinc-200 border-zinc-200 dark:border-zinc-700"
+                  }`}
               >
                 <Heart size={16} className={liked ? "fill-white" : ""} />
                 <span>{likeCount} Likes</span>
@@ -661,7 +642,7 @@ export default function SinglePostPage({ params }: PageProps) {
 
         {/* ─── RELATED STORIES SECTION ─── */}
         {relatedPosts.length > 0 && (
-          <div className="pt-8 space-y-6 cv-auto">
+          <div className="pt-8 space-y-6">
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-lg sm:text-2xl font-black text-zinc-900 dark:text-white">
@@ -701,8 +682,6 @@ export default function SinglePostPage({ params }: PageProps) {
                             src={relImg}
                             alt={relTitle}
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                            loading="lazy"
-                            decoding="async"
                           />
                         </div>
                       ) : (

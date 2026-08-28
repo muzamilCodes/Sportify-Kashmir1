@@ -44,10 +44,10 @@ export default function ClientProviders({
           <MobileBottomNav />
           <ScrollToTop />
           <RouteChangeHandler />
+          <InstallPrompt />
+          <PWARegister />
           {isIdleLoaded && (
             <>
-              <InstallPrompt />
-              <PWARegister />
               <FloatingWhatsApp />
               <LiveSalesPopup />
               <SpinWheelModal />

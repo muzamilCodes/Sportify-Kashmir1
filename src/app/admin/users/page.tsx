@@ -375,7 +375,7 @@ export default function AdminUsersPage() {
                               )}
                               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 border border-emerald-200 text-emerald-800 text-[10px] font-black">
                                 <Wallet size={11} />
-                                <span>₹{(user.walletBalance ?? 500).toLocaleString("en-IN")}</span>
+                                <span>₹{(user.walletBalance ?? 0).toLocaleString("en-IN")}</span>
                               </span>
                             </>
                           )}
@@ -619,7 +619,7 @@ export default function AdminUsersPage() {
                   <span>Sportify Pay Wallet &amp; Ledger</span>
                 </h4>
                 <span className="text-xs font-black text-emerald-700 bg-emerald-100 px-3 py-1 rounded-full">
-                  Balance: ₹{(selectedUserPayments.walletBalance ?? 500).toLocaleString("en-IN")}
+                  Balance: ₹{(selectedUserPayments.walletBalance ?? 0).toLocaleString("en-IN")}
                 </span>
               </div>
 
