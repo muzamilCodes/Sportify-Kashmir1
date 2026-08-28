@@ -54,7 +54,9 @@ import {
   ArrowUpRight,
   ArrowDownLeft,
   Send,
+  AlertOctagon,
 } from "lucide-react";
+import confetti from "canvas-confetti";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, useRef, Suspense } from "react";
@@ -166,6 +168,7 @@ function ProfileContent() {
   const [addingCartId, setAddingCartId] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [selectedProfilePic, setSelectedProfilePic] = useState<File | null>(null);
   const [buyAgainProducts, setBuyAgainProducts] = useState<any[]>([]);
 
   // Real User Payment Methods & Saved Accounts State
