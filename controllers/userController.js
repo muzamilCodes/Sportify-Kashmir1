@@ -805,25 +805,8 @@ exports.clearRecentlyViewed = async (req, res) => {
 // ===================== USER PAYMENT & ACCOUNT DETAILS =====================
 exports.getPaymentMethods = async (req, res) => {
   try {
-    let user = await User.findById(req.userId).select("savedCards savedUpi savedBankAccounts walletBalance walletTransactions");
+    const user = await User.findById(req.userId).select("savedCards savedUpi savedBankAccounts walletBalance walletTransactions");
     if (!user) return res.status(404).json({ success: false, message: "User not found" });
-
-    // Initialize welcome bonus transaction if ledger is completely empty
-    if (!user.walletTransactions || user.walletTransactions.length === 0) {
-      user.walletBalance = user.walletBalance !== undefined && user.walletBalance !== null ? user.walletBalance : 500;
-      user.walletTransactions = [
-        {
-          title: "Welcome Athlete Cashback Bonus",
-          type: "credit",
-          amount: 500,
-          date: new Date().toLocaleDateString("en-IN", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }),
-          status: "Completed",
-          paymentMethod: "Sportify Welcome Bonus",
-          createdAt: new Date(),
-        },
-      ];
-      await user.save();
-    }
 
     return res.status(200).json({
       success: true,
@@ -831,7 +814,7 @@ exports.getPaymentMethods = async (req, res) => {
         savedCards: user.savedCards || [],
         savedUpi: user.savedUpi || [],
         savedBankAccounts: user.savedBankAccounts || [],
-        walletBalance: user.walletBalance !== undefined ? user.walletBalance : 500,
+        walletBalance: typeof user.walletBalance === "number" ? user.walletBalance : 0,
         walletTransactions: user.walletTransactions || [],
       },
     });

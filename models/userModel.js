@@ -94,7 +94,7 @@ const userSchema = new mongoose.Schema(
     ],
 
     // Real Sportify Wallet & Ledger
-    walletBalance: { type: Number, default: 500 },
+    walletBalance: { type: Number, default: 0 },
     walletTransactions: [
       {
         title: { type: String, required: true },
