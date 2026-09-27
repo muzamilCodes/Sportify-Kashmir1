@@ -159,7 +159,7 @@ export default function HomePage() {
     }
 
     try {
-      const response = await fetch(`${API_URL}/cart/add`, {
+      const response = await fetch(`${API_URL}/cart/addtoCart/${productId}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -195,7 +195,7 @@ export default function HomePage() {
     }
 
     try {
-      const response = await fetch(`${API_URL}/cart/add`, {
+      const response = await fetch(`${API_URL}/cart/addtoCart/${productId}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
