@@ -7,7 +7,7 @@ const inFlight = new Map<string, Promise<unknown>>();
 export async function cachedJson<T>(url: string, ttlMs = 60_000): Promise<T> {
   const now = Date.now();
   const existing = cache.get(url);
-  if (existing && existing.expiresAt > now) return existing.value as T;
+  if (existing && existing.value != null && existing.expiresAt > now) return existing.value as T;
 
   const pending = inFlight.get(url);
   if (pending) return pending as Promise<T>;
@@ -19,7 +19,9 @@ export async function cachedJson<T>(url: string, ttlMs = 60_000): Promise<T> {
         return null as unknown as T;
       }
       const value = (await response.json()) as T;
-      cache.set(url, { value, expiresAt: Date.now() + ttlMs });
+      if (value != null) {
+        cache.set(url, { value, expiresAt: Date.now() + ttlMs });
+      }
       return value;
     })
     .catch((err) => {
