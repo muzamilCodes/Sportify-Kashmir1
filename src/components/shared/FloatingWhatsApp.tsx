@@ -113,6 +113,7 @@ export default function FloatingWhatsApp() {
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         aria-label="Contact Sportify Kashmir on WhatsApp"
+        title="Chat on WhatsApp"
         className="w-11 h-11 sm:w-13 sm:h-13 rounded-full bg-gradient-to-tr from-emerald-500 to-green-600 text-white shadow-2xl flex items-center justify-center hover:scale-110 active:scale-95 transition-all cursor-pointer ring-3 sm:ring-4 ring-emerald-500/20 group"
       >
         <MessageCircle className="w-6 h-6 sm:w-7 sm:h-7 group-hover:rotate-12 transition-transform" />
