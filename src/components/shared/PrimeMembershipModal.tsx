@@ -302,7 +302,7 @@ export default function PrimeMembershipModal({ isOpen, onClose }: PrimeMembershi
           currency: "INR",
           name: "Sportify Kashmir",
           description: `Sportify Prime Kashmir VIP (${selectedPlan === "annual" ? "1 Year" : "3 Months"})`,
-          image: "/hero-banner-1.webp",
+          image: "/favicon.png",
           order_id: orderId.startsWith("order_") ? orderId : undefined,
           prefill: {
             name: userName,

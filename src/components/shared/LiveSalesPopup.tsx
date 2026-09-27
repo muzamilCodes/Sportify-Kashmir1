@@ -44,7 +44,7 @@ const TIME_AGOS = [
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 
 const getImageUrl = (url?: string) => {
-  if (!url) return "/hero-banner-1.webp";
+  if (!url) return "/placeholder.svg";
   if (url.startsWith("http")) return url;
   return `${API_URL}/uploads/${url}`;
 };
@@ -127,7 +127,7 @@ export default function LiveSalesPopup() {
         const img =
           product.productImgUrls && product.productImgUrls.length > 0
             ? getImageUrl(product.productImgUrls[0])
-            : "/hero-banner-1.webp";
+            : "/placeholder.svg";
 
         setCurrentNotification({
           id: product._id || Math.random().toString(),
@@ -196,7 +196,7 @@ export default function LiveSalesPopup() {
             alt={currentNotification.productName}
             className="w-full h-full object-cover rounded-lg group-hover:scale-110 transition-transform"
             onError={(e) => {
-              (e.currentTarget as HTMLImageElement).src = "/hero-banner-1.webp";
+              (e.currentTarget as HTMLImageElement).src = "/placeholder.svg";
             }}
           />
         </Link>

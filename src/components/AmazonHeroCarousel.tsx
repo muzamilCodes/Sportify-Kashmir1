@@ -179,10 +179,10 @@ export default function AmazonHeroCarousel() {
       link: "/products?search=cricket",
       linkText: "See all cricket willow & gear",
       products: cricketProds.length > 0 ? cricketProds : [
-        { id: "c1", name: "SG Kashmir Willow Blade", image: "/hero-banner-1.webp", price: 2899, discount: "20% off", link: "/products?search=cricket" },
-        { id: "c2", name: "Leather Alum Match Ball", image: "/hero-banner-1.webp", price: 499, discount: "15% off", link: "/products?search=cricket" },
-        { id: "c3", name: "Pro Legguard Batting Pads", image: "/hero-banner-1.webp", price: 1899, discount: "10% off", link: "/products?search=cricket" },
-        { id: "c4", name: "Full Team Cricket Kit Bag", image: "/hero-banner-1.webp", price: 3499, discount: "25% off", link: "/products?search=cricket" },
+        { id: "c1", name: "SG Kashmir Willow Blade", image: "https://images.unsplash.com/photo-1531415074968-036ba1b575da?w=500&auto=format&fit=crop&q=80", price: 2899, discount: "20% off", link: "/products?search=cricket" },
+        { id: "c2", name: "Leather Alum Match Ball", image: "https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?w=500&auto=format&fit=crop&q=80", price: 499, discount: "15% off", link: "/products?search=cricket" },
+        { id: "c3", name: "Pro Legguard Batting Pads", image: "https://images.unsplash.com/photo-1593341646782-e0b495cff86d?w=500&auto=format&fit=crop&q=80", price: 1899, discount: "10% off", link: "/products?search=cricket" },
+        { id: "c4", name: "Full Team Cricket Kit Bag", image: "https://images.unsplash.com/photo-1624526267942-ab0ff8a3e972?w=500&auto=format&fit=crop&q=80", price: 3499, discount: "25% off", link: "/products?search=cricket" },
       ],
     },
     {
@@ -196,10 +196,10 @@ export default function AmazonHeroCarousel() {
       link: "/products?search=gym",
       linkText: "Explore home fitness gear",
       products: gymProds.length > 0 ? gymProds : [
-        { id: "g1", name: "10kg-30kg Hex Dumbbells Set", image: "/hero-banner-3.webp", price: 2199, discount: "20% off", link: "/products?search=gym" },
-        { id: "g2", name: "Puma Dual-Grip Yoga Mat", image: "/hero-banner-3.webp", price: 1499, discount: "15% off", link: "/products?search=gym" },
-        { id: "g3", name: "Latex Resistance Bands Set", image: "/hero-banner-3.webp", price: 499, discount: "30% off", link: "/products?search=gym" },
-        { id: "g4", name: "Adjustable Workout Bench", image: "/hero-banner-3.webp", price: 3999, discount: "25% off", link: "/products?search=gym" },
+        { id: "g1", name: "10kg-30kg Hex Dumbbells Set", image: "https://images.unsplash.com/photo-1584735935682-2f2b69dff9d2?w=500&auto=format&fit=crop&q=80", price: 2199, discount: "20% off", link: "/products?search=gym" },
+        { id: "g2", name: "Puma Dual-Grip Yoga Mat", image: "https://images.unsplash.com/photo-1592432678016-e910b452f9a2?w=500&auto=format&fit=crop&q=80", price: 1499, discount: "15% off", link: "/products?search=gym" },
+        { id: "g3", name: "Latex Resistance Bands Set", image: "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=500&auto=format&fit=crop&q=80", price: 499, discount: "30% off", link: "/products?search=gym" },
+        { id: "g4", name: "Adjustable Workout Bench", image: "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=500&auto=format&fit=crop&q=80", price: 3999, discount: "25% off", link: "/products?search=gym" },
       ],
     },
     {
@@ -213,10 +213,10 @@ export default function AmazonHeroCarousel() {
       link: "/products?search=football",
       linkText: "View pro football gear",
       products: footballProds.length > 0 ? footballProds : [
-        { id: "f1", name: "Nike Flight Match Football Size 5", image: "/hero-banner-2.webp", price: 4299, discount: "10% off", link: "/products?search=football" },
-        { id: "f2", name: "Puma Future Ultimate Cleats", image: "/hero-banner-2.webp", price: 5999, discount: "15% off", link: "/products?search=football" },
-        { id: "f3", name: "Nivia Pro Goalkeeper Gloves", image: "/hero-banner-2.webp", price: 1299, discount: "20% off", link: "/products?search=football" },
-        { id: "f4", name: "Nike Dri-FIT Tracksuit", image: "/hero-banner-2.webp", price: 3499, discount: "18% off", link: "/products?search=football" },
+        { id: "f1", name: "Nike Flight Match Football Size 5", image: "https://images.unsplash.com/photo-1614632537423-1e6c2e7e0aab?w=500&auto=format&fit=crop&q=80", price: 4299, discount: "10% off", link: "/products?search=football" },
+        { id: "f2", name: "Puma Future Ultimate Cleats", image: "https://images.unsplash.com/photo-1511886929837-354d827aae26?w=500&auto=format&fit=crop&q=80", price: 5999, discount: "15% off", link: "/products?search=football" },
+        { id: "f3", name: "Nivia Pro Goalkeeper Gloves", image: "https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=500&auto=format&fit=crop&q=80", price: 1299, discount: "20% off", link: "/products?search=football" },
+        { id: "f4", name: "Nike Dri-FIT Tracksuit", image: "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=500&auto=format&fit=crop&q=80", price: 3499, discount: "18% off", link: "/products?search=football" },
       ],
     },
     {
@@ -230,10 +230,10 @@ export default function AmazonHeroCarousel() {
       link: "/sale",
       linkText: "Explore Prime perks & deals",
       products: allOtherProds.length > 0 ? allOtherProds : [
-        { id: "t1", name: "Yonex Astrox 99 Pro Racket", image: "/hero-banner-3.webp", price: 8999, discount: "12% off", link: "/products?search=badminton" },
-        { id: "t2", name: "Yonex Mavis 350 Shuttles", image: "/hero-banner-3.webp", price: 849, discount: "10% off", link: "/products?search=badminton" },
-        { id: "t3", name: "Nike Pegasus 40 Running Shoes", image: "/hero-banner-2.webp", price: 7999, discount: "20% off", link: "/products?search=running" },
-        { id: "t4", name: "Under Armour Tech T-Shirt", image: "/hero-banner-2.webp", price: 1299, discount: "15% off", link: "/products?search=wear" },
+        { id: "t1", name: "Yonex Astrox 99 Pro Racket", image: "https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?w=500&auto=format&fit=crop&q=80", price: 8999, discount: "12% off", link: "/products?search=badminton" },
+        { id: "t2", name: "Yonex Mavis 350 Shuttles", image: "https://images.unsplash.com/photo-1613918108466-292b78a8ef95?w=500&auto=format&fit=crop&q=80", price: 849, discount: "10% off", link: "/products?search=badminton" },
+        { id: "t3", name: "Nike Pegasus 40 Running Shoes", image: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=500&auto=format&fit=crop&q=80", price: 7999, discount: "20% off", link: "/products?search=running" },
+        { id: "t4", name: "Under Armour Tech T-Shirt", image: "https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?w=500&auto=format&fit=crop&q=80", price: 1299, discount: "15% off", link: "/products?search=wear" },
       ],
     },
   ];
