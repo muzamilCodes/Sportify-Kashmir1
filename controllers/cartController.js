@@ -6,7 +6,7 @@ const { resHandler } = require("../utilities/resHandler");
 exports.addToCart = async (req, res) => {
   try {
     const userId = req.userId;
-    const { productId } = req.params;
+    const productId = req.params.productId || req.body.productId;
     const { quantity = 1, color, size } = req.body;
 
     if (!productId || !quantity || quantity < 1) {

@@ -6,6 +6,9 @@ const optionalAuthorize = require("../middlewares/optionalAuthorize");
 const router = express.Router();
 
 router.post("/addtoCart/:productId" , optionalAuthorize , controller.addToCart)
+router.post("/addtoCart" , optionalAuthorize , controller.addToCart)
+router.post("/add/:productId" , optionalAuthorize , controller.addToCart)
+router.post("/add" , optionalAuthorize , controller.addToCart)
 router.get("/removeFromCart/:productId" , optionalAuthorize , controller.removeFromCart)
 router.post("/updateQuantity/:productId" , optionalAuthorize , controller.updateQuantity)
 router.get("/getCart" , authorize , controller.getCart)
