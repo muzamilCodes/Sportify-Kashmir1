@@ -25,7 +25,10 @@ const authorize = (req, res, next) => {
     
     next();
   } catch (error) {
-    console.error("Auth error:", error.message);
+    // Only log unexpected auth errors, not routine token expiration
+    if (error.name !== "TokenExpiredError") {
+      console.error("Auth error:", error.message);
+    }
     return res.status(401).json({ 
       success: false, 
       message: "Invalid or expired token" 

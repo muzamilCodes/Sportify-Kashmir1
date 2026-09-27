@@ -1,73 +1,171 @@
+# ⚙️ Sportify Kashmir — Backend API Server & Engine
 
+> **RESTful API Engine, Real-Time Notifications & Payment Processor**  
+> *Engineered with Node.js, Express.js, MongoDB Atlas with Mongoose ODM, Razorpay Payment Gateway, Cloudinary CDN, Nodemailer, and Twilio WhatsApp Alerts.*
 
-## Express Project
+---
 
-This is an Mern Stack project. Below are the required environment variables for configuration of server ,
-In the Server Folder create .env File and paste these variables with your own credentials 
+## 📑 Table of Contents
 
-```env
-SECRET_KEY=""
-PORT=""
-CLOUDINARY_URI=""
-SMTP_USERNAME=""
-SMTP_PASSWORD=""
-SMTP_HOST=""
-SMTP_PORT=""
+1. [🌟 Architecture Overview](#-architecture-overview)
+2. [🗄️ Database Models & Schemas](#️-database-models--schemas)
+3. [🌐 Complete API Endpoint Reference](#-complete-api-endpoint-reference)
+4. [💳 Payment & Wallet Logic](#-payment--wallet-logic)
+5. [🔔 Email & WhatsApp Notification Engine](#-email--whatsapp-notification-engine)
+6. [🛠️ Environment Variables Configuration](#️-environment-variables-configuration)
+7. [🚀 Running Locally & Production Deployment](#-running-locally--production-deployment)
+
+---
+
+## 🌟 Architecture Overview
+
+- **Port**: `4000` (Default)
+- **Database**: MongoDB Atlas (Connection via Mongoose ODM)
+- **Media Engine**: Cloudinary CDN with Multer file uploads
+- **Authentication**: JWT (JSON Web Tokens) with BCrypt password hashing
+- **Payments**: Razorpay Node SDK (Order creation, signature verification, webhooks)
+- **Communications**: Nodemailer (SMTP / Gmail App Password) & Twilio WhatsApp Gateway
+
+---
+
+## 🗄️ Database Models & Schemas
+
+### 1. `User` Schema (`models/userModel.js`)
+```javascript
+const userSchema = new mongoose.Schema({
+  username: { type: String, required: true },
+  email: { type: String, required: true, unique: true },
+  mobile: { type: String, required: true },
+  password: { type: String, required: true },
+  isAdmin: { type: Boolean, default: false },
+  isActive: { type: Boolean, default: true },
+  
+  // Real Saved Payment Methods
+  savedCards: [{
+    cardHolder: String,
+    cardNumber: String,
+    expiryDate: String,
+    cardType: String,
+    bankName: String,
+    createdAt: { type: Date, default: Date.now }
+  }],
+  savedUpi: [{
+    vpa: String,
+    name: String,
+    provider: String,
+    createdAt: { type: Date, default: Date.now }
+  }],
+  savedBankAccounts: [{
+    accountHolder: String,
+    accountNumber: String,
+    ifscCode: String,
+    bankName: String,
+    branchName: String,
+    createdAt: { type: Date, default: Date.now }
+  }],
+
+  // Real Sportify Wallet (Base 0)
+  walletBalance: { type: Number, default: 0 },
+  walletTransactions: [{
+    title: String,
+    type: { type: String, enum: ["credit", "debit"], default: "credit" },
+    amount: Number,
+    date: String,
+    status: { type: String, default: "Completed" },
+    paymentMethod: String,
+    createdAt: { type: Date, default: Date.now }
+  }]
+}, { timestamps: true });
 ```
 
-### Getting Started
+---
 
-1. Clone the repository.
-2. Install dependencies:
-    ```bash
-    npm install
-    ```
-3. Create a `.env` file in the root directory and add the above environment variables.
-4. Start the server:
-    ```bash
-    npm run dev
-    ```
+## 🌐 Complete API Endpoint Reference
 
-### Environment Variables
+### 👤 Customer & Auth (`/user`)
+- `POST /user/register` — Register a new customer account
+- `POST /user/login` — Login user & return JWT token
+- `GET /user/profile` — Fetch authenticated customer profile
+- `PUT /user/profile` — Update customer username, phone, or password
+- `GET /user/payment-methods` — Retrieve saved cards, UPI IDs, bank accounts & wallet
+- `POST /user/add-card` — Save new ATM / Credit / Debit card
+- `DELETE /user/delete-card/:id` — Delete saved card
+- `POST /user/add-upi` — Link UPI ID (VPA)
+- `DELETE /user/delete-upi/:id` — Remove linked UPI ID
+- `POST /user/add-bank` — Link bank account details
+- `DELETE /user/delete-bank/:id` — Remove bank account
+- `POST /user/wallet/recharge` — Add funds to Sportify Pay wallet via Razorpay
+- `POST /user/wallet/withdraw` — Payout from wallet to bank or UPI
 
-- **SECRET_KEY**: Secret key for your application.
-- **PORT**: Port number for the server.
-- **CLOUDINARY_URI**: Cloudinary connection string.
-- **SMTP_USERNAME**: SMTP username for sending emails.
-- **SMTP_PASSWORD**: SMTP password for sending emails.
-- **SMTP_HOST**: SMTP server host.
-- **SMTP_PORT**: SMTP server port.
+### 🏏 Products Catalog (`/product`)
+- `GET /product/getAll` — Get all products with filters & pagination
+- `GET /product/getById/:id` — Get single product specifications & reviews
+- `POST /product/create` — Create product with Cloudinary image uploads (Admin)
+- `PUT /product/update/:id` — Update product details (Admin)
+- `DELETE /product/delete/:id` — Delete product from database (Admin)
 
-### Production notifications
+### 📦 Orders & Fulfillment (`/orders`)
+- `POST /orders/create` — Place new order (COD, Razorpay, or Sportify Wallet)
+- `GET /orders/my-orders` — Logged in customer order history
+- `GET /orders/:id` — View single order tracking details
+- `PUT /orders/update-status/:id` — Update order fulfillment status (Admin)
 
-The deployed service must run `node index.js` from this `server` directory and define the following variables in Render/Vercel (values are never committed):
+---
+
+## 🛠️ Environment Variables Configuration (`.env`)
 
 ```env
+PORT=4000
+NODE_ENV=development
+MONGO_URI=mongodb+srv://<username>:<password>@cluster0.mongodb.net/sportify
+JWT_SECRET=your_super_secret_jwt_key
+
+# Cloudinary CDN Configuration
+CLOUDINARY_CLOUD_NAME=your_cloud_name
+CLOUDINARY_API_KEY=your_api_key
+CLOUDINARY_API_SECRET=your_api_secret
+
+# Razorpay Payment Gateway
+RAZORPAY_KEY_ID=rzp_test_your_key_id
+RAZORPAY_KEY_SECRET=your_razorpay_secret
+
+# Nodemailer SMTP Email Dispatcher
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
-SMTP_SECURE=false
-SMTP_USER=verified-sender@example.com
-SMTP_PASS=provider-app-password
-EMAIL_FROM=verified-sender@example.com
+SMTP_USER=your_email@gmail.com
+SMTP_PASS=your_gmail_app_password
+EMAIL_FROM=Sportify Kashmir <noreply@sportifykashmir.com>
 
-# Gmail production connectivity
-# Use port 587 with STARTTLS. Port 465/SMTPS is commonly blocked by hosted
-# deployments and can result in `Connection timeout`.
-
-# Either Twilio WhatsApp or the configured WhatsApp gateway
-TWILIO_ACCOUNT_SID=AC...
-TWILIO_AUTH_TOKEN=...
+# Twilio WhatsApp Notifications (Optional)
+TWILIO_ACCOUNT_SID=AC_your_account_sid
+TWILIO_AUTH_TOKEN=your_auth_token
 TWILIO_WHATSAPP_FROM=+14155238886
-# Required for production WhatsApp messages outside the 24-hour window
-TWILIO_WHATSAPP_CONTENT_SID=HX...
-TWILIO_WHATSAPP_CONTENT_VARIABLES={"1":"{{message}}"}
-# Alternative gateway:
-# WHATSAPP_API_URL=https://...
-# WHATSAPP_API_TOKEN=...
 ```
 
-Check `GET /health/notifications` after deployment. It reports only whether credentials are configured (never their values). Each order notification stores the provider's actual error in `notificationLog.error`; order persistence is not rolled back when a provider is unavailable.
+---
 
-### License
+## 🚀 Running Locally & Production Deployment
 
-This project is licensed under the MIT License.
+```bash
+# 1. Install dependencies
+npm install
+
+# 2. Start in development mode
+npm run dev
+
+# 3. Start in production mode
+npm start
+```
+
+### Production Deployment (Render)
+1. Push `server` directory to GitHub.
+2. Create Web Service in Render.
+3. Build Command: `npm install`
+4. Start Command: `node index.js`
+5. Configure all `.env` variables in Render dashboard.
+6. Deploy!
+
+---
+
+## 📄 License
+Copyright © 2026 **Sportify Kashmir**. MIT License.
