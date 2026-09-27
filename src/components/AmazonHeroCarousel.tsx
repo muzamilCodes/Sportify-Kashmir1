@@ -6,11 +6,12 @@ import {
   ChevronLeft, 
   ChevronRight, 
   ArrowRight, 
-  Sparkles,
-  Zap,
-  Truck,
-  ShieldCheck,
-  Percent
+  Sparkles, 
+  Zap, 
+  Truck, 
+  ShieldCheck, 
+  Percent,
+  PackageOpen
 } from "lucide-react";
 import { resolveProductImage } from "@/lib/imageHelper";
 import { cachedJson } from "@/lib/clientCache";
@@ -23,7 +24,8 @@ interface DbProduct {
   category?: { _id: string; name: string } | string;
   subcategory?: string;
   brand?: { _id: string; name: string } | string;
-  productImgUrls: string[];
+  productImgUrls?: string[];
+  images?: string[];
 }
 
 interface BannerCategoryCard {
@@ -48,23 +50,34 @@ interface BannerCategoryCard {
 
 interface HeroSlide {
   id: number;
+  tag: string;
   title: string;
   highlight: string;
   subtitle: string;
-  tag: string;
   image: string;
   link: string;
   bgClass: string;
 }
 
-export default function AmazonHeroCarousel() {
+interface AmazonHeroCarouselProps {
+  initialProducts?: any[];
+}
+
+export default function AmazonHeroCarousel({ initialProducts }: AmazonHeroCarouselProps = {}) {
   const [currentSlide, setCurrentSlide] = useState(0);
-  const [dbProducts, setDbProducts] = useState<DbProduct[]>([]);
+  const [dbProducts, setDbProducts] = useState<DbProduct[]>(initialProducts || []);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000").replace(/\/$/, "");
 
-  // Fetch real products from database using cached request deduplication
+  // Sync initial products if provided
+  useEffect(() => {
+    if (initialProducts && initialProducts.length > 0) {
+      setDbProducts(initialProducts);
+    }
+  }, [initialProducts]);
+
+  // Fetch real products from database
   useEffect(() => {
     let isMounted = true;
     cachedJson<any>(`${API_URL}/product/getAll`)
@@ -82,7 +95,7 @@ export default function AmazonHeroCarousel() {
     };
   }, [API_URL]);
 
-  // Desktop Background Carousel Slides (Full-Width with modern WebP compression)
+  // Desktop Background Carousel Slides
   const heroSlides: HeroSlide[] = [
     {
       id: 1,
@@ -124,39 +137,39 @@ export default function AmazonHeroCarousel() {
     return () => clearInterval(timer);
   }, [heroSlides.length]);
 
-  // Helper to find products by category name or fallback
-  const getProductsForCategory = (catName: string, count = 4) => {
+  // Helper to find real products by keywords from name/category/subcategory
+  const getProductsForKeywords = (keywords: string[], count = 4) => {
     const matched = dbProducts.filter((p) => {
-      const pCat = typeof p.category === "object" ? p.category?.name : p.category;
-      return (
-        pCat?.toLowerCase().includes(catName.toLowerCase()) ||
-        p.name?.toLowerCase().includes(catName.toLowerCase())
-      );
+      const pCat = (typeof p.category === "object" ? p.category?.name : p.category) || "";
+      const pSub = p.subcategory || "";
+      const pName = p.name || "";
+      const combined = `${pCat} ${pSub} ${pName}`.toLowerCase();
+      return keywords.some((k) => combined.includes(k.toLowerCase()));
     });
 
-    if (matched.length > 0) {
-      return matched.slice(0, count).map((p) => ({
-        id: p._id,
-        name: p.name,
-        image: resolveProductImage(p),
-        price: p.price,
-        discount: p.discount ? `${p.discount}% off` : undefined,
-        link: `/product/${p._id}`,
-      }));
-    }
-
-    return [];
+    return matched.slice(0, count).map((p) => ({
+      id: p._id,
+      name: p.name,
+      image: resolveProductImage(p),
+      price: p.price,
+      discount: p.discount ? `${p.discount}% off` : undefined,
+      link: `/product/${p._id}`,
+    }));
   };
 
-  // Build Real Banner Cards from Database Products
-  const cricketProds = getProductsForCategory("cricket", 4);
-  const gymProds = getProductsForCategory("gym", 4);
-  const footballProds = getProductsForCategory("football", 4);
-  const allOtherProds = dbProducts
-    .filter((p) => {
-      const pCat = typeof p.category === "object" ? p.category?.name : p.category;
-      return !pCat?.toLowerCase().includes("cricket");
-    })
+  // Build Real Banner Cards exclusively from Database Products
+  const cricketProds = getProductsForKeywords(["cricket", "bat", "wicket", "leather ball", "pad", "willow"], 4);
+  const gymProds = getProductsForKeywords(["gym", "fitness", "dumbbell", "bench", "band", "yoga", "workout"], 4);
+  const footballProds = getProductsForKeywords(["football", "stud", "cleat", "soccer", "glove", "jersey", "shin"], 4);
+
+  const usedIds = new Set([
+    ...cricketProds.map((p) => p.id),
+    ...gymProds.map((p) => p.id),
+    ...footballProds.map((p) => p.id),
+  ]);
+
+  const trendingProds = dbProducts
+    .filter((p) => !usedIds.has(p._id))
     .slice(0, 4)
     .map((p) => ({
       id: p._id,
@@ -178,12 +191,7 @@ export default function AmazonHeroCarousel() {
       bgGradient: "from-[#8B0000] via-[#5A000A] to-[#360006]",
       link: "/products?search=cricket",
       linkText: "See all cricket willow & gear",
-      products: cricketProds.length > 0 ? cricketProds : [
-        { id: "c1", name: "SG Kashmir Willow Blade", image: "https://images.unsplash.com/photo-1531415074968-036ba1b575da?w=500&auto=format&fit=crop&q=80", price: 2899, discount: "20% off", link: "/products?search=cricket" },
-        { id: "c2", name: "Leather Alum Match Ball", image: "https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?w=500&auto=format&fit=crop&q=80", price: 499, discount: "15% off", link: "/products?search=cricket" },
-        { id: "c3", name: "Pro Legguard Batting Pads", image: "https://images.unsplash.com/photo-1593341646782-e0b495cff86d?w=500&auto=format&fit=crop&q=80", price: 1899, discount: "10% off", link: "/products?search=cricket" },
-        { id: "c4", name: "Full Team Cricket Kit Bag", image: "https://images.unsplash.com/photo-1624526267942-ab0ff8a3e972?w=500&auto=format&fit=crop&q=80", price: 3499, discount: "25% off", link: "/products?search=cricket" },
-      ],
+      products: cricketProds,
     },
     {
       id: "gym-fitness",
@@ -195,12 +203,7 @@ export default function AmazonHeroCarousel() {
       bgGradient: "from-[#78350F] via-[#92400E] to-[#451A03]",
       link: "/products?search=gym",
       linkText: "Explore home fitness gear",
-      products: gymProds.length > 0 ? gymProds : [
-        { id: "g1", name: "10kg-30kg Hex Dumbbells Set", image: "https://images.unsplash.com/photo-1584735935682-2f2b69dff9d2?w=500&auto=format&fit=crop&q=80", price: 2199, discount: "20% off", link: "/products?search=gym" },
-        { id: "g2", name: "Puma Dual-Grip Yoga Mat", image: "https://images.unsplash.com/photo-1592432678016-e910b452f9a2?w=500&auto=format&fit=crop&q=80", price: 1499, discount: "15% off", link: "/products?search=gym" },
-        { id: "g3", name: "Latex Resistance Bands Set", image: "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=500&auto=format&fit=crop&q=80", price: 499, discount: "30% off", link: "/products?search=gym" },
-        { id: "g4", name: "Adjustable Workout Bench", image: "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=500&auto=format&fit=crop&q=80", price: 3999, discount: "25% off", link: "/products?search=gym" },
-      ],
+      products: gymProds,
     },
     {
       id: "football",
@@ -212,12 +215,7 @@ export default function AmazonHeroCarousel() {
       bgGradient: "from-[#1E3A8A] via-[#1E40AF] to-[#0F172A]",
       link: "/products?search=football",
       linkText: "View pro football gear",
-      products: footballProds.length > 0 ? footballProds : [
-        { id: "f1", name: "Nike Flight Match Football Size 5", image: "https://images.unsplash.com/photo-1614632537423-1e6c2e7e0aab?w=500&auto=format&fit=crop&q=80", price: 4299, discount: "10% off", link: "/products?search=football" },
-        { id: "f2", name: "Puma Future Ultimate Cleats", image: "https://images.unsplash.com/photo-1511886929837-354d827aae26?w=500&auto=format&fit=crop&q=80", price: 5999, discount: "15% off", link: "/products?search=football" },
-        { id: "f3", name: "Nivia Pro Goalkeeper Gloves", image: "https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=500&auto=format&fit=crop&q=80", price: 1299, discount: "20% off", link: "/products?search=football" },
-        { id: "f4", name: "Nike Dri-FIT Tracksuit", image: "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=500&auto=format&fit=crop&q=80", price: 3499, discount: "18% off", link: "/products?search=football" },
-      ],
+      products: footballProds,
     },
     {
       id: "prime-deals",
@@ -229,12 +227,7 @@ export default function AmazonHeroCarousel() {
       bgGradient: "from-[#065F46] via-[#047857] to-[#022C22]",
       link: "/sale",
       linkText: "Explore Prime perks & deals",
-      products: allOtherProds.length > 0 ? allOtherProds : [
-        { id: "t1", name: "Yonex Astrox 99 Pro Racket", image: "https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?w=500&auto=format&fit=crop&q=80", price: 8999, discount: "12% off", link: "/products?search=badminton" },
-        { id: "t2", name: "Yonex Mavis 350 Shuttles", image: "https://images.unsplash.com/photo-1613918108466-292b78a8ef95?w=500&auto=format&fit=crop&q=80", price: 849, discount: "10% off", link: "/products?search=badminton" },
-        { id: "t3", name: "Nike Pegasus 40 Running Shoes", image: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=500&auto=format&fit=crop&q=80", price: 7999, discount: "20% off", link: "/products?search=running" },
-        { id: "t4", name: "Under Armour Tech T-Shirt", image: "https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?w=500&auto=format&fit=crop&q=80", price: 1299, discount: "15% off", link: "/products?search=wear" },
-      ],
+      products: trendingProds,
     },
   ];
 
@@ -278,46 +271,54 @@ export default function AmazonHeroCarousel() {
                 </div>
               </div>
 
-              {/* 2x2 Product Grid Inside Banner Card */}
-              <div className="grid grid-cols-2 gap-2 bg-black/25 p-2 rounded-xl backdrop-blur-xs border border-white/10">
-                {card.products.map((prod) => (
-                  <Link
-                    key={prod.id}
-                    href={prod.link}
-                    className="bg-white dark:bg-gray-900 rounded-lg p-2 flex flex-col justify-between shadow-sm active:scale-97 transition-transform group"
-                  >
-                    {/* Image Area */}
-                    <div className="w-full h-20 bg-gray-50 dark:bg-gray-800 rounded-md overflow-hidden flex items-center justify-center relative p-1">
-                      <img
-                        src={prod.image}
-                        alt={prod.name}
-                        width={140}
-                        height={80}
-                        loading="lazy"
-                        decoding="async"
-                        className="w-full h-full object-cover rounded group-hover:scale-105 transition-transform"
-                      />
-                      {prod.discount && (
-                        <span className="absolute top-1 left-1 bg-red-600 text-white text-[8px] font-black px-1 rounded shadow-xs">
-                          {prod.discount}
-                        </span>
-                      )}
-                    </div>
+              {/* Product Grid Inside Banner Card */}
+              {card.products.length > 0 ? (
+                <div className="grid grid-cols-2 gap-2 bg-black/25 p-2 rounded-xl backdrop-blur-xs border border-white/10 min-h-[190px]">
+                  {card.products.map((prod) => (
+                    <Link
+                      key={prod.id}
+                      href={prod.link}
+                      className="bg-white dark:bg-gray-900 rounded-lg p-2 flex flex-col justify-between shadow-sm active:scale-97 transition-transform group"
+                    >
+                      {/* Image Area */}
+                      <div className="w-full h-20 bg-gray-50 dark:bg-gray-800 rounded-md overflow-hidden flex items-center justify-center relative p-1">
+                        <img
+                          src={prod.image}
+                          alt={prod.name}
+                          width={140}
+                          height={80}
+                          loading="lazy"
+                          decoding="async"
+                          className="w-full h-full object-cover rounded group-hover:scale-105 transition-transform"
+                        />
+                        {prod.discount && (
+                          <span className="absolute top-1 left-1 bg-red-600 text-white text-[8px] font-black px-1 rounded shadow-xs">
+                            {prod.discount}
+                          </span>
+                        )}
+                      </div>
 
-                    {/* Title & Price */}
-                    <div className="mt-1.5 leading-none">
-                      <span className="text-[10px] font-bold text-gray-800 dark:text-gray-200 line-clamp-1 block">
-                        {prod.name}
-                      </span>
-                      {prod.price && (
-                        <span className="text-[11px] font-black text-gray-900 dark:text-white block mt-0.5">
-                          ₹{prod.price.toLocaleString()}
+                      {/* Title & Price */}
+                      <div className="mt-1.5 leading-none">
+                        <span className="text-[10px] font-bold text-gray-800 dark:text-gray-200 line-clamp-1 block">
+                          {prod.name}
                         </span>
-                      )}
-                    </div>
-                  </Link>
-                ))}
-              </div>
+                        {prod.price && (
+                          <span className="text-[11px] font-black text-gray-900 dark:text-white block mt-0.5">
+                            ₹{prod.price.toLocaleString()}
+                          </span>
+                        )}
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center p-6 text-center rounded-xl bg-black/20 border border-white/10 min-h-[190px]">
+                  <PackageOpen className="w-8 h-8 text-white/60 mb-2 stroke-[1.5]" />
+                  <p className="text-xs font-bold text-white">No products added yet</p>
+                  <p className="text-[10px] text-white/70 mt-0.5">Newly created products will appear here</p>
+                </div>
+              )}
 
               {/* Bottom Explore Link */}
               <div className="mt-2.5 pt-1.5 border-t border-white/10 flex items-center justify-between text-[11px]">
@@ -439,41 +440,49 @@ export default function AmazonHeroCarousel() {
                     {card.subtitle}
                   </p>
 
-                  {/* 2x2 Image Tile Grid */}
-                  <div className="grid grid-cols-2 gap-2.5 my-3.5">
-                    {card.products.map((prod) => (
-                      <Link
-                        key={prod.id}
-                        href={prod.link}
-                        className="group/item flex flex-col justify-between"
-                      >
-                        <div className="w-full h-24 bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden flex items-center justify-center p-1.5 relative border border-gray-200/50 dark:border-gray-700/50 group-hover/item:border-orange-500 transition-colors">
-                          <img
-                            src={prod.image}
-                            alt={prod.name}
-                            width={160}
-                            height={96}
-                            loading="lazy"
-                            decoding="async"
-                            className="w-full h-full object-cover rounded-md group-hover/item:scale-105 transition-transform"
-                          />
-                          {prod.discount && (
-                            <span className="absolute top-1 left-1 bg-[#cc0c39] text-white text-[9px] font-black px-1.5 py-0.2 rounded shadow-xs">
-                              {prod.discount}
+                  {/* Image Tile Grid */}
+                  {card.products.length > 0 ? (
+                    <div className="grid grid-cols-2 gap-2.5 my-3.5 min-h-[220px]">
+                      {card.products.map((prod) => (
+                        <Link
+                          key={prod.id}
+                          href={prod.link}
+                          className="group/item flex flex-col justify-between"
+                        >
+                          <div className="w-full h-24 bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden flex items-center justify-center p-1.5 relative border border-gray-200/50 dark:border-gray-700/50 group-hover/item:border-orange-500 transition-colors">
+                            <img
+                              src={prod.image}
+                              alt={prod.name}
+                              width={160}
+                              height={96}
+                              loading="lazy"
+                              decoding="async"
+                              className="w-full h-full object-cover rounded-md group-hover/item:scale-105 transition-transform"
+                            />
+                            {prod.discount && (
+                              <span className="absolute top-1 left-1 bg-[#cc0c39] text-white text-[9px] font-black px-1.5 py-0.2 rounded shadow-xs">
+                                {prod.discount}
+                              </span>
+                            )}
+                          </div>
+                          <div className="mt-1">
+                            <span className="text-[11px] font-bold text-gray-700 dark:text-gray-300 line-clamp-1 group-hover/item:text-orange-600 transition-colors">
+                              {prod.name}
                             </span>
-                          )}
-                        </div>
-                        <div className="mt-1">
-                          <span className="text-[11px] font-bold text-gray-700 dark:text-gray-300 line-clamp-1 group-hover/item:text-orange-600 transition-colors">
-                            {prod.name}
-                          </span>
-                          <span className="text-xs font-black text-gray-900 dark:text-white block mt-0.5">
-                            ₹{prod.price.toLocaleString()}
-                          </span>
-                        </div>
-                      </Link>
-                    ))}
-                  </div>
+                            <span className="text-xs font-black text-gray-900 dark:text-white block mt-0.5">
+                              ₹{prod.price.toLocaleString()}
+                            </span>
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center p-8 text-center rounded-xl bg-gray-50 dark:bg-zinc-800/50 border border-gray-200/40 dark:border-zinc-700/40 my-3.5 min-h-[220px]">
+                      <PackageOpen className="w-9 h-9 text-gray-400 dark:text-gray-500 mb-2 stroke-[1.5]" />
+                      <p className="text-xs font-bold text-gray-700 dark:text-gray-200">No products added yet</p>
+                      <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-1">Newly created products will appear here</p>
+                    </div>
+                  )}
                 </div>
 
                 {/* Bottom Card Link */}

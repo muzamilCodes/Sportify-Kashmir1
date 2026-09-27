@@ -223,7 +223,7 @@ export default function HomePage() {
   return (
     <div className="space-y-6 md:space-y-8 pb-16">
       {/* 1. Amazon Prime / Flipkart Inspired Hero Section */}
-      <AmazonHeroCarousel />
+      <AmazonHeroCarousel initialProducts={products} />
 
       {/* Main Content Container with negative top margin to blend into hero banner on desktop */}
       <div className="container max-w-[1500px] mx-auto px-3 sm:px-4 md:px-6 relative z-20">
