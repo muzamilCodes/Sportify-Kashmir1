@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { usePathname } from "next/navigation";
+import { handleAuthResponse } from "@/lib/authGuard";
 
 type CartCountContextValue = {
   cartCount: number;
@@ -27,6 +28,7 @@ export function CartCountProvider({ children }: { children: React.ReactNode }) {
       const response = await fetch(`${API_URL}/cart/getCart`, {
         headers: { Authorization: `Bearer ${token}` },
       });
+      if (handleAuthResponse(response)) return;
       const result = await response.json();
       const products = result.success && result.data?.products ? result.data.products : [];
       setCartCount(products.reduce((sum: number, item: { quantity?: number }) => sum + (item.quantity || 1), 0));

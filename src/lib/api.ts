@@ -10,6 +10,45 @@ export const api = axios.create({
   withCredentials: true,
 });
 
+// Auto-attach token to every request
+api.interceptors.request.use((config) => {
+  if (typeof window !== "undefined") {
+    const token = localStorage.getItem("token");
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+  }
+  return config;
+});
+
+// Handle expired / invalid tokens globally
+let isRedirecting = false;
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (
+      error.response?.status === 401 &&
+      typeof window !== "undefined" &&
+      !isRedirecting
+    ) {
+      const token = localStorage.getItem("token");
+      // Only auto-logout if there WAS a token (i.e. it expired)
+      if (token) {
+        isRedirecting = true;
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        window.dispatchEvent(new Event("cartUpdated"));
+        // Small delay so parallel 401s don't each trigger a redirect
+        setTimeout(() => {
+          window.location.href = "/login";
+          isRedirecting = false;
+        }, 100);
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
 // Product API functions
 export const productApi = {
   // Get all products

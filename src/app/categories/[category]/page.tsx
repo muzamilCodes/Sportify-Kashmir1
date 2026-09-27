@@ -92,7 +92,7 @@ function CategoryContent() {
   const fetchCategoryData = async () => {
     try {
       const result = await cachedJson<{ success: boolean; data: any[] }>(`${API_URL}/category/all`);
-      if (result.success && result.data) {
+      if (result?.success && result.data) {
         const slugNorm = categorySlug.toLowerCase().replace(/[^a-z0-9]+/g, "");
         const category = result.data.find((c: any) => {
           const nameNorm = (c.name || "").toLowerCase().replace(/[^a-z0-9]+/g, "");
@@ -112,7 +112,7 @@ function CategoryContent() {
       setLoading(true);
       const result = await cachedJson<{ success: boolean; data: any }>(`${API_URL}/product/category/${categorySlug}`);
 
-      if (result.success && result.data) {
+      if (result?.success && result.data) {
         const list = Array.isArray(result.data) ? result.data : result.data?.items || [];
         list.forEach((p: any) => {
           if (p?._id) {

@@ -14,10 +14,17 @@ export async function cachedJson<T>(url: string, ttlMs = 60_000): Promise<T> {
 
   const request = fetch(url)
     .then(async (response) => {
-      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+      if (!response.ok) {
+        console.warn(`[clientCache] ${url} returned status ${response.status}`);
+        return null as unknown as T;
+      }
       const value = (await response.json()) as T;
       cache.set(url, { value, expiresAt: Date.now() + ttlMs });
       return value;
+    })
+    .catch((err) => {
+      console.warn(`[clientCache] Fetch error for ${url}:`, err.message);
+      return null as unknown as T;
     })
     .finally(() => inFlight.delete(url));
 

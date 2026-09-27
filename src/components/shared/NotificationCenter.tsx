@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { handleAuthResponse } from "@/lib/authGuard";
 
 interface NotificationItem {
   _id: string;
@@ -113,7 +114,7 @@ export default function NotificationCenter() {
 
       clearTimeout(timeoutId);
 
-      if (userRes && userRes.ok) {
+      if (userRes && !handleAuthResponse(userRes) && userRes.ok) {
         const data = await userRes.json();
         if (data.success) {
           setNotifications(data.data || []);
@@ -135,7 +136,7 @@ export default function NotificationCenter() {
 
         clearTimeout(adminTimeoutId);
 
-        if (adminRes && adminRes.ok) {
+        if (adminRes && !handleAuthResponse(adminRes) && adminRes.ok) {
           const adminData = await adminRes.json();
           if (adminData.success) {
             setAdminNotifications(adminData.data || []);

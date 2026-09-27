@@ -90,7 +90,7 @@ function ProductsContent() {
         ]);
 
         if (isMounted) {
-          if (prodRes.success && prodRes.data) {
+          if (prodRes?.success && prodRes.data) {
             const rawList = Array.isArray(prodRes.data) ? prodRes.data : prodRes.data?.items || [];
             rawList.forEach((p: any) => {
               if (p?._id) {
@@ -102,10 +102,10 @@ function ProductsContent() {
             );
             setProducts(availableProducts);
           }
-          if (catRes.success && catRes.data) {
+          if (catRes?.success && catRes.data) {
             setCategories(Array.isArray(catRes.data) ? catRes.data : catRes.data?.items || []);
           }
-          if (brandRes.success && brandRes.data) {
+          if (brandRes?.success && brandRes.data) {
             setBrands(Array.isArray(brandRes.data) ? brandRes.data : brandRes.data?.items || []);
           }
         }
