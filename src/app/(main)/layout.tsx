@@ -17,7 +17,7 @@ export default function MainLayout({
   }, []);
 
   return (
-    <main className="min-h-screen bg-[var(--color-bg-primary)] transition-colors duration-300 has-bottom-nav md:pb-0">
+    <main className="min-h-screen bg-[var(--color-bg-primary)] transition-colors duration-300">
       {children}
       <CompareBar />
     </main>

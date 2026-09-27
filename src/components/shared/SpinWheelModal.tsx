@@ -280,10 +280,10 @@ export default function SpinWheelModal() {
       <button
         type="button"
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-20 md:bottom-6 left-4 z-40 bg-gradient-to-r from-amber-500 via-orange-500 to-red-500 text-white px-3.5 py-2.5 rounded-full shadow-2xl flex items-center gap-1.5 text-xs font-black tracking-wide hover:scale-105 active:scale-95 transition-all cursor-pointer border-2 border-white/40 ring-4 ring-amber-400/20 animate-pulse"
+        className="fixed bottom-20 md:bottom-6 left-3 sm:left-4 z-40 bg-gradient-to-r from-amber-500 via-orange-500 to-red-500 text-white px-2.5 py-1.5 sm:px-3.5 sm:py-2 rounded-full shadow-xl flex items-center gap-1.5 text-[11px] sm:text-xs font-black tracking-wide hover:scale-105 active:scale-95 transition-all cursor-pointer border border-white/40 ring-2 sm:ring-4 ring-amber-400/20"
         aria-label="Spin and Win discounts"
       >
-        <Gift size={16} className="animate-bounce" />
+        <Gift size={14} className="animate-bounce" />
         {activeCoupon ? (
           <span className="inline-flex items-center gap-1 font-mono">
             <span>🎁 {activeCoupon.discountPercent}% OFF</span>

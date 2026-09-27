@@ -31,7 +31,7 @@ export default function FloatingWhatsApp() {
   }
 
   return (
-    <div className="fixed bottom-20 md:bottom-6 right-4 z-40 flex flex-col items-end">
+    <div className="fixed bottom-20 md:bottom-6 right-3 sm:right-4 z-40 flex flex-col items-end">
       {/* Quick Questions Popup Menu */}
       {isOpen && (
         <div className="mb-3 w-72 sm:w-80 rounded-2xl bg-white dark:bg-gray-900 shadow-2xl border border-gray-200 dark:border-gray-800 p-4 animate-in fade-in slide-in-from-bottom-3 duration-200">
@@ -113,9 +113,9 @@ export default function FloatingWhatsApp() {
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         aria-label="Contact Sportify Kashmir on WhatsApp"
-        className="w-13 h-13 rounded-full bg-gradient-to-tr from-emerald-500 to-green-600 text-white shadow-2xl flex items-center justify-center hover:scale-110 active:scale-95 transition-all cursor-pointer ring-4 ring-emerald-500/20 group"
+        className="w-11 h-11 sm:w-13 sm:h-13 rounded-full bg-gradient-to-tr from-emerald-500 to-green-600 text-white shadow-2xl flex items-center justify-center hover:scale-110 active:scale-95 transition-all cursor-pointer ring-3 sm:ring-4 ring-emerald-500/20 group"
       >
-        <MessageCircle size={28} className="group-hover:rotate-12 transition-transform" />
+        <MessageCircle className="w-6 h-6 sm:w-7 sm:h-7 group-hover:rotate-12 transition-transform" />
       </button>
     </div>
   );
